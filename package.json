@@ -1,0 +1,16 @@
+{
+  "name": "valence-port-workspace",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Workspace root for the VALENCE PORT rendering-boundary packages.",
+  "license": "MIT",
+  "author": "Jack Miller <jackmiller0899@gmail.com>",
+  "scripts": {
+    "build": "pnpm -r run build",
+    "typecheck": "pnpm -r run typecheck",
+    "test": "pnpm -r run test"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0"
+  }
+}
