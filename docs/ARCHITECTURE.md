@@ -1,19 +1,16 @@
-# PORT — Architecture
+# PORT Architecture
 
-This is the PORT-relevant excerpt of the VALENCE architecture. PORT is one of
-three independent repos (`nexus`, `mesh`, `port`) that make up VALENCE; see
-each repo's own docs for its slice, or the full design doc kept in the
-[VALENCE namespace folder](https://github.com/valence-ui) for the complete
-picture.
+This document covers PORT's part of the Valance design: what it's responsible for, what it deliberately stays out of, and the rules that keep it that way. The sibling repos, [NEXUS](https://github.com/ValanceX/Nexus) and [MESH](https://github.com/ValanceX/Mesh), each have their own architecture doc. For the big picture, start at the [ValanceX organization page](https://github.com/ValanceX).
 
-## Role
+## The short version
 
-PORT is the rendering boundary. It translates MESH output into a
-target-specific representation. It should be "dumb" relative to application
-logic.
+PORT is where Valance meets a real screen. It takes compiled UI from MESH and turns it into whatever the target understands: DOM nodes, canvas draw calls, or commands for an embedded display.
 
-Potential targets: Web DOM, Canvas, embedded display, custom device display,
-native UI.
+A good way to picture PORT is as a printer driver. The document is already written and approved before the driver sees it. The driver's only job is to put it on this particular device, so swapping printers doesn't change the document.
+
+## What PORT is responsible for
+
+PORT translates MESH output into a representation specific to one target. Each target gets its own renderer:
 
 ```text
 MESH
@@ -25,40 +22,48 @@ PORT
  └── Other Renderers
 ```
 
-A renderer should be replaceable without changing application/business
-logic. PORT must not own business logic.
+Targets we expect to support include the Web DOM, Canvas, embedded displays, custom device displays, and native UI toolkits.
 
-## Hardware Capabilities (relevant boundary)
+A renderer:
 
-Hardware capabilities are resolved by NEXUS, not PORT:
+- receives a **MESH tree**: compiled, validated, renderer-independent UI;
+- maps each node onto the target's native API;
+- handles the lifecycle of what it draws: mount, update, and unmount.
+
+## What PORT stays out of
+
+PORT is intentionally "dumb" about the application. That's the point: a renderer should be replaceable without changing a single line of application or business logic.
+
+- **No business logic.** Rules like "can this cart check out?" live in NEXUS.
+- **No language knowledge.** PORT never sees MPRX source. It only ever receives output that MESH has already validated.
+- **No capability decisions.** See below.
+
+## Hardware capabilities: who decides?
+
+Devices differ: some have haptics or a camera, some have tiny screens, and some are offline. Valance resolves these differences in **NEXUS**, not in PORT:
 
 ```text
-Application → NEXUS → Environment/Capability Detection → Capability Resolution → Application receives resolved capability
+Application → NEXUS → detect environment → resolve capability → application receives the result
 ```
 
-PORT may need to know what a given target *can render* (e.g. whether a
-display supports a given primitive), but the capability handshake and its
-fallback/no-op/degraded-representation strategy is decided upstream in
-NEXUS, not scattered through renderer code.
+PORT still needs to know what its own target is able to *draw*, for example whether a display supports a given primitive. But decisions like "what do we do when this isn't supported?" (a fallback, a no-op, or a simpler representation) are made upstream, in one place. That keeps renderer code free of scattered device checks.
 
-## Repository Direction
+## Packages
 
-```text
-github.com/valence-ui/
-├── nexus
-├── mesh
-└── port
-```
+| Package | Role |
+|---|---|
+| `@valence/port` | The core contract every renderer implements |
+| `@valence/port-web` | Web DOM renderer |
+| `@valence/port-canvas` | Canvas renderer |
 
-Potential published packages: `@valence/port`, `@valence/port-web`,
-`@valence/port-canvas`.
+Renderers depend on the core contract and never on each other, so adding a target never means touching an existing one.
 
-## Invariants relevant to PORT
+## The rules
 
-1. PORT never owns application/business logic.
-2. A renderer can be replaced without modifying application logic.
-3. A MESH tree (what PORT consumes) is renderer-independent.
-4. Renderer-specific conditions must not leak into domain/application code
-   (the inverse also holds: PORT must not reach upward into domain code).
-5. Unsupported capabilities have an explicit resolution strategy, decided in
-   NEXUS — PORT does not silently ignore what it cannot render.
+These invariants keep PORT honest. If a change would break one of them, it probably belongs in another repo.
+
+1. **PORT never owns application or business logic.**
+2. **Renderers are replaceable.** Swapping one must not require changes to application logic.
+3. **The input is renderer-independent.** The MESH tree PORT consumes carries no target-specific assumptions.
+4. **No leaks in either direction.** Renderer-specific conditions don't leak into domain code, and PORT doesn't reach up into domain code.
+5. **Nothing is silently dropped.** Unsupported capabilities have an explicit strategy, decided in NEXUS. PORT does not quietly ignore what it can't render.

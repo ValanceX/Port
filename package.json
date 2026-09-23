@@ -2,7 +2,7 @@
   "name": "valence-port-workspace",
   "version": "0.0.1",
   "private": true,
-  "description": "Workspace root for the VALENCE PORT rendering-boundary packages.",
+  "description": "Workspace root for the Valance PORT rendering-boundary packages.",
   "license": "MIT",
   "author": "Jack Miller <jackmiller0899@gmail.com>",
   "scripts": {
