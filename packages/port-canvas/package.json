@@ -1,7 +1,7 @@
 {
   "name": "@valence/port-canvas",
   "version": "0.0.1",
-  "description": "Canvas renderer implementing the @valence/port contract.",
+  "description": "Canvas PORT (placeholder): lowers MESH semantics to Canvas.",
   "type": "module",
   "license": "MIT",
   "author": "Jack Miller <jackmiller0899@gmail.com>",

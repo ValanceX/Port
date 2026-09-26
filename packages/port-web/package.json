@@ -1,7 +1,7 @@
 {
   "name": "@valence/port-web",
   "version": "0.0.1",
-  "description": "Web DOM renderer implementing the @valence/port contract.",
+  "description": "Web PORT: lowers MESH semantics to DOM and CSS.",
   "type": "module",
   "license": "MIT",
   "author": "Jack Miller <jackmiller0899@gmail.com>",

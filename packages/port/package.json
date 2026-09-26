@@ -1,7 +1,7 @@
 {
   "name": "@valence/port",
   "version": "0.0.1",
-  "description": "Core PORT contract: the target-agnostic interface every renderer implements against the MESH Semantic IR.",
+  "description": "Shared PORT boundary vocabulary: the MESH semantic input a PORT consumes and its target capability description.",
   "type": "module",
   "license": "MIT",
   "author": "Jack Miller <jackmiller0899@gmail.com>",
