@@ -1,10 +1,17 @@
 {
-  "name": "valence-port-workspace",
+  "name": "valancex-port-workspace",
   "version": "0.0.1",
   "private": true,
-  "description": "Workspace root for the Valance PORT rendering-boundary packages.",
+  "description": "Workspace root for the Valance PORT target realization packages.",
   "license": "MIT",
   "author": "Jack Miller <jackmiller0899@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ValanceX/Port.git"
+  },
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "build": "pnpm -r run build",
     "typecheck": "pnpm -r run typecheck",
