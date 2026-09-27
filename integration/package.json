@@ -1,0 +1,24 @@
+{
+  "name": "@valancex/port-integration",
+  "version": "0.0.0",
+  "private": true,
+  "description": "The Valance vertical slice: MPRX → MESH compiler → MESH runtime → NEXUS → PORT Web → DOM, all real.",
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "typecheck": "pnpm --filter @valancex/port-web run build && tsc -p tsconfig.json",
+    "test": "pnpm --filter @valancex/port-web run build && vitest run"
+  },
+  "devDependencies": {
+    "@types/jsdom": "^21.1.7",
+    "@types/node": "^22.0.0",
+    "@valancex/mesh-compiler": "^0.5.0",
+    "@valancex/mesh-runtime": "^0.5.0",
+    "@valancex/nexus": "^0.8.0",
+    "@valancex/port-web": "workspace:*",
+    "effect": "^3.10.0",
+    "jsdom": "^26.0.0",
+    "typescript": "^5.6.0",
+    "vitest": "^3.2.0"
+  }
+}

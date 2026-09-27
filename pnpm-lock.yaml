@@ -12,6 +12,39 @@ importers:
         specifier: ^5.6.0
         version: 5.9.3
 
+  integration:
+    devDependencies:
+      '@types/jsdom':
+        specifier: ^21.1.7
+        version: 21.1.7
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.20.4
+      '@valancex/mesh-compiler':
+        specifier: ^0.5.0
+        version: 0.5.0
+      '@valancex/mesh-runtime':
+        specifier: ^0.5.0
+        version: 0.5.0
+      '@valancex/nexus':
+        specifier: ^0.8.0
+        version: 0.8.0
+      '@valancex/port-web':
+        specifier: workspace:*
+        version: link:../packages/port-web
+      effect:
+        specifier: ^3.10.0
+        version: 3.22.2
+      jsdom:
+        specifier: ^26.0.0
+        version: 26.1.0
+      typescript:
+        specifier: ^5.6.0
+        version: 5.9.3
+      vitest:
+        specifier: ^3.2.0
+        version: 3.2.7(@types/node@22.20.4)(jsdom@26.1.0)
+
   packages/port-web:
     devDependencies:
       '@types/jsdom':
@@ -373,6 +406,9 @@ packages:
     cpu: [x64]
     os: [win32]
 
+  '@standard-schema/spec@1.1.0':
+    resolution: {integrity: sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w==}
+
   '@types/chai@5.2.3':
     resolution: {integrity: sha512-Mw558oeA9fFbv65/y4mHtXDs9bPnFMZAL/jxdPFUpOHHIXX91mcgEHbS5Lahr+pwZFR8A7GQleRWeI6cGFC2UA==}
 
@@ -397,6 +433,10 @@ packages:
 
   '@valancex/mesh-runtime@0.5.0':
     resolution: {integrity: sha512-t8K/Fq8/lQWb1gJa+wsW4qvlYAvwcxsfsfHPhDH1+v9GpTsTARLOenCE67CMWO5gnmTngckWQ8XpSM8lx+llsg==}
+    engines: {node: '>=22'}
+
+  '@valancex/nexus@0.8.0':
+    resolution: {integrity: sha512-gk117t4FojWeOU9TFFvOrNZPj2kXVPntpCtNSrO0fljEPIoV9aYf8NVVLedpQJOv7LDu/vOYxbMPl4tBPIW6fQ==}
     engines: {node: '>=22'}
 
   '@vitest/expect@3.2.7':
@@ -472,6 +512,9 @@ packages:
     resolution: {integrity: sha512-h5k/5U50IJJFpzfL6nO9jaaumfjO/f2NjK/oYB2Djzm4p9L+3T9qWpZqZ2hAbLPuuYq9wrU08WQyBTL5GbPk5Q==}
     engines: {node: '>=6'}
 
+  effect@3.22.2:
+    resolution: {integrity: sha512-fm1CQXCs7GTMwpadZxwU5rnAb2bN6mbQpknq/pXBGCzSKkosNYb9k0wsoL0TfB10rSa5xOEZJjo77u/KLXSANg==}
+
   entities@6.0.1:
     resolution: {integrity: sha512-aN97NXWF6AWBTahfVOIrB/NShkzi5H7F9r1s9mD3cDj4Ko5f2qhhVoYMibXF7GlLveb/D2ioWay8lxI97Ven3g==}
     engines: {node: '>=0.12'}
@@ -490,6 +533,10 @@ packages:
   expect-type@1.4.0:
     resolution: {integrity: sha512-KfYbmpRm0VbLjEvVa9yGwCi9GI34xvi7A/HXYWQO65CSD2u3MczUJSuwXKFIxlGsgBQizV9q5J9NHj4VG0n+pA==}
     engines: {node: '>=12.0.0'}
+
+  fast-check@3.23.2:
+    resolution: {integrity: sha512-h5+1OzzfCC3Ef7VbtKdcv7zsstUQwUDlYpUTvjeUsJAssPgLn7QzbboPtL5ro04Mq0rPOsMzl7q5hIbRs2wD1A==}
+    engines: {node: '>=8.0.0'}
 
   fdir@6.5.0:
     resolution: {integrity: sha512-tIbYtZbucOs0BRGqPJkshJUYdL+SDH7dVM8gjy+ERp3WAUjLEFJE+02kanyHtwjWOnwrKYBiwAmM0p4kLJAnXg==}
@@ -580,6 +627,9 @@ packages:
   punycode@2.3.1:
     resolution: {integrity: sha512-vYt7UD1U9Wg6138shLtLOvdAu+8DsC/ilFtEVHcH+wydcSpNE20AfSOduf6MkRFahL5FY7X1oU7nKVZFtfq8Fg==}
     engines: {node: '>=6'}
+
+  pure-rand@6.1.0:
+    resolution: {integrity: sha512-bVWawvoZoBYpp6yIoQtQXHZjmz35RSVHnUOTefl8Vcjr8snTPY1wnpSPMWekcFwbxI6gtmT7rSYPFvz71ldiOA==}
 
   rollup@4.63.5:
     resolution: {integrity: sha512-KRWwmNLlPw5M7HcdYfm15oBv9n9LPtjzpzCIxS/phwqvPyxHSoKX6Y2YU3pxSPfy0CLquVgsx/j/hBi6OvH1Nw==}
@@ -966,6 +1016,8 @@ snapshots:
   '@rollup/rollup-win32-x64-msvc@4.63.5':
     optional: true
 
+  '@standard-schema/spec@1.1.0': {}
+
   '@types/chai@5.2.3':
     dependencies:
       '@types/deep-eql': 4.0.2
@@ -990,6 +1042,11 @@ snapshots:
   '@valancex/mesh-compiler@0.5.0': {}
 
   '@valancex/mesh-runtime@0.5.0': {}
+
+  '@valancex/nexus@0.8.0':
+    dependencies:
+      '@valancex/mesh-runtime': 0.5.0
+      effect: 3.22.2
 
   '@vitest/expect@3.2.7':
     dependencies:
@@ -1067,6 +1124,11 @@ snapshots:
 
   deep-eql@5.0.2: {}
 
+  effect@3.22.2:
+    dependencies:
+      '@standard-schema/spec': 1.1.0
+      fast-check: 3.23.2
+
   entities@6.0.1: {}
 
   es-module-lexer@1.7.0: {}
@@ -1105,6 +1167,10 @@ snapshots:
       '@types/estree': 1.0.9
 
   expect-type@1.4.0: {}
+
+  fast-check@3.23.2:
+    dependencies:
+      pure-rand: 6.1.0
 
   fdir@6.5.0(picomatch@4.0.7):
     optionalDependencies:
@@ -1199,6 +1265,8 @@ snapshots:
       source-map-js: 1.2.1
 
   punycode@2.3.1: {}
+
+  pure-rand@6.1.0: {}
 
   rollup@4.63.5:
     dependencies:
