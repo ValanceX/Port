@@ -70,6 +70,7 @@ $ pnpm test
 - [**The PORT contract**](./docs/CONTRACT.md): what every PORT promises
 - [**Architecture**](./docs/ARCHITECTURE.md): PORT's responsibilities and rules
 - [**Integration audit**](./docs/architecture/2026-09-27-port-integration-audit.md): the evidence behind the boundary, with open questions and contradictions
+- [**MESH semantic handoff**](./docs/architecture/2026-09-27-mesh-semantic-handoff.md): the questions MESH must answer before SSR
 - [**Event propagation audit**](./docs/architecture/2026-09-27-event-propagation-audit.md) and [**value realization audit**](./docs/architecture/2026-09-27-value-realization-audit.md): the open MESH questions
 - [**Roadmap**](./docs/ROADMAP.md)
 

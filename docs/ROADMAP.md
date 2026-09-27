@@ -559,7 +559,7 @@ Server and browser implementations have explicit responsibilities and do not dep
 
 # V0.7 — SSR
 
-**Status: paused. Blocked on MESH.** Server HTML is attributes and text. MESH gives text only for text runs, so a number, boolean-as-text, `null`, list or record prop in an attribute has no text PORT may use. Producing one would be the second, Web-invented interpretation of values this project rules out. See the [value realization audit](./architecture/2026-09-27-value-realization-audit.md), whose question 1 at least must be answered first. Nothing is implemented, and no interim "render-v1 → Web HTML values" representation is built.
+**Status: paused. Blocked on MESH.** Server HTML is attributes and text. MESH gives text only for text runs, so a number, boolean-as-text, `null`, list or record prop in an attribute has no text PORT may use. Producing one would be the second, Web-invented interpretation of values this project rules out. See the [value realization audit](./architecture/2026-09-27-value-realization-audit.md), whose questions, handed to MESH in the [MESH semantic handoff](./architecture/2026-09-27-mesh-semantic-handoff.md) (V-Q0 and V-Q1 at least), must be answered first. Nothing is implemented, and no interim "render-v1 → Web HTML values" representation is built.
 
 ### Path, from the evidence so far
 

@@ -72,9 +72,17 @@ Under B, one gesture is one report, one intent and one command. It matches E1 to
 
 In both cases Q2 (extent) is currently answered by each PORT's realization of the primitive: the Web PORT's realization table picks a DOM event type, and the DOM decides what a click on content means. That is acceptable as *realization* only if MESH says which interactions a primitive's event means; it doesn't (E6).
 
+## Why PORT can't decide this
+
+- **It is application meaning, not realization.** Whether one gesture runs one command or two changes what the application *does*: which intents reach NEXUS, how many, and in what order (E3). PORT realizes meaning; it doesn't define it (CONTRACT.md; PORT rule 1).
+- **It must hold across PORTs.** A MPRX template must mean the same on every target (PORT rule 2). If each PORT answered for itself, the Web PORT would answer "bubbling" (the DOM's default, E12) and a Canvas or native PORT whatever its hit-testing does, and one template would have different behavior per target.
+- **The information that would decide it isn't PORT's.** Relating one component's event to another's needs knowledge of what components' events mean (E5, E6). That lives in the manifest and MPRX, which PORT never receives.
+- **A template can't express either choice today.** MPRX has no way to stop or request propagation (§9.5: a handler is exactly one command invocation). So whichever answer MESH gives may also need language support, which only MESH can add.
+
 ## Recommendation
 
 - **Best supported by current MESH evidence: B1, local binding with the nearest bound node.** Every relevant statement treats a binding as one node's (E1, E2, E4, E8); MESH has no cross-component event relation (E5, E9); MESH calls `on.click` intent, not a DOM event (E7); and MESH's own host dispatches once per event (E10). Nothing in MESH supports A: its only source is the DOM's default (E12).
+- **Handed to MESH** as questions E-Q1 to E-Q4 in the [MESH semantic handoff](./2026-09-27-mesh-semantic-handoff.md#event-questions).
 - **It is not settled.** No MESH document states multiplicity (Q1) or extent (Q2) (E6, E11), and no MESH test evaluates nested bindings (E10). **This is a MESH contract gap**, and PORT does not modify MESH to close it. What MESH would need to say:
   1. whether one user interaction triggers at most one binding (Q1);
   2. how an interaction on a descendant relates to an ancestor's binding: never (B2), only when no nearer node binds it (B1), or always (A);
@@ -82,5 +90,5 @@ In both cases Q2 (extent) is currently answered by each PORT's realization of th
 - **PORT's position until then:**
   - V0.3 (events) is **not semantically complete**. The roadmap says so.
   - The Web PORT keeps the DOM's behavior, pinned by *characterization* tests (`test/propagation.test.ts`) that say it's not the contract. `docs/CONTRACT.md` and the Web PORT's README state that propagation is unspecified and must not be relied on.
-  - The Web PORT is **not** changed to B1 now. Implementing it would make PORT the source of the semantic. An interim alternative, **failing closed** (refusing a tree where a bound node has a bound ancestor whose binding the same interaction would trigger), would keep the Web PORT out of the question entirely, as MPRX's own checking fails closed for generated UI. But it would refuse valid MESH programs. Choosing between them is a decision for the project, not for this audit.
+  - The Web PORT is **not** changed. Implementing B1 would make PORT the source of the semantic. Failing closed (refusing a tree where one interaction could trigger two bindings) was considered and **rejected by the project** (2026-09-27): it would refuse valid MESH programs, and it too would be PORT deciding a semantic question. So is any PORT-specific propagation abstraction built only to hide the question, and none is added.
   - The vertical slice is unaffected: no bound node in it has a bound ancestor.

@@ -9,6 +9,12 @@
 
 ---
 
+## The boundary
+
+> **PORT may realize a value according to a MESH-defined representation, but PORT must not determine the semantic textual representation of a MESH value.**
+
+Where MESH defines the representation (a string, a text run, a boolean realized by presence where the realization table chooses that), PORT realizes it. Where a target needs text and MESH defines none, PORT refuses. It adds no formatting, `JSON.stringify`, JavaScript coercion (`String(x)`, `"[object Object]"`, `"a,b"`) or any other fallback. The [MESH handoff](./2026-09-27-mesh-semantic-handoff.md) asks MESH the question that would close the gap.
+
 ## Facts
 
 **V1. The values.** A render-v1 prop value is one of: `null`, a boolean, a finite number (never `-0`), a string, a list, or a record (`$defs/value`; §9.8.1). An absent prop has no entry. It is a separate case, not a value.
@@ -36,7 +42,34 @@
 
 **V10. What the Web PORT does today.** `attribute(name)` takes strings only; `booleanAttribute(name)` takes booleans only, by presence. Any other value is refused with `unrealizable-value`. There is no property realization. Those two realization kinds are data, so an SSR path could use the same table.
 
-## The table
+## Handoff matrix
+
+For each value and output context: what MESH specifies, what it leaves unspecified, whether the Web PORT realizes it today, and whether SSR depends on the missing rule. *Content* means a text run: MPRX interpolation, which MESH turns into text before PORT sees it. *DOM property* and *attribute / SSR* concern a **prop** value, placed wherever a primitive's realization puts it.
+
+| Value | Context | MESH specifies | MESH doesn't specify | PORT today | SSR depends on the gap |
+|---|---|---|---|---|---|
+| string | content | itself (§9.7.7) | — | yes: a text node | no: escaping only |
+| string | DOM property | out "as is" (§9.8.2) | — | not built (no property realization kind) | no |
+| string | attribute / SSR | out "as is" | — | yes: `attribute` | no: escaping only |
+| number | content | text by §9.7.7.1, arrives as a string | — | yes | no |
+| number | DOM property | out "as is" | whether a target's own conversion (a `DOMString` property's `ToString`) is realization or forbidden formatting | not built | only if the property reflects to an attribute (next row) |
+| number | attribute / SSR | out "as is"; no text for props (V3) | **a prop's text** | **refused** (`unrealizable-value`) | **yes** |
+| boolean | content | `true` / `false` | — | yes | no |
+| boolean | DOM property | out "as is" | as for number, for a `DOMString` property | not built | only if reflected |
+| boolean | attribute / SSR | out "as is" | **a prop's text** (enumerated attributes such as `aria-pressed`); whether realizing `false` and absent identically (presence) is acceptable for a given primitive | presence: yes (`booleanAttribute`); as text: **refused** | presence: no; as text: **yes** |
+| null | content | `null` | — | yes | no |
+| null | DOM property | out as `null`, distinct from absent | as for number | not built | only if reflected |
+| null | attribute / SSR | out as `null`, distinct from absent | **text, omission (which equals absent), or unrealizable** | **refused** | **yes** |
+| list | content | none: `content-not-text` at check time, or an evaluation error for `any` (§9.7.8) | — (deliberately no text form) | never reaches PORT as content | no |
+| list | DOM property | out "as is" (no absent elements) | whether passing the structure to a property that accepts it is realization as given | not built | only if reflected |
+| list | attribute / SSR | out "as is" | **any representation** in a text slot | **refused** | **yes** |
+| record | content | as for list | — | never reaches PORT as content | no |
+| record | DOM property | out "as is" | as for list | not built | only if reflected |
+| record | attribute / SSR | out "as is" | **any representation** in a text slot | **refused** | **yes** |
+
+**Absent** (no prop entry) is specified in every context: omission, never a default (V2, §9.8.2). PORT realizes it as omission.
+
+## Web slot detail
 
 For each render-v1 value kind, whether it can be realized in each Web slot **as given** (V2), without PORT producing text or converting the value.
 
@@ -64,15 +97,14 @@ Neither contradicts the PORT contract. PORT follows V2 strictly, and render-v1 a
 
 ## Upstream questions for MESH
 
-These block SSR design. PORT doesn't answer them, and the Web PORT keeps refusing the gap cases.
+The fundamental question, with its consequences for each interpretation, is in the [MESH handoff](./2026-09-27-mesh-semantic-handoff.md): **does render-v1 carry semantic values that PORT must realize, or values already semantically realized for the relevant output position?** The narrower questions it contains:
 
-1. **Scalar props in text slots.** When a target needs text for a number, boolean or `null` prop, what is it? Possible answers MESH could give:
-   - (a) renderers apply §9.7.7's text to props too. That needs MESH's number text available to every renderer, for example exported by `@valancex/mesh-runtime` (V6), or it becomes a second implementation of MPRX evaluation;
-   - (b) render-v1 (or a v2) carries MESH's text for such props. Note that MESH's rule 15 makes any property added *within* v1 optional, so a PORT couldn't depend on it for correctness: this would be a new version;
-   - (c) a prop that a target must show as text should be declared `string` in the manifest, and the template or host supplies the text. With V5, that means the host, since a template can't make text from a number.
-2. **`null` in text slots.** Is it `"null"` (content's rule), omission (which conflates it with absent), or unrealizable?
-3. **Lists and records.** MESH says no text form is obviously right (V4). Is realizing one structurally, as an explicit per-primitive choice (for example a list of strings as space-separated `class` tokens), a legitimate *realization*, or is it text PORT would be inventing?
-4. **Platform conversions.** When a target's own API converts a value (a `DOMString` property given a number), is that the target realizing the value as given, or formatting MESH forbids? The observable text may differ from MESH's in the last digit (V6).
+1. **Scalar props in text slots.** When a target needs text for a number, boolean or `null` prop, what is it, and who produces it?
+2. **`null` in text slots.** Is it text (content uses `null`), omission (which makes it equal to absent), or unrealizable?
+3. **Lists and records.** MESH says no text form is obviously right (V4). Is placing one in a text slot ever valid, in any representation, and is a structural lowering chosen per primitive (a list of strings as `class` tokens) realization, or text PORT would be inventing?
+4. **Platform conversions.** When a target's own API converts a value (a `DOMString` property given a number), is that realizing the value as given, or formatting MESH forbids? Its text may differ from MESH's in the last digit (V6).
+
+Earlier drafts of this audit listed possible directions: MESH's text rules applied to props with the formatter exported to JavaScript, a render-tree version carrying text, or text-facing props declared as strings. **PORT selects none of them.** They are MESH's architectural decisions, and appear in the handoff only as the consequences of each interpretation.
 
 ## PORT's position
 
