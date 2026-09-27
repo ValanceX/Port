@@ -9,9 +9,9 @@
 |---|---|---|
 | ValanceX/Port | `778f7f3` (scaffold) | every file: README, `docs/ARCHITECTURE.md`, `docs/ROADMAP.md`, the three packages, workspace and build config |
 | ValanceX/Mesh | `a03733e` (v0.5.0 + one docs commit) | README, `docs/ARCHITECTURE.md`, `docs/manual/runtime.md`, `docs/guides/rendering-mesh-output.md`, `schemas/render-v1.schema.json`, `packages/mesh-runtime` (types, API, README), `examples/slice/`, the reference renderer in `crates/mesh-runtime/tests/common/renderer.rs` |
-| ValanceX/Nexus | `bc2f384` (v0.8.0, untagged) | `package.json`, `src/index.ts`, `src/mesh/index.ts`, `docs/ARCHITECTURE.md` §15, §16, §24–26, `docs/ROADMAP.md` §10–17, `tests/mesh.test.ts`, `tests/vertical-slice.test.ts` |
+| ValanceX/Nexus | `bc2f384` (tag `v0.8.0`; published to npm as `@valancex/nexus@0.8.0`) | `package.json`, `src/index.ts`, `src/mesh/index.ts`, `docs/ARCHITECTURE.md` §15, §16, §24–26, `docs/ROADMAP.md` §10–17, `tests/mesh.test.ts`, `tests/vertical-slice.test.ts` |
 | ValanceX/.github | `main` | `profile/README.md` |
-| npm registry | 2026-09-27 | published versions of `@valancex/*` and `@valence/*` |
+| npm registry | 2026-09-27 | published versions of `@valancex/*` and `@valence/*`, rechecked after NEXUS's release |
 
 Nothing in this audit relies on a document that current source contradicts, unless the contradiction is listed below.
 
@@ -107,14 +107,14 @@ MESH `docs/ARCHITECTURE.md` rule 13: "PORT's renderers [depend] on MESH's render
 |---|---|
 | MESH npm packages (`packages/*/package.json`) | `@valancex/mesh-compiler`, `@valancex/mesh-runtime`, `@valancex/mesh-lsp` (+ platform packages) |
 | NEXUS `package.json` | `@valancex/nexus` |
-| npm registry | `@valancex/mesh-compiler` 0.4.0, 0.5.0 and `@valancex/mesh-runtime` 0.5.0 are published. `@valancex/nexus`, `@valancex/port` and `@valence/port` are not |
+| npm registry | `@valancex/mesh-compiler` 0.4.0, 0.5.0, `@valancex/mesh-runtime` 0.5.0 and `@valancex/nexus` 0.8.0 are published. `@valancex/port` and `@valence/port` are not |
 | PORT packages | `@valence/port`, `@valence/port-web`, `@valence/port-canvas`; workspace root `valence-port-workspace` |
 | PORT `docs/ROADMAP.md` Phase 0 | "Package direction: `@valancex/port`, `@valancex/port-web`, `@valancex/port-canvas`" |
 | GitHub organization | `ValanceX` |
 
-### F13. NEXUS is not installable from a registry
+### F13. NEXUS is installable from npm
 
-`@valancex/nexus@0.8.0` is not on npm and has no git tag; its `package.json` ships only `dist`, which isn't committed. An integration against it must build from a pinned commit.
+`@valancex/nexus@0.8.0` is published to npm (NEXUS's Release workflow, 2026-09-27), from tag `v0.8.0` at `bc2f384`, the revision this audit read. It depends on `@valancex/mesh-runtime ^0.5.0` and `effect ^3.10.0`, and on nothing from PORT. Its `exports` expose only `.`. So PORT's vertical slice uses NEXUS as any application would, from the registry, with no source checkout or contract fixture standing in for it.
 
 ---
 
@@ -231,6 +231,7 @@ To remain unresolved until evidence arrives.
 - **U6. Payloads beyond the slice.** How each primitive's event payload is built from a DOM event is currently decided per realization table. Whether some payload shapes deserve standard Web realizations needs more applications.
 - **U7. How the composer learns the program changed.** A MESH `Render` does not expose its program identity (it's "never given to a renderer"). A composer that swaps programs knows because it did so; hot reload tooling (NEXUS roadmap §15) will need to track it.
 - **U8. SSR state transfer.** Dispatch needs a `Render`, so a hydrating client must obtain one by rendering the serialized snapshot itself (see ROADMAP). Whether snapshot serialization is the composer's or NEXUS's is open (NEXUS roadmap §14 lists serialization and hydration as v0.10 investigations).
+- **U9. Event propagation.** MPRX says nothing about whether an event on a nested node also counts for its ancestors' bindings. PORT Web keeps the DOM's default (bubbling), so a click on a node inside another node that binds `click` reports both. Whether that is the intended semantics is a MESH question.
 
 ## Contradictions
 

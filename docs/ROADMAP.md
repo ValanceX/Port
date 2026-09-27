@@ -15,11 +15,11 @@ The goal of PORT V1 is not to design a universal rendering abstraction. It is to
 ```text
 MPRX
   ↓
-MESH
+MESH compiler → template-v1 → MESH runtime
   ↓
-Semantic output
+render-v1
   ↓
-NEXUS application runtime
+NEXUS application runtime (Mesh.host), via a composer
   ↓
 PORT Web
   ├── Server → HTML
@@ -253,7 +253,7 @@ This is important for debugging and developer tooling.
 
 ## Phase 0 — Scaffold and Boundary Freeze
 
-**Status:** Current scaffold.
+**Status:** Done (2026-09-27). See the [integration audit](./architecture/2026-09-27-port-integration-audit.md).
 
 ### Goals
 
@@ -272,13 +272,7 @@ Establish the repository and package boundaries without prematurely designing a 
 
 ### Package direction
 
-```text
-@valancex/port
-@valancex/port-web
-@valancex/port-canvas
-```
-
-The exact package naming should be standardized deliberately before V1 release.
+Settled by the audit (Gates 3 and 4): the namespace is `@valancex`, matching MESH and NEXUS. The only package is `@valancex/port-web`. A shared `@valancex/port` isn't created, because the shared contract is language-neutral data and prose ([CONTRACT.md](./CONTRACT.md)), and the Canvas placeholder was removed. Either may return when a second target produces evidence for it.
 
 ### Explicitly deferred
 
@@ -298,6 +292,8 @@ The scaffold is stable and establishes a boundary without pretending to know the
 ---
 
 # V0.1 — Semantic Input Boundary
+
+**Status:** Done. The input is MESH's render-v1, unchanged, and the protocol is [CONTRACT.md](./CONTRACT.md): *draw*, *update*, *unmount* in; `(handler, payload)` out. Of the candidates below, render-v1 carries identity (keys), hierarchy, child ordering, text, props (final values) and interaction intent (handler identifiers). It carries no styles, accessibility semantics or lifecycle expectations; those are open questions for MESH (audit U1, U2).
 
 ## Objective
 
@@ -330,6 +326,8 @@ Do not simply expose the MESH IR wholesale.
 
 PORT should consume the semantic guarantees it actually needs.
 
+*Resolved:* MESH has no public IR. render-v1 is already the minimal, guarantee-shaped output MESH designed for renderers, so PORT consumes it as is (audit C8).
+
 ### Tests
 
 Create contract fixtures that allow a fake/test producer to feed PORT without importing MESH internals.
@@ -341,6 +339,8 @@ A producer can exercise PORT using the semantic boundary without depending on ME
 ---
 
 # V0.2 — Web Realization Core
+
+**Status:** Done for what render-v1 carries: elements, identity, text, attributes, boolean attributes, hierarchy, ordering, draw, update, unmount (`@valancex/port-web`). Not done: DOM properties and styles, which nothing yet requires. Number, list, record and `null` values have no given text, so an attribute realization refuses them (audit U3).
 
 ## Objective
 
@@ -383,6 +383,8 @@ A semantic fixture can produce a correct DOM tree.
 ---
 
 # V0.3 — Events and Interaction
+
+**Status:** Done with direct listeners: a realization maps each event to a DOM event type and builds its payload; listeners read the drawn tree's handler identifier when they fire, and are removed with their node. The vertical slice runs DOM click → `users.select` in NEXUS. Delegation isn't used: nothing yet justifies it. Propagation semantics are open (audit U9).
 
 ## Objective
 
@@ -471,6 +473,8 @@ A representative application can preserve its semantic and accessibility require
 
 # V0.5 — Update Model and Realization Lifecycle
 
+**Status:** Established for today's MPRX. A program's trees all have the same structure, so an *update* changes props and text only, and every key keeps its DOM node (tested, and in the slice). A different program is *drawn* afresh, never reconciled by key. Insertion, removal and reordering can't occur until MESH adds lists or conditionals (audit U5); the Web PORT already treats a key only in the new tree as new and one only in the old tree as gone, as MESH's guide asks.
+
 ## Objective
 
 Establish PORT as a real incremental realization system rather than a one-shot renderer.
@@ -551,6 +555,12 @@ Server and browser implementations have explicit responsibilities and do not dep
 
 # V0.7 — SSR
 
+### Path, from the evidence so far
+
+- The server path renders with the **same** MESH runtime and the **same** realization table: prop realizations are data (attribute names), not DOM functions, precisely so they serialize to the same HTML the browser path produces.
+- The server path must not format values either. An attribute gets a string as given, and a number has no given text (audit U3): SSR makes that question pressing, since HTML is text.
+- An empty text run realizes as an empty text node in the DOM, which HTML can't express. Hydration must create it (see V0.8).
+
 ## Objective
 
 Produce real server-rendered HTML from a Valance application.
@@ -587,6 +597,12 @@ A real Valance route can produce HTML on the server without running a browser en
 ---
 
 # V0.8 — Hydration and Client Takeover
+
+### Path, from the evidence so far
+
+- **Identity by structure.** Every tree of one program has the same structure (audit F4), so hydration can pair server DOM with the tree in document order, with no keys in the markup. A mismatch (a different element, or a missing node) is detected explicitly, never patched silently.
+- **One model, not two.** Hydration adopts server nodes into exactly the drawn-node records `draw` builds, then behaves as `update`. SSR adds no second identity or update model.
+- **State crosses as the snapshot.** Dispatch needs a `Render` (NEXUS M1), and a `Render` can only be made by rendering. So the client renders the *serialized snapshot* the server rendered, gets the same tree, and adopts the server DOM for it. Who serializes the snapshot, the composer or NEXUS, is open (audit U8).
 
 ## Objective
 
@@ -812,7 +828,7 @@ These become architectural questions only when another concrete target exposes a
 
 # 5. Canvas
 
-`port-canvas` should remain deferred.
+Canvas remains deferred, and has no package: the empty `port-canvas` placeholder was removed (audit, Gate 3).
 
 The question is not:
 

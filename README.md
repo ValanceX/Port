@@ -2,61 +2,73 @@
 
 **Realize the same app on any target, without touching its meaning.**
 
-PORT is the target realization layer of [Valance](https://github.com/ValanceX). It takes a UI that has already been described and validated, and progressively lowers it onto a real target: a browser, a native toolkit, a GPU, an embedded display, or custom hardware.
+PORT is the target realization layer of [Valance](https://github.com/ValanceX). It takes a UI that MESH has already described and evaluated, and realizes it on a real target: today a browser, later perhaps a native toolkit, a canvas or a device.
 
-> Valance defines what an application means. PORT determines how that meaning is realized on a target.
+> Valance defines what an application means. PORT determines how that meaning is realized on a target. The target determines the implementation technology.
 
-Most UI frameworks tie your application to one rendering target. Valance keeps them apart. [MESH](https://github.com/ValanceX/Mesh) describes *what* the UI is. [NEXUS](https://github.com/ValanceX/Nexus) decides *what the app does*. PORT decides *how that meaning is realized on this particular target*. Because of that split, you can swap the renderer without rewriting any business logic.
+[MESH](https://github.com/ValanceX/Mesh) describes *what* the UI is. [NEXUS](https://github.com/ValanceX/Nexus) decides *what the app does*. PORT decides *how that meaning is realized on one particular target*. A PORT is a **target backend**, not a driver and not an adapter: it lowers renderer-independent output onto its target, and is free to specialize as far as the target rewards, as long as the meaning holds.
+
+## What crosses the boundary
+
+PORT depends on neither NEXUS nor the MESH runtime. Whoever composes the application connects them:
 
 ```text
-                 ┌───────────────── PORT ──────────────────┐
-MESH semantics ─▶│ lowering → PORT IR(s) → target lowering │─▶ target runtime ─▶ hardware
-                 └─────────────────────────────────────────┘
+MPRX ─▶ MESH compiler ─▶ template-v1 ─▶ MESH runtime ─▶ render-v1
+                                          (inside NEXUS's Mesh.host)
+                                                  │ Render
+                                                  ▼
+                                               composer ── keeps the drawn Render
+                                                  │ draw(tree) / update(tree) / unmount()
+                                                  ▼
+                                               PORT ─▶ target (DOM)
+                                                  │ report(handler, payload?)
+                                                  ▼
+                              composer ─▶ host.dispatch(render, handler, payload) ─▶ NEXUS command
 ```
 
-## Why PORT
+- **In:** a MESH render tree ([render-v1](https://github.com/ValanceX/Mesh/blob/main/schemas/render-v1.schema.json)), and whether it comes from the same program as the drawn one (*update*) or not (*draw* afresh).
+- **Out:** the drawn tree's handler identifier for an event, and its payload.
 
-- **One app, many screens.** Ship the same application to the web, a canvas surface, or a small device display by choosing a different renderer.
-- **A compiler backend, not an adapter.** A PORT preserves the *meaning* of the UI, not a common API. Each PORT picks its own intermediate representations and can specialize all the way down: native widgets, compositing, caching, SIMD, hardware paths, as long as the semantics hold.
-- **Semantics survive lowering.** Identity, interaction intent and accessibility role stay available until the PORT no longer needs them, so abstraction never becomes the optimization ceiling.
-- **Inspectable.** You should be able to see what a PORT did with each element, not guess.
-- **No hidden device checks.** Questions like "does this device have a camera?" are answered upstream in NEXUS. Renderer code isn't full of `if (device.hasX)` branches.
-- **Add a new target in one place.** A new target is one new PORT package consuming the shared semantic input. There is no universal renderer interface to extend.
+That's the whole [PORT contract](./docs/CONTRACT.md). It is language-neutral: render-v1 is a JSON Schema MESH implements in Rust and JavaScript, and the operations are three verbs and a report. Each PORT binds them in whatever language suits its target.
 
 ## Packages
 
-PORT is a pnpm workspace. It contains one core contract and one package per rendering target:
-
 | Package | What it is |
 |---|---|
-| `@valence/port` | Shared boundary vocabulary: the semantic input a PORT consumes and its capability description. Not a renderer interface. |
-| `@valence/port-web` | Web PORT (DOM + CSS), the first target |
-| `@valence/port-canvas` | Placeholder, deferred until the Web PORT raises a question a second target would answer |
+| [`@valancex/port-web`](./packages/port-web) | The Web PORT: render-v1 → DOM, in-place updates by key, events → reports. TypeScript, because the DOM is JavaScript-native. |
 
-PORT packages depend on `@valence/port` and never on each other.
+There is deliberately **no shared `@valancex/port` package** and no Canvas placeholder. The shared contract is data and prose, not code, and a TypeScript package every PORT depends on would force a TypeScript shape on a future Rust or native PORT. A shared package can come when a second PORT shows code worth sharing. The [integration audit](./docs/architecture/2026-09-27-port-integration-audit.md) records the evidence.
+
+`integration/` (private) runs the whole slice, MPRX to DOM and back, against the published MESH and NEXUS packages.
 
 ## Where PORT fits
 
 | PORT does | PORT does not |
 |---|---|
-| Lower MESH semantics into target-native implementation | Own business rules or domain logic (that's NEXUS) |
-| Optimize realization, as long as semantics are preserved | Know MPRX syntax or change what the UI means (that's MESH) |
-| Handle mount, update, and unmount for its target | Decide how to handle missing device capabilities (that's NEXUS) |
-| Describe what its target can guarantee (its capabilities) | Force every target to behave identically |
+| Realize render trees on its target, values exactly as given | Own business rules or application behavior (NEXUS) |
+| Keep each node's target identity across updates from one program | Know MPRX, templates or what a component means (MESH) |
+| Report interactions as handler identifiers and payloads | Decide what an interaction means, or see commands (NEXUS) |
+| Decide what each of the application's primitives becomes on its target | Decide how to handle missing device capabilities (NEXUS) |
 
 ## Status
 
-**Early scaffolding.** The package layout and the boundaries are in place. No PORT is implemented yet. The first target is the Web PORT, the last step of Valance's first end-to-end slice. It's deliberately treated as an architectural experiment: it shows which parts of Valance are genuinely portable before any second target is designed.
+**First Web realization.** `@valancex/port-web` draws, updates in place and reports events, and the vertical slice runs end to end against `@valancex/mesh-compiler` 0.5, `@valancex/mesh-runtime` 0.5 and `@valancex/nexus` 0.8. Not yet: accessibility and styling beyond a realization table's choices, server rendering and hydration. See the [roadmap](./docs/ROADMAP.md).
 
-```text
-user-card.mprx → MESH compiler → MESH IR → NEXUS runtime → PORT (Web) → browser
+```console
+$ pnpm install
+$ pnpm test
 ```
 
-To see how PORT fits into the rest of the system, read [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md).
+## Learn more
+
+- [**The PORT contract**](./docs/CONTRACT.md): what every PORT promises
+- [**Architecture**](./docs/ARCHITECTURE.md): PORT's responsibilities and rules
+- [**Integration audit**](./docs/architecture/2026-09-27-port-integration-audit.md): the evidence behind the boundary, with open questions and contradictions
+- [**Roadmap**](./docs/ROADMAP.md)
 
 ## Tech
 
-TypeScript with pnpm. This repo has its own workspace and is not part of a Valance-wide monorepo.
+The Web PORT is TypeScript with pnpm, Node 22+. The language of a PORT follows its target; it isn't a Valance-wide choice.
 
 ## License
 
