@@ -1,16 +1,29 @@
-// The composer: the application code that connects a NEXUS MESH host to a
+// The composer: the application code that connects NEXUS MESH hosts to a
 // PORT (NEXUS docs/ARCHITECTURE.md §16; PORT docs/CONTRACT.md). It is the
 // only code here that knows both. NEXUS never sees the PORT, and the PORT
 // never sees NEXUS, a `Render`, an intent or a command.
+//
+// It owns two facts no one else has:
+// - program continuity: a NEXUS MESH host renders one program, so trees from
+//   the host being shown are updates, and showing another host is a new
+//   program, drawn afresh. PORT is told; it never infers this.
+// - the drawn render: each PORT report is dispatched with the `Render` whose
+//   tree is drawn, never a newer one (NEXUS M1 and M2 leave this to it).
 import type { Mesh } from "@valancex/nexus";
 import type { WebPort, WebPortOptions } from "@valancex/port-web";
 
 import { createWebPort } from "@valancex/port-web";
 import { Effect, Exit, Fiber, Stream } from "effect";
 
-export interface Composed<E> {
+export type Operation = "draw" | "update";
+
+export interface Composer<E, R> {
   readonly port: WebPort;
-  /** Every dispatch the composer has made, in order, as it settled. */
+  /** Shows `host`'s program: draws its current render afresh, then updates the PORT with each later render. */
+  readonly show: (host: Mesh.Host<E, R>) => Promise<void>;
+  /** Every PORT operation the composer asked for, in order. */
+  readonly operations: Array<Operation>;
+  /** Every dispatch the composer made, in order, as it settled. */
   readonly dispatched: Array<Exit.Exit<Mesh.Dispatched, Mesh.MeshDiagnostics | Mesh.UnmappedCommand | E>>;
   /** Resolves when every dispatch made so far has settled. */
   readonly settled: () => Promise<void>;
@@ -18,49 +31,64 @@ export interface Composed<E> {
   readonly stop: () => Promise<void>;
 }
 
-/**
- * Draws the host's current render, updates the PORT with each later render
- * (all from one program), and dispatches each PORT report with the render
- * whose tree is drawn: the host's obligation M1/M2 leaves to its caller.
- * `run` runs a dispatch where the commands' requirements are provided.
- */
-export const compose = async <E, R>(
-  host: Mesh.Host<E, R>,
+/** `run` runs a dispatch where its commands' requirements are provided. */
+export const composer = <E, R>(
   options: Omit<WebPortOptions, "report">,
   run: <A, F>(effect: Effect.Effect<A, F, R>) => Promise<Exit.Exit<A, F>>
-): Promise<Composed<E>> => {
-  let drawn: Mesh.Render | undefined;
+): Composer<E, R> => {
+  // The host whose program is drawn, and the render whose tree is drawn.
+  let shown: { readonly host: Mesh.Host<E, R>; render: Mesh.Render } | undefined;
+  let following: Fiber.RuntimeFiber<void, Mesh.MeshDiagnostics> | undefined;
   const pending: Array<Promise<unknown>> = [];
-  const dispatched: Composed<E>["dispatched"] = [];
+  const operations: Array<Operation> = [];
+  const dispatched: Composer<E, R>["dispatched"] = [];
 
   const port = createWebPort({
     ...options,
     report: (handler, payload) => {
       // The render the user saw when the event fired, never a newer one.
-      const render = drawn!;
+      const { host, render } = shown!;
       pending.push(run(host.dispatch(render, handler, payload)).then((exit) => { dispatched.push(exit); }));
     },
   });
 
-  drawn = await Effect.runPromise(host.render);
-  port.draw(drawn.tree);
-
-  // One program throughout, so every later tree is an update.
-  const following = Effect.runFork(Stream.runForEach(host.renders, (render) => Effect.sync(() => {
-    port.update(render.tree);
-    drawn = render;
-  })));
+  const stopFollowing = async (): Promise<void> => {
+    if (following !== undefined) {
+      await Effect.runPromise(Fiber.interrupt(following));
+      following = undefined;
+    }
+  };
 
   return {
     port,
+    operations,
     dispatched,
+
+    show: async (host) => {
+      await stopFollowing();
+
+      // A different host is a different program: draw afresh. The composer knows because it made the switch.
+      const render = await Effect.runPromise(host.render);
+      port.draw(render.tree);
+      operations.push("draw");
+      shown = { host, render };
+
+      // Every later render of this host is the same program: update.
+      following = Effect.runFork(Stream.runForEach(host.renders, (later) => Effect.sync(() => {
+        port.update(later.tree);
+        operations.push("update");
+        shown!.render = later;
+      })));
+    },
+
     settled: async () => {
       while (pending.length > 0) {
         await Promise.all(pending.splice(0));
       }
     },
+
     stop: async () => {
-      await Effect.runPromise(Fiber.interrupt(following));
+      await stopFollowing();
       port.unmount();
     },
   };

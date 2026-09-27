@@ -168,6 +168,78 @@ describe("update", () => {
   });
 });
 
+// docs/CONTRACT.md, "Program continuity": PORT never determines whether two
+// trees come from one program. draw and update carry that fact from the
+// composer, and PORT infers it from nothing in the tree.
+describe("program continuity is the composer's, never inferred by PORT", () => {
+  it("draw reuses nothing, even for the very tree already drawn", () => {
+    const { container } = dom();
+    const port = createWebPort({ container, primitives: slicePrimitives, report: () => {} });
+
+    port.draw(first);
+    const before = new Set(domNodes(container.firstChild!));
+    port.draw(first);
+
+    expect(container.innerHTML).toBe(expectedFirst);
+    expect(domNodes(container.firstChild!).filter((n) => before.has(n))).toEqual([]);
+  });
+
+  it("draw reuses nothing for a tree of the same program whose keys all match", () => {
+    const { container } = dom();
+    const port = createWebPort({ container, primitives: slicePrimitives, report: () => {} });
+
+    port.draw(first);
+    const before = new Set(domNodes(container.firstChild!));
+    port.draw(second);
+
+    expect(domNodes(container.firstChild!).filter((n) => before.has(n))).toEqual([]);
+  });
+
+  it("draw doesn't reconcile a tree whose keys happen to coincide with the drawn one's", () => {
+    const { container } = dom();
+    const port = createWebPort({ container, primitives: slicePrimitives, report: () => {} });
+    const shaped = (label: string) => tree(node(1, "page", { title: "T" }, [node(2, "button", {}, [text(3, label)], { click: handler(1) })]));
+
+    port.draw(shaped("A"));
+    const button = container.querySelector("button")!;
+    port.draw(shaped("B"));
+
+    expect(container.querySelector("button")).not.toBe(button);
+    expect(container.querySelector("button")!.textContent).toBe("B");
+  });
+
+  it("update reconciles by key whatever the handler identifiers say about their program", () => {
+    const { window, container } = dom();
+    const { calls, report } = reports();
+    const port = createWebPort({ container, primitives: slicePrimitives, report });
+    // Handler identifiers begin with part of their program's identity. PORT never reads it.
+    const otherProgramHandler = `hBBBBBBBBBBB.${"B".repeat(22)}`;
+
+    port.draw(tree(node(1, "button", {}, [text(2, "Go")], { click: handler(1) })));
+    const button = container.querySelector("button")!;
+    port.update(tree(node(1, "button", {}, [text(2, "Go")], { click: otherProgramHandler })));
+    button.dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
+
+    expect(container.querySelector("button")).toBe(button);
+    expect(calls).toEqual([[otherProgramHandler]]);
+  });
+
+  it("update never turns into a draw, even for a tree of an entirely different shape", () => {
+    const { container } = dom();
+    const port = createWebPort({ container, primitives: slicePrimitives, report: () => {} });
+
+    port.draw(tree(node(1, "page", { title: "T" }, [node(2, "text", {}, [text(3, "kept")])])));
+    const page = container.firstChild;
+    const span = container.querySelector("span");
+    port.update(tree(node(1, "page", { title: "U" }, [node(2, "text", {}, [text(3, "kept")]), node(4, "button", {}, [text(5, "added")]), node(6, "text", {}, [])])));
+
+    // Keys 1, 2 and 3 are kept; 4, 5 and 6 are new. No wholesale redraw.
+    expect(container.firstChild).toBe(page);
+    expect(container.querySelector("span")).toBe(span);
+    expect(container.innerHTML).toBe('<section aria-label="U"><span>kept</span><button>added</button><span></span></section>');
+  });
+});
+
 describe("nothing is dropped silently, and a refused tree changes nothing", () => {
   const cases: ReadonlyArray<[string, RenderTree, string]> = [
     ["a prop with no realization", tree(node(1, "page", { title: "T", subtitle: "S" })), "unrealized-prop"],

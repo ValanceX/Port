@@ -34,13 +34,20 @@ A PORT:
 
 | Operation | Meaning | When the composer uses it |
 |---|---|---|
-| **draw(tree)** | Realize `tree` afresh, discarding whatever was realized before. No target object is reused. | The first tree, and any tree from a **different program** than the drawn one. |
-| **update(tree)** | `tree` is from the **same program** as the drawn tree. Realize its changes in place: the target object for each key present in both trees is kept. | Every later tree from the same program. |
+| **draw(tree)** | Realize `tree` afresh, discarding whatever was realized before. No target object is reused. | The first tree, and any tree the composer knows comes from a **different program** than the drawn one. |
+| **update(tree)** | The composer asserts that `tree` comes from the **same program** as the drawn tree. Realize its changes in place: the target object for each key present in both trees is kept. | Every later tree the composer knows comes from the same program. |
 | **unmount()** | Remove the realization. Nothing is reported after it. | When the UI goes away. |
 
-The distinction between *draw* and *update* **is** the host's program-change signal that MESH requires. Keys are only comparable within one program, so PORT never reconciles by key across a *draw*.
+### Program continuity
 
-Within one program a tree's structure never changes (MPRX has no loops or conditional elements), so *update* changes prop values and text only. If a tree given to *update* ever differs in structure anyway, PORT treats a key found only in the new tree as new, and a key found only in the old one as gone, as MESH's guide says.
+*draw* and *update* are not two ways of rendering. They carry one fact, **program continuity**: whether the incoming tree comes from the same MESH program as the drawn tree. That fact decides whether keys may be compared at all. MESH makes keys comparable only within one program, and may give two programs overlapping keys: a key says nothing about which program produced it.
+
+> **PORT never determines whether two render trees belong to the same MESH program.** The composer does.
+
+- **Only the composer knows.** It chose which host (and so which program) produced each `Render`, so it knows when the program changed: a template recompiled, added or removed, or a different root. MESH requires the host to say so (runtime manual: the host "tells its renderer when a new tree comes from a different program"). A `Render` doesn't expose its program identity, render-v1 carries none, and none is to be added.
+- **PORT infers nothing** from keys, handler identifiers, tree shape, component names, payloads or any other property of render-v1. A *draw* reuses nothing, even when every key matches the drawn tree. An *update* reconciles by key, even when the tree looks nothing like the drawn one.
+- **An update whose structure differs** doesn't make PORT decide that the program changed. PORT stays at the key level: a key only in the new tree is new, a key only in the old one is gone, as MESH's guide says. Within one program this never happens, because MPRX has no loops or conditional elements.
+- **Consequence of a wrong signal:** an *update* given a different program's tree is reconciled by key, which is meaningless across programs. That is the composer's error, and PORT can't detect it.
 
 ## Output: interaction reports
 
