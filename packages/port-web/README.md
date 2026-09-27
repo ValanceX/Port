@@ -48,7 +48,7 @@ It checks every tree in full before touching the DOM, so a refused tree changes 
 | `unsupported-tree` | the tree isn't `format: "mesh-render"`, `version: 1` |
 | `unrealized-prop` | a prop has no realization for its primitive |
 | `unrealized-event` | an event has no realization for its primitive |
-| `unrealizable-value` | a value doesn't fit its realization: a number, list, record or `null` for an attribute (MESH gives no text for it, and the PORT doesn't format values), or a non-boolean for a boolean attribute |
+| `unrealizable-value` | a value doesn't fit its realization: a number, boolean, list, record or `null` for an attribute (MESH gives no text for it, and the PORT doesn't format values; see the [value realization audit](../../docs/architecture/2026-09-27-value-realization-audit.md)), or a non-boolean for a boolean attribute |
 | `unrealizable-children` | a node has children (even an empty text run), but its primitive is realized as an HTML void element such as `img`, which can't hold any |
 | `duplicate-key` | two parts of a tree share a key |
 | `not-drawn` | `update` before `draw` |

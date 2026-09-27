@@ -248,6 +248,12 @@ describe("nothing is dropped silently, and a refused tree changes nothing", () =
     ["a number for an attribute", tree(node(1, "avatar", { alt: "A", size: 48 })), "unrealizable-value"],
     ["null for an attribute", tree(node(1, "avatar", { alt: "A", src: null })), "unrealizable-value"],
     ["a string for a boolean attribute", tree(node(1, "button", { disabled: "yes" })), "unrealizable-value"],
+    // The rest of docs/architecture/2026-09-27-value-realization-audit.md's gap cells: no MESH-given text.
+    ["a boolean for an attribute", tree(node(1, "avatar", { alt: "A", size: true })), "unrealizable-value"],
+    ["a list for an attribute", tree(node(1, "avatar", { alt: "A", size: ["s", "m"] })), "unrealizable-value"],
+    ["a record for an attribute", tree(node(1, "avatar", { alt: "A", size: { w: "1" } })), "unrealizable-value"],
+    ["null for a boolean attribute", tree(node(1, "button", { disabled: null })), "unrealizable-value"],
+    ["a number for a boolean attribute", tree(node(1, "button", { disabled: 1 })), "unrealizable-value"],
     ["two parts with one key", tree(node(1, "page", { title: "T" }, [text(1, "x")])), "duplicate-key"],
     // Known render-v1 content with nowhere to go: children under a void element would never show.
     ["children under a void element", tree(node(1, "avatar", { alt: "A" }, [text(2, "caption")])), "unrealizable-children"],

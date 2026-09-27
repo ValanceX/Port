@@ -72,7 +72,7 @@ Until MESH decides, **propagation is not part of this contract**. No PORT's beha
 
 A PORT:
 
-1. **Realizes values as given.** It formats, defaults and converts nothing. If a target slot can hold only text and the value isn't a string, the PORT reports that as a realization error rather than inventing text.
+1. **Realizes values as given.** It formats, defaults and converts nothing. If a target slot can hold only text and the value isn't a string, the PORT reports that as a realization error rather than inventing text. MESH gives text only for text runs, not props, so for a number, boolean-as-text, `null`, list or record in a text slot this is currently always an error: an open MESH question, set out value by value in the [value realization audit](./architecture/2026-09-27-value-realization-audit.md).
 2. **Surfaces unknown components.** A node whose component the PORT has no realization for is made visible, never dropped.
 3. **Drops nothing silently.** Known render-v1 content the PORT cannot realize is an error, not an omission. This is **not** the same as ignoring an unknown schema property; see [What may be ignored](#what-may-be-ignored-and-what-may-not).
 4. **Keeps identity.** Between *update*s, each key is realized by the same target object.
