@@ -561,7 +561,10 @@ Server and browser implementations have explicit responsibilities and do not dep
 
 **Status: paused. Blocked on MESH.** Server HTML is attributes and text. MESH gives text only for text runs, so a number, boolean-as-text, `null`, list or record prop in an attribute has no text PORT may use. Producing one would be the second, Web-invented interpretation of values this project rules out. See the [value realization audit](./architecture/2026-09-27-value-realization-audit.md), whose questions, handed to MESH in the [MESH semantic handoff](./architecture/2026-09-27-mesh-semantic-handoff.md) (V-Q0 and V-Q1 at least), must be answered first. Nothing is implemented, and no interim "render-v1 → Web HTML values" representation is built.
 
-### Path, from the evidence so far
+### Notes recorded so far: not a design
+
+Observations only. SSR and hydration design starts after MESH answers the [semantic handoff](./architecture/2026-09-27-mesh-semantic-handoff.md), and may discard any of these.
+
 
 - The server path renders with the **same** MESH runtime and the **same** realization table: prop realizations are data (attribute names), not DOM functions, precisely so they serialize to the same HTML the browser path produces.
 - The server path must not format values either. An attribute gets a string as given; everything else is the open question above.
@@ -607,7 +610,10 @@ A real Valance route can produce HTML on the server without running a browser en
 
 **Status:** Paused with V0.7. The information hydration needs exists: the program (the composer knows it), the snapshot the server rendered (the server's composer has it), and MESH's determinism ("identical inputs give identical results"), so the client re-renders the same tree. Nothing needed is missing from both render-v1 and the composer. Moving the snapshot to the client is composer work (integration audit U8).
 
-### Path, from the evidence so far
+### Notes recorded so far: not a design
+
+Observations only. SSR and hydration design starts after MESH answers the [semantic handoff](./architecture/2026-09-27-mesh-semantic-handoff.md), and may discard any of these.
+
 
 - **Identity by structure.** Every tree of one program has the same structure (audit F4), so hydration can pair server DOM with the tree in document order, with no keys in the markup. That presumes the composer tells the client PORT the server's program. Program continuity stays the composer's, as for *update* ([CONTRACT.md](./CONTRACT.md#program-continuity)). A mismatch (a different element, or a missing node) is detected explicitly, never patched silently.
 - **One model, not two.** Hydration adopts server nodes into exactly the drawn-node records `draw` builds, then behaves as `update`. SSR adds no second identity or update model.

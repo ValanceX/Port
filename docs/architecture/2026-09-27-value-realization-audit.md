@@ -40,6 +40,8 @@ Where MESH defines the representation (a string, a text run, a boolean realized 
 - **DOM properties are typed** (WebIDL). A `double`/`long` property (`valueAsNumber`, `tabIndex`) takes a number natively; a `boolean` property (`disabled`, `checked`) a boolean; a `DOMString` property (`title`, `value`) converts anything else by `ToString`; nullable properties take `null`. A custom element's own JavaScript properties take any value, lists and records included, unchanged.
 - **HTML serializes attributes and text only.** A property with no content attribute (`indeterminate`, a custom element's property, `value` after the user edits it) has no HTML form at all. Serializing a string is escaping, which is lossless and reversible, not a conversion of the value.
 
+**V9a. render-v1 carries no declared type and no output slot.** A node holds a primitive's name; a prop holds a name and a value (`$defs/node`, `$defs/value`). The manifest declares prop types, but PORT never receives the manifest; which target slot a prop occupies is the PORT's realization table's choice. So nothing in render-v1 says what position a value was meant for, and a value's *kind* at run time is all PORT can see. Any interpretation needing a declared type or an output position needs a change to MESH's contract, originating in MESH, not in PORT.
+
 **V10. What the Web PORT does today.** `attribute(name)` takes strings only; `booleanAttribute(name)` takes booleans only, by presence. Any other value is refused with `unrealizable-value`. There is no property realization. Those two realization kinds are data, so an SSR path could use the same table.
 
 ## Handoff matrix

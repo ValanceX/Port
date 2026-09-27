@@ -75,6 +75,8 @@ The consequences of each interpretation, as far as the evidence goes:
 | **Hydration** | Mismatch detection compares server text with the tree through the same representation | Compares strings directly |
 | **Other PORTs** | Each needs the representation in its own language, or MESH's implementation of it | A native PORT with typed setters realizes numbers natively, while a text-only target can't. Which props are "text positions" then differs per target, which sits uneasily with values already realized for their position |
 
+**Structural finding.** render-v1 currently carries **neither a prop's declared type nor its target or output slot**: a node has a primitive's name, and each prop a name and a value. So the "already realized for their output position" interpretation can't be implemented from the current contract alone. PORT doesn't add either piece of information: if MESH decides it is needed, the change originates in MESH's semantic and runtime contract.
+
 ### Value questions
 
 - **V-Q0.** The fundamental question above.
