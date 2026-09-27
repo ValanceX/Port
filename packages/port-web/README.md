@@ -57,6 +57,10 @@ An unknown render-v1 *property* is different: it is ignored, as MESH's schema re
 
 A component with no realization isn't refused. It's drawn as a `<valance-unknown data-component="…">` element with its children inside, so the mistake is visible.
 
+## Event propagation is not decided
+
+When a bound node sits inside another bound node, a click on the inner one currently reports **both** handlers, inner first. That is the DOM's bubbling, and it also happens between differently named events realized as the same DOM event type. MESH doesn't define propagation, so this is **not** Valance semantics and may change. Don't rely on it. `test/propagation.test.ts` pins today's behavior so any change is visible; the [event propagation audit](../../docs/architecture/2026-09-27-event-propagation-audit.md) explains the open question.
+
 ## Not yet
 
 Accessibility semantics beyond what a realization table chooses, styling, event delegation, server rendering and hydration. See the [roadmap](../../docs/ROADMAP.md).

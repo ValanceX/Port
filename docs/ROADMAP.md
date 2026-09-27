@@ -384,7 +384,9 @@ A semantic fixture can produce a correct DOM tree.
 
 # V0.3 — Events and Interaction
 
-**Status:** Done with direct listeners: a realization maps each event to a DOM event type and builds its payload; listeners read the drawn tree's handler identifier when they fire, and are removed with their node. The vertical slice runs DOM click → `users.select` in NEXUS. Delegation isn't used: nothing yet justifies it. Propagation semantics are open (audit U9).
+**Status:** Mechanism built, **semantics incomplete**. A realization maps each event to a DOM event type and builds its payload; listeners read the drawn tree's handler identifier when they fire, and are removed with their node. The vertical slice runs DOM click → `users.select` in NEXUS. Delegation isn't used: nothing yet justifies it.
+
+**Blocked on MESH:** propagation. MESH doesn't define whether one interaction can trigger more than one binding (nested bound nodes, or two events of one node), nor which interactions a primitive's event covers. The Web PORT currently bubbles, as the DOM does. That is characterized by tests, not contractual. See the [event propagation audit](./architecture/2026-09-27-event-propagation-audit.md). V0.3 isn't complete until MESH decides.
 
 ## Objective
 

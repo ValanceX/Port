@@ -231,7 +231,7 @@ To remain unresolved until evidence arrives.
 - **U6. Payloads beyond the slice.** How each primitive's event payload is built from a DOM event is currently decided per realization table. Whether some payload shapes deserve standard Web realizations needs more applications.
 - **U7. How the composer learns the program changed.** A MESH `Render` does not expose its program identity (it's "never given to a renderer"). A composer that swaps programs knows because it did so; hot reload tooling (NEXUS roadmap §15) will need to track it.
 - **U8. SSR state transfer.** Dispatch needs a `Render`, so a hydrating client must obtain one by rendering the serialized snapshot itself (see ROADMAP). Whether snapshot serialization is the composer's or NEXUS's is open (NEXUS roadmap §14 lists serialization and hydration as v0.10 investigations).
-- **U9. Event propagation.** MPRX says nothing about whether an event on a nested node also counts for its ancestors' bindings. PORT Web keeps the DOM's default (bubbling), so a click on a node inside another node that binds `click` reports both. Whether that is the intended semantics is a MESH question.
+- **U9. Event propagation.** MPRX says nothing about whether an event on a nested node also counts for its ancestors' bindings. PORT Web keeps the DOM's default (bubbling), so a click on a node inside another node that binds `click` reports both. **Audited** in [`2026-09-27-event-propagation-audit.md`](./2026-09-27-event-propagation-audit.md): local binding is better supported, but it is a MESH contract gap, and V0.3 is not semantically complete.
 
 ## Contradictions
 

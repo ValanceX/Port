@@ -62,6 +62,12 @@ report(handler, payload?)
 
 The composer passes the report to `host.dispatch(render, handler, payload)` with the `Render` whose tree was drawn. PORT never sees an intent or a command, and target event objects never leave PORT.
 
+### Propagation is unspecified
+
+MESH doesn't say whether one user interaction can trigger more than one binding: a bound node inside a bound node, or two events of one node realized by the same target interaction. It also doesn't say which interactions a primitive's event covers. The evidence favours local binding (one interaction, one binding: the nearest bound node's), but MESH doesn't state it. See the [event propagation audit](./architecture/2026-09-27-event-propagation-audit.md).
+
+Until MESH decides, **propagation is not part of this contract**. No PORT's behavior in these cases is Valance semantics, and applications must not rely on it. The Web PORT's current behavior (the DOM's bubbling) is characterized by tests, not promised.
+
 ## Obligations
 
 A PORT:
