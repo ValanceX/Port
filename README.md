@@ -26,7 +26,7 @@ MPRX ─▶ MESH compiler ─▶ template-v1 ─▶ MESH runtime ─▶ render-v
                               composer ─▶ host.dispatch(render, handler, payload) ─▶ NEXUS command
 ```
 
-- **In:** a MESH render tree ([render-v1](https://github.com/ValanceX/Mesh/blob/main/schemas/render-v1.schema.json)), and whether it comes from the same program as the drawn one (*update*) or not (*draw* afresh).
+- **In:** a MESH render tree ([render-v1](https://github.com/ValanceX/Mesh/blob/main/schemas/render-v1.schema.json)), and whether it comes from the same program as the drawn one (*update*) or not (*draw* afresh). That fact, **program continuity**, is the composer's: PORT never infers it from the tree.
 - **Out:** the drawn tree's handler identifier for an event, and its payload.
 
 That's the whole [PORT contract](./docs/CONTRACT.md). It is language-neutral: render-v1 is a JSON Schema MESH implements in Rust and JavaScript, and the operations are three verbs and a report. Each PORT binds them in whatever language suits its target.
@@ -52,7 +52,13 @@ There is deliberately **no shared `@valancex/port` package** and no Canvas place
 
 ## Status
 
-**First Web realization.** `@valancex/port-web` draws, updates in place and reports events, and the vertical slice runs end to end against `@valancex/mesh-compiler` 0.5, `@valancex/mesh-runtime` 0.5 and `@valancex/nexus` 0.8. Not yet: accessibility and styling beyond a realization table's choices, server rendering and hydration. See the [roadmap](./docs/ROADMAP.md).
+**First Web realization.** `@valancex/port-web` draws, updates in place and reports events, and the vertical slice runs end to end against `@valancex/mesh-compiler` 0.5, `@valancex/mesh-runtime` 0.5 and `@valancex/nexus` 0.8.
+
+**Waiting on MESH:** two semantic questions are open upstream, and PORT doesn't settle them itself:
+- **event propagation**, which bindings one interaction triggers ([audit](./docs/architecture/2026-09-27-event-propagation-audit.md)). The Web PORT's current bubbling isn't contractual;
+- **non-text prop values in text slots**: numbers, `null`, lists and records in attributes and server HTML ([audit](./docs/architecture/2026-09-27-value-realization-audit.md)). This blocks SSR, so server rendering and hydration are paused.
+
+Not yet: accessibility and styling beyond a realization table's choices. See the [roadmap](./docs/ROADMAP.md).
 
 ```console
 $ pnpm install
@@ -64,6 +70,7 @@ $ pnpm test
 - [**The PORT contract**](./docs/CONTRACT.md): what every PORT promises
 - [**Architecture**](./docs/ARCHITECTURE.md): PORT's responsibilities and rules
 - [**Integration audit**](./docs/architecture/2026-09-27-port-integration-audit.md): the evidence behind the boundary, with open questions and contradictions
+- [**Event propagation audit**](./docs/architecture/2026-09-27-event-propagation-audit.md) and [**value realization audit**](./docs/architecture/2026-09-27-value-realization-audit.md): the open MESH questions
 - [**Roadmap**](./docs/ROADMAP.md)
 
 ## Tech

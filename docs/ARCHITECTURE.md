@@ -83,6 +83,7 @@ Neither kind turns into scattered `if (device.hasX)` checks in feature or render
 Established from MESH v0.5 and NEXUS v0.8 in the [integration audit](./architecture/2026-09-27-port-integration-audit.md), and stated as the [PORT contract](./CONTRACT.md).
 
 - **NEXUS → PORT is not a dependency.** NEXUS's `Mesh.host` renders MESH programs into `Render`s. A **composer** (the application, or later tooling) gives PORT each `render.tree`, says whether it comes from the program already drawn, and keeps the `Render` whose tree is drawn. NEXUS and PORT never import each other (NEXUS §16, MESH rule 13).
+- **Program continuity is the composer's.** *draw* means "a different program", *update* "the same program". PORT never works this out from keys, handler identifiers, shape or anything else in a tree ([CONTRACT.md](./CONTRACT.md#program-continuity)).
 - **In:** render-v1, owned by MESH. PORT doesn't redefine or wrap it. There is no "MESH IR" to consume: MESH's IR is internal to its compiler.
 - **Out:** `report(handler, payload?)`. The composer dispatches it through NEXUS with the drawn `Render`. PORT never sees an intent or a command, and target events never leave PORT.
 - **PORT → target** is PORT's own business.

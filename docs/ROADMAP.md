@@ -511,6 +511,8 @@ Repeated application updates produce correct target state while preserving ident
 
 # V0.6 — Web Runtime Architecture
 
+**Status:** Paused with V0.7 and V0.8. The server/browser split exists to serve SSR, and SSR is blocked on MESH (see V0.7).
+
 ## Objective
 
 Separate browser and server realization paths while keeping their shared Web semantics explicit.
@@ -557,10 +559,13 @@ Server and browser implementations have explicit responsibilities and do not dep
 
 # V0.7 — SSR
 
+**Status: paused. Blocked on MESH.** Server HTML is attributes and text. MESH gives text only for text runs, so a number, boolean-as-text, `null`, list or record prop in an attribute has no text PORT may use. Producing one would be the second, Web-invented interpretation of values this project rules out. See the [value realization audit](./architecture/2026-09-27-value-realization-audit.md), whose question 1 at least must be answered first. Nothing is implemented, and no interim "render-v1 → Web HTML values" representation is built.
+
 ### Path, from the evidence so far
 
 - The server path renders with the **same** MESH runtime and the **same** realization table: prop realizations are data (attribute names), not DOM functions, precisely so they serialize to the same HTML the browser path produces.
-- The server path must not format values either. An attribute gets a string as given, and a number has no given text (audit U3): SSR makes that question pressing, since HTML is text.
+- The server path must not format values either. An attribute gets a string as given; everything else is the open question above.
+- A value realized as a DOM property with no content attribute has no HTML form. Hydration applies it on the client from the tree.
 - An empty text run realizes as an empty text node in the DOM, which HTML can't express. Hydration must create it (see V0.8).
 
 ## Objective
@@ -600,9 +605,11 @@ A real Valance route can produce HTML on the server without running a browser en
 
 # V0.8 — Hydration and Client Takeover
 
+**Status:** Paused with V0.7. The information hydration needs exists: the program (the composer knows it), the snapshot the server rendered (the server's composer has it), and MESH's determinism ("identical inputs give identical results"), so the client re-renders the same tree. Nothing needed is missing from both render-v1 and the composer. Moving the snapshot to the client is composer work (integration audit U8).
+
 ### Path, from the evidence so far
 
-- **Identity by structure.** Every tree of one program has the same structure (audit F4), so hydration can pair server DOM with the tree in document order, with no keys in the markup. A mismatch (a different element, or a missing node) is detected explicitly, never patched silently.
+- **Identity by structure.** Every tree of one program has the same structure (audit F4), so hydration can pair server DOM with the tree in document order, with no keys in the markup. That presumes the composer tells the client PORT the server's program. Program continuity stays the composer's, as for *update* ([CONTRACT.md](./CONTRACT.md#program-continuity)). A mismatch (a different element, or a missing node) is detected explicitly, never patched silently.
 - **One model, not two.** Hydration adopts server nodes into exactly the drawn-node records `draw` builds, then behaves as `update`. SSR adds no second identity or update model.
 - **State crosses as the snapshot.** Dispatch needs a `Render` (NEXUS M1), and a `Render` can only be made by rendering. So the client renders the *serialized snapshot* the server rendered, gets the same tree, and adopts the server DOM for it. Who serializes the snapshot, the composer or NEXUS, is open (audit U8).
 

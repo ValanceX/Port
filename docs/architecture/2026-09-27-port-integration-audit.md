@@ -245,3 +245,29 @@ Recorded, not silently resolved. Where this kickoff changes PORT's own documents
 - **C6. Org profile lists PORT's language as "TypeScript".** The kickoff states PORT's implementation language follows the target. True today for `port-web` only. The org profile is outside this repository; flagged, not changed.
 - **C7. MESH `docs/ARCHITECTURE.md` "PORT describes target capabilities, and MESH may reason about them" vs render-v1.** MESH's direction expects information to flow from PORT to MESH tooling, but there is no channel for it in any current format. Direction only; no action.
 - **C8. PORT ROADMAP V0.1 "Do not simply expose the MESH IR wholesale … PORT should consume the semantic guarantees it actually needs."** There is no MESH IR to expose, and render-v1 is already the minimal, guarantee-shaped output MESH designed for renderers. PORT consumes it as is, rather than defining its own input format. **Resolved** in the roadmap.
+
+## External documentation follow-ups
+
+Recorded here and **not changed from this repository's branches**: they belong to other repositories, and need a change there.
+
+- **X1. `ValanceX/.github`, `profile/README.md`** (the organization page), read at `main` on 2026-09-27:
+  - It presents the cross-repository contract as a **MESH IR**, and the pipeline as `user-card.mprx → MESH compiler → MESH IR → NEXUS runtime → PORT (Web) → browser`. MESH has no public IR (C1). The current architecture, established by code and tests in all three repositories, is:
+
+    ```text
+    MPRX
+      ↓
+    MESH compiler → template-v1 → MESH runtime
+      ↓
+    render-v1
+      ↓
+    NEXUS Mesh.host (renders; dispatches intents to commands)
+      ↓
+    composer (keeps the drawn Render; decides program continuity)
+      ↓
+    PORT → target
+    ```
+
+  - It lists PORT's language as **TypeScript**, as if for every PORT. Only the Web PORT is TypeScript, as a Web-target decision; the PORT contract is language-neutral (C6, Gate 3).
+  - Its status line, "Scaffolded. The Web DOM renderer is next", predates `@valancex/port-web`.
+
+  Suggested change, for whoever edits the organization page: replace "MESH IR" with render-v1 and show the composer in the pipeline; describe PORT's language as "per target (Web: TypeScript)"; update PORT's status.
