@@ -8,6 +8,8 @@ export type WebRealizationCode =
   | "unrealized-event"
   /** A prop's value doesn't fit its realization, e.g. a number for an attribute. */
   | "unrealizable-value"
+  /** A node has children, but its primitive is realized as an HTML void element, which can't hold any. */
+  | "unrealizable-children"
   /** Two parts of one tree share a key. MESH guarantees this never happens. */
   | "duplicate-key"
   /** `update` was called with nothing drawn. */

@@ -85,6 +85,11 @@ const fits = (realization: PropRealization, value: BoundaryValue): boolean => {
   }
 };
 
+// HTML's void elements (HTML Living Standard, "Void elements"): they can have
+// no children. In the DOM, children appended to one are never shown, and HTML
+// can't serialize them, so a node realized as one must have none.
+const VOID_ELEMENTS = new Set(["area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "source", "track", "wbr"]);
+
 const check = (tree: RenderTree, primitives: WebPrimitives): void => {
   if (tree.format !== "mesh-render" || tree.version !== 1) {
     throw new WebRealizationError("unsupported-tree", `expected a render-v1 tree (format "mesh-render", version 1), got format ${JSON.stringify(tree.format)}, version ${JSON.stringify(tree.version)}`);
@@ -123,6 +128,10 @@ const check = (tree: RenderTree, primitives: WebPrimitives): void => {
         if (own(primitive.events, name) === undefined) {
           throw new WebRealizationError("unrealized-event", `<${part.component}> has no realization for its event \`${name}\``, part.key);
         }
+      }
+
+      if (part.children.length > 0 && VOID_ELEMENTS.has(primitive.element.toLowerCase())) {
+        throw new WebRealizationError("unrealizable-children", `<${part.component}> has children, but is realized as <${primitive.element}>, which can't hold any`, part.key);
       }
     }
 

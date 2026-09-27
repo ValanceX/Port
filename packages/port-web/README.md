@@ -49,8 +49,11 @@ It checks every tree in full before touching the DOM, so a refused tree changes 
 | `unrealized-prop` | a prop has no realization for its primitive |
 | `unrealized-event` | an event has no realization for its primitive |
 | `unrealizable-value` | a value doesn't fit its realization: a number, list, record or `null` for an attribute (MESH gives no text for it, and the PORT doesn't format values), or a non-boolean for a boolean attribute |
+| `unrealizable-children` | a node has children (even an empty text run), but its primitive is realized as an HTML void element such as `img`, which can't hold any |
 | `duplicate-key` | two parts of a tree share a key |
 | `not-drawn` | `update` before `draw` |
+
+An unknown render-v1 *property* is different: it is ignored, as MESH's schema requires (see the contract's [What may be ignored](../../docs/CONTRACT.md#what-may-be-ignored-and-what-may-not)).
 
 A component with no realization isn't refused. It's drawn as a `<valance-unknown data-component="…">` element with its children inside, so the mistake is visible.
 

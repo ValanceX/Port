@@ -68,11 +68,26 @@ A PORT:
 
 1. **Realizes values as given.** It formats, defaults and converts nothing. If a target slot can hold only text and the value isn't a string, the PORT reports that as a realization error rather than inventing text.
 2. **Surfaces unknown components.** A node whose component the PORT has no realization for is made visible, never dropped.
-3. **Drops nothing silently.** A prop or event in the tree that the PORT cannot realize is an error, not an omission.
+3. **Drops nothing silently.** Known render-v1 content the PORT cannot realize is an error, not an omission. This is **not** the same as ignoring an unknown schema property; see [What may be ignored](#what-may-be-ignored-and-what-may-not).
 4. **Keeps identity.** Between *update*s, each key is realized by the same target object.
 5. **Compares keys and handler identifiers only for equality**, and parses neither.
 6. **Depends on neither NEXUS nor the MESH runtime.** It may use the render-tree *types*.
 7. **Owns everything target-specific,** including what each of the application's primitive components becomes on its target. MESH has no Valance-wide primitive set: an application's manifest declares its primitives, and the PORT is configured with their realizations.
+
+## What may be ignored, and what may not
+
+Four different situations, each with its own rule. They must not be conflated.
+
+| Situation | Example | The PORT | Why |
+|---|---|---|---|
+| **Unknown schema property**: a property render-v1 doesn't define | a later MESH adds `"hint"` to nodes | **ignores** it | MESH's schema evolution rule: within a version, MESH may only *add* properties, and "renderers must ignore properties they don't know". MESH's rule 15 makes such additions optional: they "improve realization but [are] never needed for correctness". Ignoring one loses no meaning a v1 renderer is responsible for. |
+| **Known content the target can't carry**: a node, prop, event or text run defined by render-v1 that this realization has nowhere to put | children (even an empty text run) under a primitive the Web PORT realizes as a void element like `img` | **refuses** the tree with a realization error | The content has meaning in render-v1. Letting it vanish, or putting it where the target never shows it, is a silent drop. |
+| **Unknown component**: a node whose component this PORT has no realization for | a composite whose template the program left out arrives as a primitive of its name | **surfaces** it visibly, and still realizes its children | MESH requires it to be surfaced, not dropped. Its props and events aren't realized; the visible placeholder is how that is made known. |
+| **Unsupported realization**: a known component whose prop or event has no realization, or whose value doesn't fit it | a `subtitle` prop the realization table doesn't list; a number for an attribute | **refuses** the tree with a realization error | The configuration is incomplete for this tree, so realizing it partially would drop meaning. |
+
+The first row is about the **format**: it covers only what MESH's evolution rule promises is optional. The other three are about **content** in the format, and nothing in them may disappear silently. An error refuses the whole tree before the target is touched, so what was realized before stays intact.
+
+One case is caught downstream instead: if an event's realization builds no payload where the application's manifest declares one, the PORT can't know (it never sees the manifest), and MESH refuses the dispatch (`runtime-missing-value`). That is surfaced, not silent.
 
 ## Not in version 1
 

@@ -249,6 +249,9 @@ describe("nothing is dropped silently, and a refused tree changes nothing", () =
     ["null for an attribute", tree(node(1, "avatar", { alt: "A", src: null })), "unrealizable-value"],
     ["a string for a boolean attribute", tree(node(1, "button", { disabled: "yes" })), "unrealizable-value"],
     ["two parts with one key", tree(node(1, "page", { title: "T" }, [text(1, "x")])), "duplicate-key"],
+    // Known render-v1 content with nowhere to go: children under a void element would never show.
+    ["children under a void element", tree(node(1, "avatar", { alt: "A" }, [text(2, "caption")])), "unrealizable-children"],
+    ["even an empty text run under a void element", tree(node(1, "avatar", { alt: "A" }, [text(2, "")])), "unrealizable-children"],
   ];
 
   for (const [what, bad, code] of cases) {
