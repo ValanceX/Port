@@ -226,14 +226,25 @@ describe("hydrate: property slots", () => {
     expect(container.querySelector("valance-level")).toBe(element);
   });
 
+  // A DOM property is not represented by an HTML attribute merely because the
+  // browser reflects it into one. Hydration doesn't special-case reflection:
+  // the reflected attribute is an attribute no realization writes.
   it("a property the platform reflects, changed before hydration, is an attribute mismatch: a fresh draw", () => {
     const { container } = parse(realizeHtml(withMeter(), primitives));
-    (container.querySelector("progress")! as HTMLProgressElement).value = 0.7;
+    const server = container.querySelector("progress")! as HTMLProgressElement;
+    expect(server.hasAttribute("value")).toBe(false);
 
+    // Property write → the browser reflects it → an HTML attribute exists.
+    server.value = 0.7;
+    expect(server.getAttribute("value")).toBe("0.7");
+
+    // Hydration sees an unexpected attribute → mismatch → fresh draw.
     const result = createWebPort({ container, primitives, report: () => {} }).hydrate(withMeter());
 
-    expect(result).toMatchObject({ adopted: false, mismatch: { class: "attribute", found: 'value="0.7"' } });
+    expect(result).toMatchObject({ adopted: false, mismatch: { class: "attribute", expected: "no value", found: 'value="0.7"' } });
+    expect(container.contains(server)).toBe(false);
     expect((container.querySelector("progress")! as HTMLProgressElement).value).toBe(0);
+    expect(container.querySelector("progress")!.hasAttribute("value")).toBe(false);
   });
 
   it("the same for a text property", () => {

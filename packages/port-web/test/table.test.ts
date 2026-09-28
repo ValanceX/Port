@@ -40,6 +40,10 @@ const refusedBy = (primitives: WebPrimitives, component = "p") => {
 const INVALID = { client: "invalid-primitives", server: "invalid-primitives" };
 
 describe("a source prop has at most one realization within a primitive", () => {
+  // The type system prevents duplicate source-prop keys in ordinary object
+  // literals (this test's @ts-expect-error pins TS1117). Runtime validation,
+  // below, protects against malformed programmatically-created tables and
+  // unstable getter entries. PORT supports no duplicate mapping declaration.
   it("can't be written twice: a table literal with one prop mapped twice doesn't typecheck", () => {
     const table: WebPrimitives = {
       // @ts-expect-error TS1117: `value` → attribute and `value` → textProperty is not a table.

@@ -21,3 +21,37 @@ describe("dependency directions", () => {
     expect(dependenciesOf("@valancex/nexus").filter((name) => name.startsWith("@valancex/port"))).toEqual([]);
   });
 });
+
+// The built package, as consumers load it: the server entry's module graph
+// holds no DOM realization (port.js), no NEXUS and no integration code.
+describe("the built server entry", () => {
+  const dist = new URL("../node_modules/@valancex/port-web/dist/", import.meta.url);
+  const graphOf = (entry: string): ReadonlyArray<string> => {
+    const seen = new Set<string>();
+    const visit = (file: string): void => {
+      if (!seen.has(file)) {
+        seen.add(file);
+        const source = readFileSync(new URL(file, dist), "utf8");
+        for (const [, specifier] of source.matchAll(/^\s*(?:import|export)\s[^;]*?from\s+"([^"]+)"/gms)) {
+          seen.add(specifier!.startsWith("./") ? "" : specifier!);
+          if (specifier!.startsWith("./")) {
+            visit(specifier!.slice(2));
+          }
+        }
+      }
+    };
+
+    visit(entry);
+    seen.delete("");
+
+    return [...seen].sort();
+  };
+
+  it("loads only the shared modules and the HTML writer", () => {
+    expect(graphOf("server.js")).toEqual(["check.js", "error.js", "html.js", "primitives.js", "realize.js", "server.js"]);
+  });
+
+  it("the client entry loads the DOM realization and the same shared modules", () => {
+    expect(graphOf("index.js")).toEqual(["check.js", "error.js", "index.js", "port.js", "primitives.js", "realize.js"]);
+  });
+});

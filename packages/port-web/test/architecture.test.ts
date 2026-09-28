@@ -4,6 +4,9 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
+import * as client from "../src/index.js";
+import * as server from "../src/server.js";
+
 const src = new URL("../src/", import.meta.url);
 const files = readdirSync(src).filter((file) => file.endsWith(".ts"));
 const sources = files.map((file) => [file, readFileSync(new URL(file, src), "utf8")] as const);
@@ -96,5 +99,23 @@ describe("the server entry's boundaries", () => {
     for (const file of ["html.ts", "realize.ts"]) {
       expect({ file, calls: codeOf(byFile.get(file)!).match(/\bString\s*\(|JSON\s*\.\s*stringify/g) ?? [] }).toEqual({ file, calls: [] });
     }
+  });
+});
+
+// The public surface: the client and server entries, and nothing else. The
+// shared checks, value realization, HTML escaping and hydration's
+// verification are internal.
+describe("the public API surface", () => {
+  it("the package exposes only its two entries", () => {
+    expect(Object.keys((manifest["exports"] ?? {}) as Record<string, unknown>)).toEqual([".", "./server", "./package.json"]);
+  });
+
+  it("the client entry: the Web PORT, the realization table's helpers, and its error", () => {
+    expect(Object.keys(client).sort()).toEqual(["UNKNOWN_COMPONENT_ELEMENT", "WebRealizationError", "attribute", "booleanAttribute", "createWebPort", "property", "textProperty"]);
+  });
+
+  it("the server entry: realizeHtml, the realization table's helpers, and the same error", () => {
+    expect(Object.keys(server).sort()).toEqual(["WebRealizationError", "attribute", "booleanAttribute", "property", "realizeHtml", "textProperty"]);
+    expect(server.WebRealizationError).toBe(client.WebRealizationError);
   });
 });
