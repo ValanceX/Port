@@ -14,7 +14,7 @@
     "@types/node": "^22.0.0",
     "@valancex/mesh-compiler": "^0.6.0",
     "@valancex/mesh-runtime": "^0.6.0",
-    "@valancex/nexus": "^0.8.0",
+    "@valancex/nexus": "^0.8.1",
     "@valancex/port-web": "workspace:*",
     "effect": "^3.10.0",
     "jsdom": "^26.0.0",

@@ -4,6 +4,10 @@ All notable changes to PORT are recorded here. The project follows [Semantic Ver
 
 ## [Unreleased]
 
+### Changed
+
+- **The temporary MESH runtime override is removed.** The integration workspace now uses `@valancex/nexus` `^0.8.1`, which declares `@valancex/mesh-runtime` `^0.6.0` itself, so the workspace root's `pnpm.overrides` entry `"@valancex/nexus>@valancex/mesh-runtime": "^0.6.0"` is gone. The workspace still resolves one copy of `@valancex/mesh-runtime` (0.6.0) and of `effect`. It affects only this repository's private test workspace: `@valancex/port-web` and its dependencies are unchanged.
+
 ## [0.2.0] - 2026-09-28
 
 The Web PORT on MESH v0.6, with server rendering and hydration for a deliberately narrow subset. See the [v0.2 release notes](./docs/releases/v0.2.md) for an overview.

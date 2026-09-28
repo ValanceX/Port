@@ -4,9 +4,6 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
-overrides:
-  '@valancex/nexus>@valancex/mesh-runtime': ^0.6.0
-
 importers:
 
   .:
@@ -30,8 +27,8 @@ importers:
         specifier: ^0.6.0
         version: 0.6.0
       '@valancex/nexus':
-        specifier: ^0.8.0
-        version: 0.8.0
+        specifier: ^0.8.1
+        version: 0.8.1
       '@valancex/port-web':
         specifier: workspace:*
         version: link:../packages/port-web
@@ -438,8 +435,8 @@ packages:
     resolution: {integrity: sha512-haovWIo58s9DA1SRwdla2a0QWRRa4CcQCW3QcdRjEo6V0NSeLd4zmfyhXWbJE6vb3QYfq57Tfuj/1pJbPbnTzg==}
     engines: {node: '>=22'}
 
-  '@valancex/nexus@0.8.0':
-    resolution: {integrity: sha512-gk117t4FojWeOU9TFFvOrNZPj2kXVPntpCtNSrO0fljEPIoV9aYf8NVVLedpQJOv7LDu/vOYxbMPl4tBPIW6fQ==}
+  '@valancex/nexus@0.8.1':
+    resolution: {integrity: sha512-n0KeNn74Du72IAfvTUegl2U2uUQxNhUHG1RZKO/z1+fgQPo4GlEiBN0RGJwdzdLwzvSKzBQR0ZHV6fclXhTUtA==}
     engines: {node: '>=22'}
 
   '@vitest/expect@3.2.7':
@@ -1046,7 +1043,7 @@ snapshots:
 
   '@valancex/mesh-runtime@0.6.0': {}
 
-  '@valancex/nexus@0.8.0':
+  '@valancex/nexus@0.8.1':
     dependencies:
       '@valancex/mesh-runtime': 0.6.0
       effect: 3.22.2
