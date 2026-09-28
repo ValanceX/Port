@@ -2,11 +2,37 @@
 
 All notable changes to PORT are recorded here. The project follows [Semantic Versioning](https://semver.org). Until 1.0, minor versions may include breaking changes.
 
-## [Unreleased]
+## [0.2.1] - 2026-09-28
+
+A patch release. `@valancex/port-web`'s source, API and behavior are unchanged from 0.2.0. Everything else is in the private integration workspace. See the [v0.2 release notes](./docs/releases/v0.2.md#v021).
+
+### Added
+
+- **The Chromium tracer bullet** (`integration/browser/`), run by `pnpm --filter @valancex/port-integration run test:browser` and by a new CI job. It is the smallest real composition, in a real browser:
+  - MPRX, compiled in Node by the published MESH compiler;
+  - `@valancex/mesh-runtime`, `init`ed in the page;
+  - a NEXUS application whose `users.refresh` requires one capability;
+  - a test-local platform in the `Layer.merge` shape, providing that capability and Clock 42;
+  - the existing composer, `@valancex/port-web` and Chromium, with real clicks.
+
+  It checks:
+  - MESH's reviewed intent, capability resolution, and an in-place DOM update;
+  - that application code sees the platform's Clock, and the caller, which gets its events with the ordinary `Fiber.join`, never does (NEXUS v0.9's caller isolation);
+  - the negative path: with the capability absent, the analysis says incompatible, the application still starts, Refresh fails with `CapabilityUnavailableError`, and nothing else changes.
+
+  It runs with Vitest browser mode (`@vitest/browser` 3.2.7) and Playwright 1.56.1 (Chromium 1194).
 
 ### Changed
 
-- **The temporary MESH runtime override is removed.** The integration workspace now uses `@valancex/nexus` `^0.8.1`, which declares `@valancex/mesh-runtime` `^0.6.0` itself, so the workspace root's `pnpm.overrides` entry `"@valancex/nexus>@valancex/mesh-runtime": "^0.6.0"` is gone. The workspace still resolves one copy of `@valancex/mesh-runtime` (0.6.0) and of `effect`. It affects only this repository's private test workspace: `@valancex/port-web` and its dependencies are unchanged.
+- **Integration on NEXUS 0.9.** The integration workspace uses `@valancex/nexus` `^0.9.0`, which isolates an application's platform FiberRefs from its caller, and declares `@valancex/mesh-runtime` `^0.6.0` itself.
+- **The temporary MESH runtime override is removed.** The workspace root's `pnpm.overrides` entry `"@valancex/nexus>@valancex/mesh-runtime": "^0.6.0"`, added in 0.2.0 only because NEXUS 0.8.0 declared `^0.5.0`, is gone.
+- The workspace still resolves one copy of `@valancex/mesh-runtime` (0.6.0) and of `effect`.
+
+### Compatibility
+
+- **`@valancex/port-web`:** unchanged: the same entries, API, peer dependency (`@valancex/mesh-runtime` `^0.6.0`) and behavior as 0.2.0.
+- **MESH:** v0.6, unchanged.
+- **NEXUS:** integration-tested with `@valancex/nexus` 0.9.0, through the composer only. PORT doesn't depend on NEXUS.
 
 ## [0.2.0] - 2026-09-28
 
@@ -67,4 +93,5 @@ These are the documented semantics of v0.2, not defects:
 
 - **A release workflow**, `.github/workflows/release.yml`, as MESH's. A pushed `v*` tag runs all of CI on the tagged commit, packs `@valancex/port-web`, and checks that the tag is `v` + its version and that npm doesn't have it yet. It then publishes it to npm with provenance, and creates the GitHub release from `docs/releases/vX.Y.md` with the tarball attached. A manual run publishes only with `publish` set and only from a tag. A manual run without it, or a pull request changing the workflow, is a dry run. Publishing needs the `NPM_ACCESS_TOKEN` secret. CI no longer runs on tag pushes, since the release workflow runs it, and can be called and run by hand.
 
+[0.2.1]: https://github.com/ValanceX/Port/releases/tag/v0.2.1
 [0.2.0]: https://github.com/ValanceX/Port/releases/tag/v0.2.0
