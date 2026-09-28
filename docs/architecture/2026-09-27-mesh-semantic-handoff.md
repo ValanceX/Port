@@ -1,5 +1,7 @@
 # MESH semantic handoff from PORT
 
+> **Resolved by MESH v0.6** (2026-09-27, `a8a046f`). Both gaps are settled: values by spec §9.7.7, §9.8.2 and §9.8.7 (render-v1 carries semantic values, and each number, boolean and `null` prop's MESH text as `propText`), and events by §9.9. The decisions are in MESH's `docs/superpowers/specs/2026-09-27-mesh-port-semantic-resolution.md`. This document is kept as the record of the question.
+
 **Date:** 2026-09-27
 **From:** PORT (ValanceX/Port, branch `claude/focused-keller-jf7dt2`)
 **To:** MESH maintainers

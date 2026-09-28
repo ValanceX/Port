@@ -9,12 +9,13 @@ MPRX ─▶ @valancex/mesh-compiler ─▶ template-v1 ─▶ @valancex/mesh-run
 DOM event ─▶ port-web ─▶ (handler, payload) ─▶ composer ─▶ NEXUS dispatch ─▶ command ─▶ state ─▶ new render ─▶ update in place
 ```
 
-- **Inputs:** MESH's own slice (`../fixtures/mesh-slice`, copied verbatim from MESH v0.5.0), compiled at test time.
-- **Upstream:** the published `@valancex/mesh-compiler` 0.5, `@valancex/mesh-runtime` 0.5 and `@valancex/nexus` 0.8, from npm. NEXUS and the slice share one copy of `effect` and of `@valancex/mesh-runtime`.
+- **Inputs:** MESH's own slice (`../fixtures/mesh-slice`, copied verbatim from MESH v0.5.0 and unchanged in v0.6.0), compiled at test time.
+- **Upstream:** the published `@valancex/mesh-compiler` 0.6, `@valancex/mesh-runtime` 0.6 and `@valancex/nexus` 0.8, from npm. NEXUS and the slice share one copy of `effect` and of `@valancex/mesh-runtime`. NEXUS 0.8.0 declares `@valancex/mesh-runtime` `^0.5.0`, which excludes 0.6, so the workspace root overrides that one range (`pnpm.overrides`, `@valancex/nexus>@valancex/mesh-runtime`) until a NEXUS release accepts 0.6. NEXUS only calls `render` and `dispatch`, whose API v0.6 didn't change, and its own suite passes against 0.6.
 - **`test/compose.ts`** is the composer: the only code that knows both NEXUS and PORT. It owns two facts nobody else has. **Program continuity:** one NEXUS MESH host renders one program, so the host's later renders are *updates*, and showing another host is a new program, *drawn* afresh. **The drawn render:** each PORT report is dispatched with the `Render` whose tree is drawn.
 - **`test/app.ts`** is the slice's application: MESH's slice compiled with the real compiler, its NEXUS state, scope and command bindings, and the Web realization of its primitives.
 - **`test/slice.test.ts`** runs the slice: draw, click an avatar (→ `users.select`), click Refresh (→ `users.refresh` → new render → the same `<img>` updated in place), and checks the intent against MESH's reviewed `select-first.intent.json`.
 - **`test/composer.test.ts`** checks the composer's obligations. Each report dispatches with the render that was drawn when the event fired. A new program is drawn afresh with no DOM reused, and its events dispatch with its own render. A new program's handler dispatched with the old program's render is refused by MESH (`runtime-handler-other-program`), which is why the composer keeps the drawn render.
+- **`test/mesh-v06.test.ts`** runs MESH v0.6's semantics through the slice: NEXUS's host uses the slice's one v0.6 runtime; a boolean prop reaches the DOM as MESH's `propText` in a text-only slot, and an update writes the new text in place; a value its slot can't hold is refused before the DOM changes; and with the first user's card inside the Refresh button, a click on the avatar is only `selectUser` and a click on the name only `refresh`, one command each.
 - **`test/boundaries.test.ts`** checks the dependency directions against the installed packages: PORT Web doesn't depend on NEXUS, and NEXUS doesn't depend on PORT.
 
 ```console

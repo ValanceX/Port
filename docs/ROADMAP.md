@@ -384,9 +384,7 @@ A semantic fixture can produce a correct DOM tree.
 
 # V0.3 — Events and Interaction
 
-**Status:** Mechanism built, **semantics incomplete**. A realization maps each event to a DOM event type and builds its payload; listeners read the drawn tree's handler identifier when they fire, and are removed with their node. The vertical slice runs DOM click → `users.select` in NEXUS. Delegation isn't used: nothing yet justifies it.
-
-**Blocked on MESH:** propagation. MESH doesn't define whether one interaction can trigger more than one binding (nested bound nodes, or two events of one node), nor which interactions a primitive's event covers. The Web PORT currently bubbles, as the DOM does. That is characterized by tests, not contractual. See the [event propagation audit](./architecture/2026-09-27-event-propagation-audit.md). V0.3 isn't complete until MESH decides.
+**Status:** Done, on MESH v0.6's event resolution (spec §9.9). A realization maps each of a primitive's events to a DOM event type (at most one event per type) and builds its payload. One capture listener per DOM event type on the container finds the interacted node, walks the drawn tree towards the root, and reports the first node whose primitive has an applicable event and binds it: at most one report per interaction, whatever the DOM's propagation does. MESH's conformance vectors pass through a real DOM, and the slice runs nested bindings to one NEXUS command per click. The [event propagation audit](./architecture/2026-09-27-event-propagation-audit.md) is the question MESH answered.
 
 ## Objective
 
@@ -511,7 +509,7 @@ Repeated application updates produce correct target state while preserving ident
 
 # V0.6 — Web Runtime Architecture
 
-**Status:** Paused with V0.7 and V0.8. The server/browser split exists to serve SSR, and SSR is blocked on MESH (see V0.7).
+**Status:** Unblocked, with V0.7: its design comes first. Value realization is already one DOM-free step (`realize.ts`) that both paths can share.
 
 ## Objective
 
@@ -559,15 +557,15 @@ Server and browser implementations have explicit responsibilities and do not dep
 
 # V0.7 — SSR
 
-**Status: paused. Blocked on MESH.** Server HTML is attributes and text. MESH gives text only for text runs, so a number, boolean-as-text, `null`, list or record prop in an attribute has no text PORT may use. Producing one would be the second, Web-invented interpretation of values this project rules out. See the [value realization audit](./architecture/2026-09-27-value-realization-audit.md), whose questions, handed to MESH in the [MESH semantic handoff](./architecture/2026-09-27-mesh-semantic-handoff.md) (V-Q0 and V-Q1 at least), must be answered first. Nothing is implemented, and no interim "render-v1 → Web HTML values" representation is built.
+**Status: unblocked, design first.** MESH v0.6 gives every number, boolean and `null` prop its MESH text (`propText`), and says lists and records have none (spec §9.7.7, §9.8.7), which was what blocked it. Which Web slots have an HTML form is in the [Web value realization](./architecture/2026-09-28-web-value-realization.md). The design is next, and nothing is implemented until it is reviewed.
 
 ### Notes recorded so far: not a design
 
-Observations only. SSR and hydration design starts after MESH answers the [semantic handoff](./architecture/2026-09-27-mesh-semantic-handoff.md), and may discard any of these.
+Observations only, recorded while SSR was blocked. The SSR design may discard any of these.
 
 
 - The server path renders with the **same** MESH runtime and the **same** realization table: prop realizations are data (attribute names), not DOM functions, precisely so they serialize to the same HTML the browser path produces.
-- The server path must not format values either. An attribute gets a string as given; everything else is the open question above.
+- The server path must not format values either. An attribute gets a string as given, or MESH's `propText`, exactly as the DOM path does (`realize.ts`).
 - A value realized as a DOM property with no content attribute has no HTML form. Hydration applies it on the client from the tree.
 - An empty text run realizes as an empty text node in the DOM, which HTML can't express. Hydration must create it (see V0.8).
 
@@ -608,11 +606,11 @@ A real Valance route can produce HTML on the server without running a browser en
 
 # V0.8 — Hydration and Client Takeover
 
-**Status:** Paused with V0.7. The information hydration needs exists: the program (the composer knows it), the snapshot the server rendered (the server's composer has it), and MESH's determinism ("identical inputs give identical results"), so the client re-renders the same tree. Nothing needed is missing from both render-v1 and the composer. Moving the snapshot to the client is composer work (integration audit U8).
+**Status:** Design follows V0.7's; not implemented before SSR is proven. The information hydration needs exists: the program (the composer knows it), the snapshot the server rendered (the server's composer has it), and MESH's determinism ("identical inputs give identical results"), so the client re-renders the same tree. Nothing needed is missing from both render-v1 and the composer. Moving the snapshot to the client is composer work (integration audit U8).
 
 ### Notes recorded so far: not a design
 
-Observations only. SSR and hydration design starts after MESH answers the [semantic handoff](./architecture/2026-09-27-mesh-semantic-handoff.md), and may discard any of these.
+Observations only, recorded while SSR was blocked. The design may discard any of these.
 
 
 - **Identity by structure.** Every tree of one program has the same structure (audit F4), so hydration can pair server DOM with the tree in document order, with no keys in the markup. That presumes the composer tells the client PORT the server's program. Program continuity stays the composer's, as for *update* ([CONTRACT.md](./CONTRACT.md#program-continuity)). A mismatch (a different element, or a missing node) is detected explicitly, never patched silently.

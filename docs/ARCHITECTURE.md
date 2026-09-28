@@ -80,7 +80,7 @@ Neither kind turns into scattered `if (device.hasX)` checks in feature or render
 
 ## The boundary
 
-Established from MESH v0.5 and NEXUS v0.8 in the [integration audit](./architecture/2026-09-27-port-integration-audit.md), and stated as the [PORT contract](./CONTRACT.md).
+Established from MESH v0.5 and NEXUS v0.8 in the [integration audit](./architecture/2026-09-27-port-integration-audit.md), completed by MESH v0.6's realization and event-resolution rules, and stated as the [PORT contract](./CONTRACT.md).
 
 - **NEXUS → PORT is not a dependency.** NEXUS's `Mesh.host` renders MESH programs into `Render`s. A **composer** (the application, or later tooling) gives PORT each `render.tree`, says whether it comes from the program already drawn, and keeps the `Render` whose tree is drawn. NEXUS and PORT never import each other (NEXUS §16, MESH rule 13).
 - **Program continuity is the composer's.** *draw* means "a different program", *update* "the same program". PORT never works this out from keys, handler identifiers, shape or anything else in a tree ([CONTRACT.md](./CONTRACT.md#program-continuity)).
@@ -88,6 +88,26 @@ Established from MESH v0.5 and NEXUS v0.8 in the [integration audit](./architect
 - **Out:** `report(handler, payload?)`. The composer dispatches it through NEXUS with the drawn `Render`. PORT never sees an intent or a command, and target events never leave PORT.
 - **PORT → target** is PORT's own business.
 - **The application's primitives** are declared in its MESH manifest; there is no Valance-wide primitive set. What each becomes on a target is configuration of that target's PORT (for Web, a realization table).
+
+### Semantics MESH owns, and PORT realizes
+
+MESH v0.6 settled the two questions the first Web realization raised. PORT adopts its answers and adds nothing of its own:
+
+- **A value, its text, and its realization are three steps** (MESH spec §9.7.7, §9.8.7). MESH owns the value and its text: the runtime gives each number, boolean and `null` prop's text as the node's `propText`. PORT owns only which target slot a prop goes to, and puts it there natively (a slot of its kind that holds it exactly) or as MESH's text (a slot that holds only text). PORT never makes a value's text.
+- **Event resolution** (§9.9): one interaction reaches at most one binding, the first from the interacted node towards the root whose primitive has an applicable event and binds it. PORT maps its target's interactions onto each primitive's events and implements the walk; its target's propagation never decides the result.
+
+### The Web PORT: DOM properties are not attributes
+
+The Web has two kinds of slot for a prop, and they don't share semantics. An **HTML attribute holds only text**, and `setAttribute` stringifies anything else by the platform's `ToString`, which is not MESH's text. A **DOM property is typed**: an IDL `double` holds a number exactly, an IDL `boolean` a boolean, a `DOMString` only text. So the Web PORT classifies every prop path its realization table names:
+
+| Class | Realization | A value becomes |
+|---|---|---|
+| native DOM property | `property(name, "boolean" \| "number" \| "value")` | itself, if of the property's kind; anything else is refused |
+| native DOM attribute | `booleanAttribute(name)` | a boolean, by presence; anything else is refused |
+| text-only slot | `attribute(name)`, `textProperty(name)` | a string's own value, or MESH's `propText`; a list or record is refused |
+| unsupported | anything not in the table | refused |
+
+A numeric DOM property therefore takes the number natively, while an attribute showing a number takes MESH's text for it. The values, slots, sources, SSR consequences and failures are tabulated in the [Web value realization](./architecture/2026-09-28-web-value-realization.md). One pure step (`realize.ts`) decides every prop's output before the DOM is touched, so a later server path serializes the same outputs rather than formatting values a second way.
 
 What crosses should describe **guarantees, not mechanisms**, so NEXUS and MESH can change internals without breaking PORTs. The evolution rule, in both directions:
 
@@ -134,3 +154,4 @@ These invariants keep PORT honest. If a change would break one of them, it proba
 7. **Nothing is silently dropped.** Unsupported application capabilities have an explicit strategy, decided in NEXUS; what a PORT cannot realize is refused loudly (in the Web PORT, a `WebRealizationError`), and unknown components are shown, not quietly ignored.
 8. **No universal renderer interface.** PORTs share semantic input, not an implementation API.
 9. **The language follows the target.** The contract is language-neutral; no PORT is required to be TypeScript.
+10. **MESH owns semantic values, their text and event resolution.** A PORT never invents MESH text, and its target's behavior (DOM coercion, event bubbling) never becomes Valance semantics by accident.

@@ -1,5 +1,7 @@
 # Value realization audit
 
+> **Resolved by MESH v0.6** (2026-09-27, `a8a046f`). MESH defined a prop's text (`propText`, spec §9.7.7), kept "no text" for lists and records (§9.7.8), and defined realization as native or MESH text only (§9.8.7). The Web PORT implements it: see [Web value realization](./2026-09-28-web-value-realization.md). This document is kept as the record of the question.
+
 **Date:** 2026-09-27
 **Question:** how does a render-v1 prop value reach a Web target (a DOM property, a DOM attribute, and server-rendered HTML) without PORT inventing a conversion MESH forbids?
 

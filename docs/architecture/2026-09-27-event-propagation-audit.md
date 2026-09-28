@@ -1,5 +1,7 @@
 # Event propagation audit
 
+> **Resolved by MESH v0.6** (2026-09-27, `a8a046f`). MESH adopted B1, local binding with the nearest qualifying node (spec §9.9): one interaction reaches at most one binding, and a primitive's event contract is MESH-level, with the PORT mapping its target's interactions onto it. The Web PORT implements it; its characterization tests of bubbling are replaced by contract tests. This document is kept as the record of the question.
+
 **Date:** 2026-09-27
 **Question:** when nodes are nested and more than one binds an event, which bindings does one user interaction trigger?
 

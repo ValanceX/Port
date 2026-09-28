@@ -1,6 +1,6 @@
 # The PORT contract, version 1
 
-This is what every PORT promises, in any language, on any target. It is deliberately small. It is derived from MESH v0.5's render-tree format and its renderer and host obligations, and from NEXUS v0.8's boundary rules. The evidence is in the [integration audit](./architecture/2026-09-27-port-integration-audit.md).
+This is what every PORT promises, in any language, on any target. It is deliberately small. It is derived from MESH v0.6's render-tree format, its realization rule (spec §9.8.7) and event resolution (spec §9.9), and from NEXUS v0.8's boundary rules. The evidence is in the [integration audit](./architecture/2026-09-27-port-integration-audit.md); MESH v0.6 settled the two questions PORT handed it (the [MESH semantic handoff](./architecture/2026-09-27-mesh-semantic-handoff.md)).
 
 It is **not** an API. Each PORT binds these operations to its own language and target however suits them. The Web PORT's binding is [`@valancex/port-web`](../packages/port-web/README.md).
 
@@ -51,34 +51,47 @@ A PORT:
 
 ## Output: interaction reports
 
-When the user interacts with a realized node, PORT reports:
+When the user interacts with a realized node, PORT resolves the interaction to at most one binding, and reports it:
 
 ```text
 report(handler, payload?)
 ```
 
-- `handler` is the handler identifier the **drawn** tree gives for that node's event. PORT never interprets it.
-- `payload` is a value from MESH's boundary data model, or absent. What the payload is for a given event is declared in the application's manifest; how a target event produces it is the PORT's realization decision.
+- `handler` is the handler identifier the **drawn** tree gives for the binding the interaction resolved to. PORT never interprets it.
+- `payload` is a value from MESH's boundary data model, or absent. What the payload is for a given event is declared in the application's manifest; how a target interaction produces it is the PORT's realization decision. It is the receiving node's event's payload.
 
 The composer passes the report to `host.dispatch(render, handler, payload)` with the `Render` whose tree was drawn. PORT never sees an intent or a command, and target event objects never leave PORT.
 
-### Propagation is unspecified
+### Event resolution
 
-MESH doesn't say whether one user interaction can trigger more than one binding: a bound node inside a bound node, or two events of one node realized by the same target interaction. It also doesn't say which interactions a primitive's event covers. The evidence favours local binding (one interaction, one binding: the nearest bound node's), but MESH doesn't state it. See the [event propagation audit](./architecture/2026-09-27-event-propagation-audit.md).
+MESH defines it (spec §9.9), and every PORT realizes it exactly:
 
-Until MESH decides, **propagation is not part of this contract**. No PORT's behavior in these cases is Valance semantics, and applications must not rely on it. The Web PORT's current behavior (the DOM's bubbling) is characterized by tests, not promised.
+```text
+target interaction
+   ↓  the PORT's mapping: for each primitive, the one event the interaction constitutes, or none
+primitive events
+   ↓  MESH's rule: from the interacted node towards the root, the first node whose
+   ↓  primitive has an applicable event and which binds it receives the interaction
+at most one binding  →  at most one report  →  at most one command intent
+```
+
+- **The interacted node** is the innermost node the interaction is on. An interaction on a text run is on its parent node, and an interaction on a node's content is on the node too.
+- **The mapping is the PORT's, and only the mapping.** Which target interaction constitutes a primitive's event is target-specific. It depends only on the interaction and the primitive, never on a node's bindings or its ancestors, and it gives a primitive at most one applicable event per interaction. What the event *means* is MESH-level and the same on every target.
+- **The walk is MESH's.** No later ancestor is reached, even one binding an event of the same name. Events of different primitives are unrelated whatever their names.
+- **A target's own propagation is not it.** A PORT may use its target's mechanisms (DOM capture, delegation, hit testing) to implement the walk, but none of their behavior (phases, bubbling order, other code stopping an event) may change which binding receives an interaction. There is nothing to stop or redirect: MPRX has no propagation-control syntax, and PORT adds none.
 
 ## Obligations
 
 A PORT:
 
-1. **Realizes values as given.** It formats, defaults and converts nothing. If a target slot can hold only text and the value isn't a string, the PORT reports that as a realization error rather than inventing text. MESH gives text only for text runs, not props, so for a number, boolean-as-text, `null`, list or record in a text slot this is currently always an error: an open MESH question, set out value by value in the [value realization audit](./architecture/2026-09-27-value-realization-audit.md).
+1. **Realizes values only as MESH allows** (spec §9.8.7). A value goes either **natively** into a target slot of its own kind that holds it exactly, or **as its MESH text** into a slot that holds only text: a string's own value, or the node's `propText` entry for a number, boolean or `null`. A PORT formats, defaults and converts nothing: no platform coercion, host-language formatting or JSON. A value with no conforming slot (a list or record in a text-only slot, a value of another kind in a native one, or a text-only slot with no MESH text to put in it) is a realization error. An absent prop is realized by omission. Each PORT documents its own slots; the Web PORT's are in its [value realization table](./architecture/2026-09-28-web-value-realization.md).
 2. **Surfaces unknown components.** A node whose component the PORT has no realization for is made visible, never dropped.
 3. **Drops nothing silently.** Known render-v1 content the PORT cannot realize is an error, not an omission. This is **not** the same as ignoring an unknown schema property; see [What may be ignored](#what-may-be-ignored-and-what-may-not).
 4. **Keeps identity.** Between *update*s, each key is realized by the same target object.
 5. **Compares keys and handler identifiers only for equality**, and parses neither.
-6. **Depends on neither NEXUS nor the MESH runtime.** It may use the render-tree *types*.
-7. **Owns everything target-specific,** including what each of the application's primitive components becomes on its target. MESH has no Valance-wide primitive set: an application's manifest declares its primitives, and the PORT is configured with their realizations.
+6. **Resolves events as MESH does** ([Event resolution](#event-resolution)): at most one report per interaction.
+7. **Depends on neither NEXUS nor the MESH runtime.** It may use the render-tree *types*.
+8. **Owns everything target-specific,** including what each of the application's primitive components becomes on its target. MESH has no Valance-wide primitive set: an application's manifest declares its primitives, and the PORT is configured with their realizations.
 
 ## What may be ignored, and what may not
 
@@ -89,7 +102,7 @@ Four different situations, each with its own rule. They must not be conflated.
 | **Unknown schema property**: a property render-v1 doesn't define | a later MESH adds `"hint"` to nodes | **ignores** it | MESH's schema evolution rule: within a version, MESH may only *add* properties, and "renderers must ignore properties they don't know". MESH's rule 15 makes such additions optional: they "improve realization but [are] never needed for correctness". Ignoring one loses no meaning a v1 renderer is responsible for. |
 | **Known content the target can't carry**: a node, prop, event or text run defined by render-v1 that this realization has nowhere to put | children (even an empty text run) under a primitive the Web PORT realizes as a void element like `img` | **refuses** the tree with a realization error | The content has meaning in render-v1. Letting it vanish, or putting it where the target never shows it, is a silent drop. |
 | **Unknown component**: a node whose component this PORT has no realization for | a composite whose template the program left out arrives as a primitive of its name | **surfaces** it visibly, and still realizes its children | MESH requires it to be surfaced, not dropped. Its props and events aren't realized; the visible placeholder is how that is made known. |
-| **Unsupported realization**: a known component whose prop or event has no realization, or whose value doesn't fit it | a `subtitle` prop the realization table doesn't list; a number for an attribute | **refuses** the tree with a realization error | The configuration is incomplete for this tree, so realizing it partially would drop meaning. |
+| **Unsupported realization**: a known component whose prop or event has no realization, or whose value doesn't fit it | a `subtitle` prop the realization table doesn't list; a list for an attribute | **refuses** the tree with a realization error | The configuration is incomplete for this tree, so realizing it partially would drop meaning. |
 
 The first row is about the **format**: it covers only what MESH's evolution rule promises is optional. The other three are about **content** in the format, and nothing in them may disappear silently. An error refuses the whole tree before the target is touched, so what was realized before stays intact.
 
