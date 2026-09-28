@@ -2,18 +2,23 @@
  * The Web PORT: realizes MESH render trees (render-v1) as DOM inside a
  * container, keeps each key's DOM node across updates from one program,
  * and reports interactions as handler identifiers and payloads. It is the
- * Web binding of the PORT contract (docs/CONTRACT.md).
+ * Web binding of the PORT contract (docs/CONTRACT.md). It can also take
+ * over server HTML for a tree (hydrate), as the SSR design specifies
+ * (docs/superpowers/specs/2026-09-28-port-web-ssr.md).
  *
  * It uses no browser globals: every DOM object comes from the container's
  * own document.
  */
 
 import type { BoundaryValue, RenderNode, RenderTree, TextRun } from "@valancex/mesh-runtime";
+import type { Plan } from "./check.js";
 import type { PropRealization, WebPrimitive, WebPrimitives } from "./primitives.js";
 import type { Output } from "./realize.js";
 
+import { COMPONENT_ATTRIBUTE, UNKNOWN_COMPONENT_ELEMENT, checkTree, own, validatePrimitives } from "./check.js";
 import { WebRealizationError } from "./error.js";
-import { isUnrealizable, realizeProp } from "./realize.js";
+
+export { UNKNOWN_COMPONENT_ELEMENT } from "./check.js";
 
 /**
  * Receives what the user did: the drawn tree's handler identifier for the
@@ -31,17 +36,53 @@ export interface WebPortOptions {
   readonly report: Report;
 }
 
+/** Which kind of difference made hydration draw afresh. */
+export type HydrationMismatchClass =
+  /** The container doesn't hold exactly one element. */
+  | "container"
+  /** Another element, or no element, where a node's element should be. */
+  | "element"
+  /** An unknown-component placeholder standing for another component. */
+  | "component"
+  /** An element with more or fewer child nodes than the tree gives it. */
+  | "child-count"
+  /** Other text, or no text node, where a text run should be. */
+  | "text"
+  /** A text attribute missing, different, or not expected. */
+  | "attribute"
+  /** A boolean attribute present where it should be absent, or the reverse, or with a value. */
+  | "boolean-attribute";
+
+/** The first difference, in document order, between the server DOM and the tree. */
+export interface HydrationMismatch {
+  readonly class: HydrationMismatchClass;
+  /** The key of the node or text run it is at, when there is one. */
+  readonly key?: string;
+  readonly expected: string;
+  readonly found: string;
+}
+
+/** Whether hydration adopted the server DOM, or drew the tree afresh because of `mismatch`. */
+export type HydrationResult =
+  | { readonly adopted: true }
+  | { readonly adopted: false; readonly mismatch: HydrationMismatch };
+
 export interface WebPort {
   /** Draws `tree` afresh, replacing whatever was drawn: the first tree, or one from a different program. */
   draw(tree: RenderTree): void;
   /** Updates the drawn tree to `tree`, from the same program, in place. Each key keeps its DOM node. */
   update(tree: RenderTree): void;
+  /**
+   * Takes over the server HTML in the container, realized from `tree`'s
+   * program and state, with nothing drawn yet. It verifies the whole DOM
+   * against `tree` without changing it, then adopts it; on any mismatch it
+   * draws `tree` afresh instead, and says why. Either way `tree` is then
+   * drawn, exactly as after `draw`, and `update` follows.
+   */
+  hydrate(tree: RenderTree): HydrationResult;
   /** Removes what was drawn. Nothing is reported after this. */
   unmount(): void;
 }
-
-/** The tag of the element that shows a component the PORT has no realization for. */
-export const UNKNOWN_COMPONENT_ELEMENT = "valance-unknown";
 
 // ---------------------------------------------------------------------------
 // What is drawn: one record per key, holding the DOM node that realizes it.
@@ -58,7 +99,10 @@ interface DrawnNode {
   readonly dom: Element;
   /** What each prop's slot holds, as realized. A prop with no entry is absent. */
   outputs: ReadonlyMap<string, Output>;
-  /** Each DOM property slot's own initial value, which an absent prop leaves it at. */
+  /**
+   * Each DOM property slot's initial value: the property's value on a fresh
+   * element of the primitive's tag. A prop that becomes absent restores it.
+   */
   readonly initial: Map<string, unknown>;
   /** The drawn tree's handler identifier, by event name. Read when an interaction resolves. */
   handlers: ReadonlyMap<string, string>;
@@ -74,111 +118,9 @@ interface DrawnText {
 
 type Drawn = DrawnNode | DrawnText;
 
-const own = <V>(record: Readonly<Record<string, V>> | undefined, name: string): V | undefined =>
-  record !== undefined && Object.hasOwn(record, name) ? record[name] : undefined;
-
-// ---------------------------------------------------------------------------
-// The realization table's events: for each primitive, which of its events a
-// DOM event type constitutes. MESH §9.9.1: one interaction constitutes at
-// most one event of a primitive, so a type maps to at most one event.
-
-type Applicable = ReadonlyMap<string, ReadonlyMap<string, string>>;
-
-const applicableEvents = (primitives: WebPrimitives): Applicable => {
-  const applicable = new Map<string, Map<string, string>>();
-
-  for (const [component, primitive] of Object.entries(primitives)) {
-    const byType = new Map<string, string>();
-
-    for (const [event, realization] of Object.entries(primitive.events ?? {})) {
-      const other = byType.get(realization.type);
-
-      if (other !== undefined) {
-        throw new WebRealizationError("invalid-primitives", `<${component}> realizes both \`${other}\` and \`${event}\` as the DOM event "${realization.type}", so one interaction would have two applicable events`);
-      }
-
-      byType.set(realization.type, event);
-    }
-
-    applicable.set(component, byType);
-  }
-
-  return applicable;
-};
-
-// ---------------------------------------------------------------------------
-// Checking: every tree is checked, and every prop realized, in full before
-// the DOM is touched.
-
-// HTML's void elements (HTML Living Standard, "Void elements"): they can have
-// no children. In the DOM, children appended to one are never shown, and HTML
-// can't serialize them, so a node realized as one must have none.
-const VOID_ELEMENTS = new Set(["area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "source", "track", "wbr"]);
-
-/** Each known node's realized props, by key. */
-type Plan = ReadonlyMap<string, ReadonlyMap<string, Output>>;
-
-const check = (tree: RenderTree, primitives: WebPrimitives): Plan => {
-  if (tree.format !== "mesh-render" || tree.version !== 1) {
-    throw new WebRealizationError("unsupported-tree", `expected a render-v1 tree (format "mesh-render", version 1), got format ${JSON.stringify(tree.format)}, version ${JSON.stringify(tree.version)}`);
-  }
-
-  const keys = new Set<string>();
-  const plan = new Map<string, ReadonlyMap<string, Output>>();
-
-  const walk = (part: RenderNode | TextRun): void => {
-    if (keys.has(part.key)) {
-      throw new WebRealizationError("duplicate-key", `the key ${part.key} appears twice in one tree`, part.key);
-    }
-
-    keys.add(part.key);
-
-    if (part.type === "text") {
-      return;
-    }
-
-    const primitive = own(primitives, part.component);
-
-    // An unknown component is surfaced when drawn, not refused (contract obligation 2).
-    if (primitive !== undefined) {
-      const outputs = new Map<string, Output>();
-
-      for (const name of Object.keys(part.props)) {
-        const realization = own(primitive.props, name);
-
-        if (realization === undefined) {
-          throw new WebRealizationError("unrealized-prop", `<${part.component}> has no realization for its prop \`${name}\``, part.key);
-        }
-
-        const output = realizeProp(part, name, realization);
-
-        if (isUnrealizable(output)) {
-          throw new WebRealizationError(output.code, `<${part.component}>'s prop \`${name}\` ${output.reason} (its ${realization.kind} \`${realization.name}\`)`, part.key);
-        }
-
-        outputs.set(name, output);
-      }
-
-      plan.set(part.key, outputs);
-
-      for (const name of Object.keys(part.events)) {
-        if (own(primitive.events, name) === undefined) {
-          throw new WebRealizationError("unrealized-event", `<${part.component}> has no realization for its event \`${name}\``, part.key);
-        }
-      }
-
-      if (part.children.length > 0 && VOID_ELEMENTS.has(primitive.element.toLowerCase())) {
-        throw new WebRealizationError("unrealizable-children", `<${part.component}> has children, but is realized as <${primitive.element}>, which can't hold any`, part.key);
-      }
-    }
-
-    part.children.forEach(walk);
-  };
-
-  walk(tree.root);
-
-  return plan;
-};
+const HTML_NAMESPACE = "http://www.w3.org/1999/xhtml";
+const ELEMENT_NODE = 1;
+const TEXT_NODE = 3;
 
 // ---------------------------------------------------------------------------
 // Realizing props: writing an Output into its DOM slot. What is written was
@@ -187,6 +129,8 @@ const check = (tree: RenderTree, primitives: WebPrimitives): Plan => {
 const ABSENT: Output = { absent: true };
 
 const slots = (element: Element): Record<string, unknown> => element as unknown as Record<string, unknown>;
+
+const isPropertyClass = (realization: PropRealization): boolean => realization.kind === "property" || realization.kind === "text-property";
 
 const writeProp = (node: DrawnNode, realization: PropRealization, output: Output): void => {
   const element = node.dom;
@@ -237,12 +181,48 @@ const equal = (a: BoundaryValue, b: BoundaryValue): boolean => {
 const sameOutput = (a: Output, b: Output): boolean =>
   "absent" in a ? "absent" in b : "text" in a ? "text" in b && a.text === b.text : "native" in b && equal(a.native, b.native);
 
+// ---------------------------------------------------------------------------
+// Hydration's verification: what the server DOM must be, exactly, for a
+// tree. Pure reads: it never changes the DOM.
+
+/** The attributes the client writes for `node`, by name, with the mismatch class each belongs to. */
+const expectedAttributes = (node: RenderNode, primitive: WebPrimitive | undefined, plan: Plan): ReadonlyArray<readonly [name: string, value: string, cls: HydrationMismatchClass]> => {
+  if (primitive === undefined) {
+    return [[COMPONENT_ATTRIBUTE, node.component, "component"]];
+  }
+
+  const expected: Array<readonly [string, string, HydrationMismatchClass]> = [];
+
+  for (const [name, output] of plan.get(node.key) ?? []) {
+    const realization = own(primitive.props, name)!;
+
+    if (realization.kind === "attribute" && "text" in output) {
+      expected.push([realization.name, output.text, "attribute"]);
+    } else if (realization.kind === "boolean-attribute" && "native" in output && output.native === true) {
+      expected.push([realization.name, "", "boolean-attribute"]);
+    }
+  }
+
+  return expected.sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
+};
+
+const describeNode = (found: Node | undefined): string =>
+  found === undefined ? "nothing"
+    : found.nodeType === ELEMENT_NODE ? `<${(found as Element).localName}>${(found as Element).namespaceURI === HTML_NAMESPACE ? "" : ` in ${(found as Element).namespaceURI ?? "no namespace"}`}`
+      : found.nodeType === TEXT_NODE ? `the text "${(found as Text).data}"`
+        : `a node of type ${found.nodeType}`;
+
+/** Whether a text run has a server node: an empty one has none, since HTML can't express it. */
+const serialized = (part: RenderNode | TextRun): boolean => part.type === "node" || part.text !== "";
+
 export const createWebPort = ({ container, primitives, report }: WebPortOptions): WebPort => {
   const doc = container.ownerDocument;
-  const applicable = applicableEvents(primitives);
+  const applicable = validatePrimitives(primitives);
   const types = new Set(Array.from(applicable.values(), (byType) => [...byType.keys()]).flat());
   /** The drawn node each drawn element realizes. Only what is drawn is in it. */
   const nodeOf = new WeakMap<Node, DrawnNode>();
+  /** One fresh element per tag, whose properties are the initial values of adopted elements' slots. */
+  const probes = new Map<string, Element>();
   let drawn: Drawn | undefined;
   let listening = false;
 
@@ -307,31 +287,34 @@ export const createWebPort = ({ container, primitives, report }: WebPortOptions)
     }
   };
 
+  const record = (part: RenderNode, parent: DrawnNode | undefined, dom: Element, plan: Plan): DrawnNode => ({
+    kind: "node",
+    key: part.key,
+    component: part.component,
+    primitive: own(primitives, part.component),
+    parent,
+    dom,
+    outputs: plan.get(part.key) ?? new Map(),
+    initial: new Map(),
+    handlers: new Map(Object.entries(part.events)),
+    children: [],
+  });
+
   const create = (part: RenderNode | TextRun, parent: DrawnNode | undefined, plan: Plan): Drawn => {
     if (part.type === "text") {
       return { kind: "text", key: part.key, dom: doc.createTextNode(part.text), text: part.text };
     }
 
     const primitive = own(primitives, part.component);
-    const node: DrawnNode = {
-      kind: "node",
-      key: part.key,
-      component: part.component,
-      primitive,
-      parent,
-      dom: doc.createElement(primitive?.element ?? UNKNOWN_COMPONENT_ELEMENT),
-      outputs: plan.get(part.key) ?? new Map(),
-      initial: new Map(),
-      handlers: new Map(Object.entries(part.events)),
-      children: [],
-    };
+    const node = record(part, parent, doc.createElement(primitive?.element ?? UNKNOWN_COMPONENT_ELEMENT), plan);
 
     if (primitive === undefined) {
       // Shown, not dropped: its children are still realized inside it.
-      node.dom.setAttribute("data-component", part.component);
+      node.dom.setAttribute(COMPONENT_ATTRIBUTE, part.component);
     } else {
+      // The element is fresh, so its property slots hold their initial values.
       for (const realization of Object.values(primitive.props ?? {})) {
-        if (realization.kind === "property" || realization.kind === "text-property") {
+        if (isPropertyClass(realization)) {
           node.initial.set(realization.name, slots(node.dom)[realization.name]);
         }
       }
@@ -410,18 +393,142 @@ export const createWebPort = ({ container, primitives, report }: WebPortOptions)
     return created;
   };
 
-  return {
-    draw(tree) {
-      const plan = check(tree, primitives);
-      const root = create(tree.root, undefined, plan);
+  const drawChecked = (tree: RenderTree, plan: Plan): void => {
+    const root = create(tree.root, undefined, plan);
 
-      if (drawn !== undefined) {
-        dispose(drawn);
+    if (drawn !== undefined) {
+      dispose(drawn);
+    }
+
+    container.replaceChildren(root.dom);
+    drawn = root;
+    listen(true);
+  };
+
+  // -------------------------------------------------------------------------
+  // Hydration, in two phases. Verify reads the whole server DOM and changes
+  // nothing; only if every node matches does adopt change anything.
+
+  const verify = (part: RenderNode | TextRun, found: Node | undefined, plan: Plan): HydrationMismatch | undefined => {
+    const mismatch = (cls: HydrationMismatchClass, expected: string, actual: string): HydrationMismatch =>
+      ({ class: cls, key: part.key, expected, found: actual });
+
+    if (part.type === "text") {
+      return found !== undefined && found.nodeType === TEXT_NODE && (found as Text).data === part.text
+        ? undefined
+        : mismatch("text", `the text "${part.text}"`, describeNode(found));
+    }
+
+    const primitive = own(primitives, part.component);
+    const tag = primitive?.element ?? UNKNOWN_COMPONENT_ELEMENT;
+
+    if (found === undefined || found.nodeType !== ELEMENT_NODE || (found as Element).localName !== tag || (found as Element).namespaceURI !== HTML_NAMESPACE) {
+      return mismatch("element", `<${tag}>`, describeNode(found));
+    }
+
+    const element = found as Element;
+    const expected = expectedAttributes(part, primitive, plan);
+
+    for (const [name, value, cls] of expected) {
+      const actual = element.getAttribute(name);
+
+      if (actual !== value) {
+        return mismatch(cls, `${name}="${value}"`, actual === null ? `no ${name}` : `${name}="${actual}"`);
+      }
+    }
+
+    const names = new Set(expected.map(([name]) => name));
+    const extra = element.getAttributeNames().filter((name) => !names.has(name)).sort()[0];
+
+    if (extra !== undefined) {
+      const realization = Object.values(primitive?.props ?? {}).find((candidate) => candidate.name === extra && candidate.kind !== "property" && candidate.kind !== "text-property");
+      const cls: HydrationMismatchClass = primitive === undefined && extra === COMPONENT_ATTRIBUTE ? "component" : realization?.kind === "boolean-attribute" ? "boolean-attribute" : "attribute";
+
+      return mismatch(cls, `no ${extra}`, `${extra}="${element.getAttribute(extra)}"`);
+    }
+
+    const children = part.children.filter(serialized);
+    const nodes = Array.from(element.childNodes);
+
+    if (nodes.length !== children.length) {
+      return mismatch("child-count", `${children.length} child nodes`, `${nodes.length}`);
+    }
+
+    for (const [index, child] of children.entries()) {
+      const found = verify(child, nodes[index], plan);
+
+      if (found !== undefined) {
+        return found;
+      }
+    }
+
+    return undefined;
+  };
+
+  const probe = (tag: string): Element => {
+    let element = probes.get(tag);
+
+    if (element === undefined) {
+      element = doc.createElement(tag);
+      probes.set(tag, element);
+    }
+
+    return element;
+  };
+
+  /** Adopts the verified `dom` as `part`: records it, fills in what HTML couldn't carry, and nothing else. */
+  const adopt = (part: RenderNode, dom: Element, parent: DrawnNode | undefined, plan: Plan): DrawnNode => {
+    const node = record(part, parent, dom, plan);
+
+    if (node.primitive !== undefined) {
+      const primitive = node.primitive;
+
+      // The initial value is a fresh element's, never the adopted element's,
+      // whose state the server's markup or the user may have changed.
+      for (const realization of Object.values(primitive.props ?? {})) {
+        if (isPropertyClass(realization)) {
+          node.initial.set(realization.name, slots(probe(primitive.element))[realization.name]);
+        }
       }
 
-      container.replaceChildren(root.dom);
-      drawn = root;
-      listen(true);
+      // Present property values, which server HTML can't carry, are applied.
+      // An absent one isn't written: PORT never wrote the slot.
+      for (const [name, output] of node.outputs) {
+        const realization = own(primitive.props, name)!;
+
+        if (isPropertyClass(realization) && !("absent" in output)) {
+          writeProp(node, realization, output);
+        }
+      }
+    }
+
+    nodeOf.set(dom, node);
+
+    const nodes = Array.from(dom.childNodes);
+    let next = 0;
+
+    node.children = part.children.map((child): Drawn => {
+      if (child.type === "text") {
+        if (child.text === "") {
+          // An empty text run has no server node: it is created, in its place.
+          const text = doc.createTextNode("");
+          dom.insertBefore(text, nodes[next] ?? null);
+
+          return { kind: "text", key: child.key, dom: text, text: "" };
+        }
+
+        return { kind: "text", key: child.key, dom: nodes[next++] as Text, text: child.text };
+      }
+
+      return adopt(child, nodes[next++] as Element, node, plan);
+    });
+
+    return node;
+  };
+
+  return {
+    draw(tree) {
+      drawChecked(tree, checkTree(tree, primitives));
     },
 
     update(tree) {
@@ -429,8 +536,31 @@ export const createWebPort = ({ container, primitives, report }: WebPortOptions)
         throw new WebRealizationError("not-drawn", "update needs a drawn tree: call draw first");
       }
 
-      const plan = check(tree, primitives);
+      const plan = checkTree(tree, primitives);
       drawn = patch(drawn, tree.root, undefined, plan);
+    },
+
+    hydrate(tree) {
+      if (drawn !== undefined) {
+        throw new WebRealizationError("already-drawn", "hydrate needs a PORT with nothing drawn: it takes over server HTML, never a drawn tree");
+      }
+
+      const plan = checkTree(tree, primitives);
+      const nodes = Array.from(container.childNodes);
+      const mismatch = nodes.length !== 1 || nodes[0]!.nodeType !== ELEMENT_NODE
+        ? { class: "container", expected: "exactly one element", found: nodes.length === 1 ? describeNode(nodes[0]) : `${nodes.length} nodes` } as const
+        : verify(tree.root, nodes[0], plan);
+
+      if (mismatch !== undefined) {
+        drawChecked(tree, plan);
+
+        return { adopted: false, mismatch };
+      }
+
+      drawn = adopt(tree.root, nodes[0] as Element, undefined, plan);
+      listen(true);
+
+      return { adopted: true };
     },
 
     unmount() {

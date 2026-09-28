@@ -54,3 +54,47 @@ describe("port-web's boundaries", () => {
     }
   });
 });
+
+// The server entry (docs/superpowers/specs/2026-09-28-port-web-ssr.md §4.1):
+// DOM-free, sharing the table, its validation, the tree check and value
+// realization with the client, and never loading the client's DOM code.
+describe("the server entry's boundaries", () => {
+  const byFile = new Map(sources);
+  const graphOf = (entry: string): ReadonlySet<string> => {
+    const seen = new Set<string>();
+    const visit = (file: string): void => {
+      if (!seen.has(file)) {
+        seen.add(file);
+        importsOf(byFile.get(file)!).filter(({ specifier }) => specifier.startsWith("./")).forEach(({ specifier }) => visit(specifier.slice(2).replace(/\.js$/, ".ts")));
+      }
+    };
+
+    visit(entry);
+
+    return seen;
+  };
+  const server = graphOf("server.ts");
+
+  it("loads the shared modules and the HTML writer, and not the DOM realization", () => {
+    expect([...server].sort()).toEqual(["check.ts", "error.ts", "html.ts", "primitives.ts", "realize.ts", "server.ts"]);
+  });
+
+  it("the client entry shares the same check and realization", () => {
+    expect([...graphOf("index.ts")]).toEqual(expect.arrayContaining(["check.ts", "realize.ts", "primitives.ts", "error.ts", "port.ts"]));
+  });
+
+  // Type annotations (an event payload builder takes an `Element`) are erased: only run-time use counts.
+  it("uses no DOM API at run time", () => {
+    for (const file of server) {
+      const dom = codeOf(byFile.get(file)!).match(/\b(ownerDocument|createElement|createTextNode|setAttribute|appendChild|addEventListener|innerHTML|outerHTML|childNodes|parentNode|DOMParser|XMLSerializer)\b|\bnew\s+(Text|Element|Node|Event)\b/g) ?? [];
+
+      expect({ file, dom }).toEqual({ file, dom: [] });
+    }
+  });
+
+  it("makes no text of a value: no String() or JSON.stringify in the HTML writer or value realization", () => {
+    for (const file of ["html.ts", "realize.ts"]) {
+      expect({ file, calls: codeOf(byFile.get(file)!).match(/\bString\s*\(|JSON\s*\.\s*stringify/g) ?? [] }).toEqual({ file, calls: [] });
+    }
+  });
+});

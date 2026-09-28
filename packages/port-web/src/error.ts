@@ -16,8 +16,21 @@ export type WebRealizationCode =
   | "duplicate-key"
   /** `update` was called with nothing drawn. */
   | "not-drawn"
-  /** The realization table maps one DOM event type to two events of one primitive, so one interaction would have two applicable events. */
-  | "invalid-primitives";
+  /**
+   * The realization table can't be realized unambiguously: a prop mapped by
+   * anything but one realization of a known kind, two props realized as one
+   * attribute or property, a name the DOM and HTML don't both give back
+   * unchanged, or one DOM event type constituting two events of a primitive.
+   */
+  | "invalid-primitives"
+  /** `hydrate` was called with a tree already drawn. */
+  | "already-drawn"
+  /** Server only: a present value in a DOM property slot, which HTML can't represent. */
+  | "unserializable-prop"
+  /** Server only: a text or attribute value containing U+0000, which HTML can't hold. */
+  | "unserializable-text"
+  /** Server only: an element whose content HTML parsing wouldn't give back as the tree says (raw text, `template`, SVG, MathML). */
+  | "unserializable-element";
 
 /**
  * The Web PORT can't realize what it was given. Nothing on the page has
