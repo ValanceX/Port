@@ -125,13 +125,24 @@ The design is the [PORT Web SSR design](../../docs/superpowers/specs/2026-09-28-
 1. **Verify.** Nothing in the DOM changes. The container must hold exactly one element. Each node's element must have the tag and HTML namespace its realization gives, **exactly** the attributes `draw` would write, and exactly its children (empty text runs left out). Each text node must have exactly its run's text.
 2. **Adopt,** only if everything matched. Every server node is kept. Empty text nodes are inserted in their places, present property values from the client's tree are applied, and absent ones are left as they are. The drawn state is `draw`'s, and listeners are installed.
 
-**Atomicity.** Hydration verification is mutation-free and atomic. Adoption occurs only after successful verification, but adoption itself is not rollbackable across arbitrary DOM property setters. A setter failure is reported as an adoption failure; PORT does not promise transactional rollback of external DOM side effects. A structural mismatch cannot cause partial adoption, because all verification completes before adoption begins. After `adoption-failed`: the writes adoption made before the failing setter (empty text nodes, property values, in document order) stay, and so does whatever the setter did; nothing is drawn, no listeners are installed, and there is no retry or fallback draw. The composer decides what to do next.
+**Atomicity.** A tree is fully verified before adoption begins; structural verification is mutation-free. Adoption is not transactionally rollbackable across arbitrary DOM property setters. Hydration verification is mutation-free and atomic. Adoption occurs only after successful verification, but adoption itself is not rollbackable across arbitrary DOM property setters. A setter failure is reported as an adoption failure; PORT does not promise transactional rollback of external DOM side effects. A structural mismatch cannot cause partial adoption, because all verification completes before adoption begins. After `adoption-failed`: the writes adoption made before the failing setter (empty text nodes, property values, in document order) stay, and so does whatever the setter did; nothing is drawn, no listeners are installed, and there is no retry or fallback draw. The composer decides what to do next.
 
 **Mismatch.** The first mismatch in document order (`container`, `element`, `component`, `child-count`, `text`, `attribute` or `boolean-attribute`) makes `hydrate` draw the tree afresh, with no server node kept, and return `{ adopted: false, mismatch: { class, key?, expected, found } }`. There is no patching. A nesting the HTML parser restructures (a `button` inside a `button`) shows up here.
 
 **Properties.** A property slot's initial value, which a prop going from present to absent restores, is a fresh element's, never the adopted element's.
 
 **Events around hydration.** Before `hydrate`, nothing is reported. Afterwards, MESH's resolution applies with the client tree's handler identifiers. HTML carries none. Interactions before hydration are not replayed. Hydration doesn't preserve input made before it: a slot the client's tree realizes as a present property is written, over whatever it held. A slot whose prop is absent isn't written at all, since PORT never writes an absent slot, so its state is left untouched; that is the absent-prop rule, not input preservation.
+
+## Known limitations
+
+These are the documented semantics of v0.2, not defects. Each is a different case:
+
+- **Structural mismatch.** Server HTML that differs from the client's tree in any verified way (element, component, child count, text, attribute, boolean attribute, container) is never adopted: `hydrate` draws the whole tree afresh and reports the first mismatch. The page is correct, and the server-rendered DOM isn't reused.
+- **Parser restructuring.** Some element nestings are rewritten by the browser's HTML parser (a `button` inside a `button`, a `div` inside a `p`, table content). The server doesn't model the parser, so these are caught only at hydration, as a structural mismatch, and drawn afresh.
+- **Adoption setter failure.** A tree is fully verified before adoption begins; structural verification is mutation-free. Adoption is not transactionally rollbackable across arbitrary DOM property setters. If one throws during adoption, `hydrate` throws `adoption-failed`: writes already made stay, nothing is drawn, and there is no retry or fallback draw. The composer decides what to do next.
+- **Pre-hydration input loss.** Input made before hydration isn't preserved. A slot the client's tree realizes as a present property is written over it. (An absent prop's slot is never written, as for any absent prop.)
+- **Pre-hydration interaction loss.** Before `hydrate`, PORT reports nothing, and interactions made then are not replayed.
+- **Several DOM event types from one gesture.** One interaction is one DOM event. A table that maps events to several DOM types one gesture produces gets several interactions.
 
 ## Not yet
 

@@ -35,7 +35,7 @@ That's the whole [PORT contract](./docs/CONTRACT.md). It is language-neutral: re
 
 | Package | What it is |
 |---|---|
-| [`@valancex/port-web`](./packages/port-web) | The Web PORT: render-v1 → DOM, in-place updates by key, events → reports. TypeScript, because the DOM is JavaScript-native. |
+| [`@valancex/port-web`](./packages/port-web) | The Web PORT: render-v1 → DOM, in-place updates by key, events → reports, and hydration of server HTML. Its `@valancex/port-web/server` entry realizes render-v1 as HTML with no DOM. TypeScript, because the DOM is JavaScript-native. |
 
 There is deliberately **no shared `@valancex/port` package** and no Canvas placeholder. The shared contract is data and prose, not code, and a TypeScript package every PORT depends on would force a TypeScript shape on a future Rust or native PORT. A shared package can come when a second PORT shows code worth sharing. The [integration audit](./docs/architecture/2026-09-27-port-integration-audit.md) records the evidence.
 
@@ -52,9 +52,9 @@ There is deliberately **no shared `@valancex/port` package** and no Canvas place
 
 ## Status
 
-**Web realization on MESH v0.6.** `@valancex/port-web` draws, updates in place, realizes each prop natively or as MESH's text (`propText`), and resolves each interaction to at most one binding, as MESH v0.6 specifies. The vertical slice runs end to end against `@valancex/mesh-compiler` 0.6, `@valancex/mesh-runtime` 0.6 and `@valancex/nexus` 0.8, and the Web PORT passes MESH's conformance vectors.
+**v0.2.0: Web realization on MESH v0.6, with server rendering.** See the [changelog](./CHANGELOG.md) for what v0.2 guarantees, what it doesn't support, and its known limitations. `@valancex/port-web` draws, updates in place, realizes each prop natively or as MESH's text (`propText`), and resolves each interaction to at most one binding, as MESH v0.6 specifies. The vertical slice runs end to end against `@valancex/mesh-compiler` 0.6, `@valancex/mesh-runtime` 0.6 and `@valancex/nexus` 0.8, and the Web PORT passes MESH's conformance vectors.
 
-The two semantic questions PORT handed MESH ([handoff](./docs/architecture/2026-09-27-mesh-semantic-handoff.md)) are settled by MESH v0.6: prop text and realization (spec §9.7.7, §9.8.7; the Web PORT's [value realization](./docs/architecture/2026-09-28-web-value-realization.md)) and event resolution (spec §9.9). The Web PORT also renders on a server, for a first, deliberately narrow subset: `@valancex/port-web/server` realizes a tree as HTML with no DOM, and the Web PORT's own `hydrate` takes it over in the browser, verified in full. Neither is a PORT contract operation ([design](./docs/superpowers/specs/2026-09-28-port-web-ssr.md)).
+The two semantic questions PORT handed MESH ([handoff](./docs/architecture/2026-09-27-mesh-semantic-handoff.md)) are settled by MESH v0.6: prop text and realization (spec §9.7.7, §9.8.7; the Web PORT's [value realization](./docs/architecture/2026-09-28-web-value-realization.md)) and event resolution (spec §9.9). The Web PORT also renders on a server, for a first, deliberately narrow subset: `@valancex/port-web/server` realizes a tree as HTML with no DOM, and the Web PORT's own `hydrate` takes it over in the browser, verified in full before anything is adopted. Neither is a PORT contract operation ([design](./docs/superpowers/specs/2026-09-28-port-web-ssr.md)).
 
 Not yet: accessibility and styling beyond a realization table's choices. See the [roadmap](./docs/ROADMAP.md).
 
@@ -70,6 +70,7 @@ $ pnpm test
 - [**Integration audit**](./docs/architecture/2026-09-27-port-integration-audit.md): the evidence behind the boundary, with open questions and contradictions
 - [**Web value realization**](./docs/architecture/2026-09-28-web-value-realization.md): how the Web PORT realizes each value in each slot, and what SSR needs
 - [**MESH semantic handoff**](./docs/architecture/2026-09-27-mesh-semantic-handoff.md), with the [event propagation audit](./docs/architecture/2026-09-27-event-propagation-audit.md) and [value realization audit](./docs/architecture/2026-09-27-value-realization-audit.md): the questions MESH v0.6 answered
+- [**Changelog**](./CHANGELOG.md)
 - [**Roadmap**](./docs/ROADMAP.md)
 
 ## Tech
