@@ -78,7 +78,7 @@ So the DOM's propagation decides nothing: a DOM event that doesn't bubble resolv
 
 ## What it refuses
 
-It checks every tree in full before touching the DOM, so a refused tree changes nothing. It throws a `WebRealizationError` whose `code` is:
+It checks every tree in full before touching the DOM, so a refused tree changes nothing. The one exception is `adoption-failed`, which isn't a refusal of the tree: a DOM property setter threw after hydration's verification had succeeded (see [Server HTML and hydration](#server-html-and-hydration)). It throws a `WebRealizationError` whose `code` is:
 
 | `code` | When |
 |---|---|
@@ -92,6 +92,7 @@ It checks every tree in full before touching the DOM, so a refused tree changes 
 | `not-drawn` | `update` before `draw` |
 | `invalid-primitives` | thrown by `createWebPort` and `realizeHtml`: the table maps a prop by anything but one plain realization of a known kind, realizes two props as one attribute or one property, uses `data-component`, uses an element or attribute name the DOM and HTML don't both give back unchanged (lowercase, no special characters), or maps one DOM event type to two events of one primitive |
 | `already-drawn` | `hydrate` with a tree already drawn. A drawn PORT is never cleared by it |
+| `adoption-failed` | `hydrate` only: after verification succeeded, a DOM property setter threw during adoption. The setter's error is the `cause`. The DOM may be partly adopted and isn't rolled back; nothing is drawn. The one code for which the page may have changed |
 | `unserializable-prop` | server only: a present value in a `property` or `textProperty` slot, which has no HTML form |
 | `unserializable-text` | server only: U+0000 in a text run or attribute, which HTML can't hold |
 | `unserializable-element` | server only: a primitive realized as `script`, `style`, `textarea`, `title`, `template`, `xmp`, `iframe`, `noembed`, `noframes`, `noscript`, `plaintext`, `svg` or `math`, whose content HTML parsing wouldn't give back as the tree says |
@@ -123,6 +124,8 @@ The design is the [PORT Web SSR design](../../docs/superpowers/specs/2026-09-28-
 
 1. **Verify.** Nothing in the DOM changes. The container must hold exactly one element. Each node's element must have the tag and HTML namespace its realization gives, **exactly** the attributes `draw` would write, and exactly its children (empty text runs left out). Each text node must have exactly its run's text.
 2. **Adopt,** only if everything matched. Every server node is kept. Empty text nodes are inserted in their places, present property values from the client's tree are applied, and absent ones are left as they are. The drawn state is `draw`'s, and listeners are installed.
+
+**Atomicity.** Hydration verification is mutation-free and atomic. Adoption occurs only after successful verification, but adoption itself is not rollbackable across arbitrary DOM property setters. A setter failure is reported as an adoption failure; PORT does not promise transactional rollback of external DOM side effects. A structural mismatch cannot cause partial adoption, because all verification completes before adoption begins. After `adoption-failed`: the writes adoption made before the failing setter (empty text nodes, property values, in document order) stay, and so does whatever the setter did; nothing is drawn, no listeners are installed, and there is no retry or fallback draw. The composer decides what to do next.
 
 **Mismatch.** The first mismatch in document order (`container`, `element`, `component`, `child-count`, `text`, `attribute` or `boolean-attribute`) makes `hydrate` draw the tree afresh, with no server node kept, and return `{ adopted: false, mismatch: { class, key?, expected, found } }`. There is no patching. A nesting the HTML parser restructures (a `button` inside a `button`) shows up here.
 

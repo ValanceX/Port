@@ -1,7 +1,7 @@
 # PORT Web SSR: server HTML and hydration
 
 **Date:** 2026-09-28
-**Status:** Approved (`edea539`), with the table-validation tightening in §4.7. The first milestone (§10) is implemented: `packages/port-web/src/{check,html,server,port}.ts`, tested as §12 describes.
+**Status:** Approved (`edea539`), with the table-validation tightening in §4.7 and the adoption-failure decision in §7.1. The first milestone (§10) is implemented: `packages/port-web/src/{check,html,server,port}.ts`, tested as §12 describes.
 **Scope:** the Web PORT (`@valancex/port-web`) only. This is not a universal PORT contract, and it adds no shared renderer API.
 **Baseline:** PORT branch `claude/port-mesh-v0.6-adoption-ius9fs` (Gate A), MESH v0.6.0 (`a8a046f`), `@valancex/mesh-runtime` 0.6.0, `@valancex/nexus` 0.8.0.
 **Inputs:** [PORT contract](../../CONTRACT.md), [Web value realization](../../architecture/2026-09-28-web-value-realization.md), MESH spec §9.7.7, §9.8.7, §9.9, and MESH's runtime manual (keys, program identity, handler identifiers, determinism).
@@ -20,8 +20,9 @@ browser:  HTML ──▶ parsed DOM ──▶ hydrate(tree): verify all, then ad
 - **One semantic pipeline.** Server and browser run the same tree check and the same `realizeProp` (`realize.ts`). The server only *places* the outputs it gets, as HTML. There is no second value system: `propText` still comes from MESH, and nothing calls `String()`, `JSON.stringify()` or relies on DOM or HTML coercion.
 - **What the server can write** is exactly what HTML can hold and a parser gives back unchanged: text-only attributes, boolean attributes and text runs. A present value in a **DOM property slot has no HTML form, and SSR v1 refuses the tree.** PORT never derives an attribute from a property, even where the browser reflects one.
 - **Hydration identity is structural, and needs no new metadata.** Within one MESH program a tree's shape, components and keys don't depend on values. So the client renders the same state, gets the tree, and pairs it with the server DOM by position. It then verifies **every** realized element, attribute and text against the tree before touching anything. render-v1 is not changed, and the HTML carries no keys, handler identifiers, program identity or hydration IDs.
-- **Continuity:** `draw` and `update` keep their meanings. `hydrate` is a third entry into the drawn state. When it succeeds, PORT is exactly as if `draw(tree)` had run, except that the server's DOM nodes are kept, so the next render is an `update`. When it fails, PORT runs `draw(tree)` itself and reports why. The composer still owns program continuity and the drawn `Render`.
+- **Continuity:** `draw` and `update` keep their meanings. `hydrate` is a third entry into the drawn state. When it succeeds, PORT is exactly as if `draw(tree)` had run, except that the server's DOM nodes are kept, so the next render is an `update`. On a mismatch, PORT runs `draw(tree)` itself and reports why. The composer still owns program continuity and the drawn `Render`.
 - **Mismatch policy:** no patching and no partial recovery. Any mismatch falls back, deterministically, to a fresh draw of the whole tree. A tree PORT can't realize at all is refused, as `draw` would refuse it.
+- **Atomicity, precisely:** Hydration verification is mutation-free and atomic. Adoption occurs only after successful verification, but adoption itself is not rollbackable across arbitrary DOM property setters. A setter failure is reported as an adoption failure; PORT does not promise transactional rollback of external DOM side effects. A structural mismatch cannot cause partial adoption, because all verification completes before adoption begins. (§7.1)
 
 ---
 
@@ -243,16 +244,16 @@ For each empty text run, adoption creates an empty `Text` node from the containe
 
 ### 5.5 Adoption (after verification succeeds)
 
-Adoption, in one synchronous step:
+Adoption, in one synchronous step, and only after verification of the whole tree has succeeded:
 
 1. build exactly the drawn-node records `draw` builds (`key`, `component`, `primitive`, `parent`, `outputs`, `handlers`), with `dom` set to the adopted element or text node;
 2. insert the empty `Text` nodes (5.4);
 3. for property-class slots with a present output, write the value (native, or text for `textProperty`), exactly as `create` does;
 4. leave absent property slots unwritten, and record initial values from a probe element per tag (§2A.4);
-5. register every adopted element in the resolver's node map;
+5. once every node is adopted, register every adopted element in the resolver's node map;
 6. install the container's capture listeners.
 
-**No attribute or text is written:** verification has proved they already equal what would be written.
+**No attribute or text is written:** verification has proved they already equal what would be written. Steps 2 and 3 are the only DOM writes adoption makes. Step 3 calls DOM property setters, which are outside PORT; if one throws, see §7.1.
 
 ## 6. Hydration and NEXUS render snapshots
 
@@ -302,6 +303,23 @@ Hydration runs in two phases: **verify everything, then adopt.** Verification ma
 - The policy is deterministic: the same HTML and the same tree always give the same outcome and the same reported mismatch.
 - The composer surfaces a mismatch (logging, telemetry); PORT never hides it.
 
+### 7.1 Adoption failure: not a mismatch
+
+> Hydration verification is mutation-free and atomic. Adoption occurs only after successful verification, but adoption itself is not rollbackable across arbitrary DOM property setters. A setter failure is reported as an adoption failure; PORT does not promise transactional rollback of external DOM side effects.
+>
+> A structural mismatch cannot cause partial adoption, because all verification completes before adoption begins.
+
+A DOM property setter is external behavior. It may throw, mutate other state, run custom-element code, or have effects PORT can't observe or reverse. So PORT doesn't wrap adoption in a transaction it can't honour. The decision:
+
+- **Verification** is fully atomic. It performs no DOM mutation, and no server DOM is adopted until it has succeeded for the whole tree.
+- **Adoption** performs only the documented writes (§5.5, steps 2 and 3).
+- **If a property setter throws during adoption,** `hydrate` throws a `WebRealizationError` with code `adoption-failed`, the node's `key`, and the setter's error as `cause`. It is a realization failure, like a refusal, and not a mismatch: `hydrate` returns neither `{ adopted: true }` nor a mismatch.
+- **No rollback is claimed, and none is attempted.** Writes adoption made before the failure (empty text nodes inserted, property values assigned, in document order) stay, together with whatever the setter itself did. Adoption stops at the failing setter; nothing after it is written.
+- **No retry and no fallback draw.** The DOM may already be partly mutated, so a fresh draw would not be the clean fallback a mismatch gets, and retrying adoption would not be the same operation. The composer decides what to do.
+- **PORT's own state is clean.** Nothing is drawn (`update` refuses with `not-drawn`), no listeners are installed, and nothing is reported. Adopted nodes are registered for event resolution only after the whole adoption has succeeded.
+
+The same misconfiguration (a table realizing a prop as a DOM property whose setter throws) also makes `draw` throw, before its detached nodes reach the container, and makes `update`, which writes in place, throw mid-way. Neither is rolled back either. v0.2 changes neither.
+
 ## 8. Draw, update and hydrate
 
 The meanings don't change:
@@ -309,14 +327,15 @@ The meanings don't change:
 - **`draw(tree)`**: the tree's program isn't currently represented by PORT's realization. Realize it afresh.
 - **`update(tree)`**: the composer asserts the tree is the same program as the drawn one. Reconcile by key.
 - **`hydrate(tree)`** (new): the composer asserts that the container holds server HTML realized from this tree's program and state, and that PORT has drawn nothing. PORT verifies and adopts, or else draws. Its precondition is that nothing is drawn; otherwise it refuses with a new code, `already-drawn`.
-- **Postcondition, either way:** PORT is in exactly the drawn state `draw(tree)` produces, with the tree drawn and listeners installed.
+- **Postcondition, when adopted or after a mismatch:** PORT is in exactly the drawn state `draw(tree)` produces, with the tree drawn and listeners installed. After a refusal or an adoption failure (§7.1), nothing is drawn.
 
 So:
 
 ```text
 server HTML ─▶ hydrate(T) adopted      ─▶ update(T2) ─▶ update(T3) …   continuity established: T's program is drawn
 server HTML ─▶ hydrate(T) mismatch→draw ─▶ update(T2) ─▶ …              the same continuity, from a fresh draw
-server HTML ─▶ hydrate(T) refused (unrealizable tree): nothing drawn; the composer handles it as a failed draw
+server HTML ─▶ hydrate(T) refused (unrealizable tree): nothing drawn, the DOM untouched; the composer handles it as a failed draw
+server HTML ─▶ hydrate(T) adoption-failed (a setter threw, §7.1): nothing drawn, the DOM possibly partly adopted; the composer decides
 ```
 
 - Hydration establishes the **same continuity** a draw does. `update` is valid after it because the drawn records are exactly a draw's.
@@ -413,6 +432,7 @@ Semantic comparison, not string comparison. The helpers are defined once in `pac
 | stale render | the server rendered state S1 and the client hydrates S2: visible difference → `draw`. The server rendered another program with identical visible content → adopted, and reports use the client tree's handler identifiers, which dispatch with `R_c` |
 | properties | the client tree has a present `property` → applied at adoption; an absent one → the adopted element's current value kept; a later update present → absent → the probe's initial value |
 | precondition | `hydrate` after `draw`: `already-drawn` |
+| adoption failure (added in the v0.2 audit, `test/ssr-invariants.test.ts`) | a controlled setter that throws during adoption: verification succeeded and adoption began, the setter was reached once, `adoption-failed` with the setter's error as `cause`, neither `{ adopted: true }` nor a mismatch, no fresh draw or retry, and the resulting state stated explicitly (partly adopted DOM, nothing drawn, no listeners) |
 | events | before `hydrate`, clicks report nothing; after it, MESH resolution holds (the conformance `events/` cases, run on hydrated DOM); after a mismatch → draw, the same |
 
 ### Continuity, through the slice (`integration/test/ssr.test.ts`)
