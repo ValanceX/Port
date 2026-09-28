@@ -173,7 +173,8 @@ The goal is that parsing gives back **exactly** the string that was written. The
 - an element name matching `[a-z][a-z0-9-]*`;
 - attribute names matching `[a-z_:][a-z0-9_.:-]*`; property names are free (they are JavaScript property names);
 - within one primitive, no two attribute-class realizations (`attribute`, `booleanAttribute`) name the same attribute, and none names `data-component`;
-- within one primitive, no two property-class realizations (`property`, `textProperty`) name the same property.
+- within one primitive, no two property-class realizations (`property`, `textProperty`) name the same property;
+- **a source prop has at most one realization within a primitive**, across all four kinds (`property`, `textProperty`, `attribute`, `booleanAttribute`). One MESH prop must never have two competing realization classes: destination-name uniqueness alone doesn't exclude that. The table's representation, a record keyed by source prop, makes a second mapping for one prop impossible to write as a literal (TypeScript refuses duplicate keys, TS1117) and absent at run time (a record has one own entry per key). Validation therefore refuses every entry that could still give one prop more than one realization: an entry that isn't an own data property (an accessor could return a different realization on each read), and an entry that isn't a realization of a known kind (`property` also with a known `holds`).
 
 That this tightens the client is intended. Today a bad tag name fails at `draw` with a DOM exception, and two props mapped to one attribute realize in an order-dependent way.
 
