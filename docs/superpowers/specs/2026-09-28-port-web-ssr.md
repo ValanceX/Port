@@ -1,7 +1,7 @@
 # PORT Web SSR: server HTML and hydration
 
 **Date:** 2026-09-28
-**Status:** Design, for review. Nothing here is implemented. Implementation starts only after review.
+**Status:** Approved (`edea539`), with the table-validation tightening in §4.7. The first milestone (§10) is implemented: `packages/port-web/src/{check,html,server,port}.ts`, tested as §12 describes.
 **Scope:** the Web PORT (`@valancex/port-web`) only. This is not a universal PORT contract, and it adds no shared renderer API.
 **Baseline:** PORT branch `claude/port-mesh-v0.6-adoption-ius9fs` (Gate A), MESH v0.6.0 (`a8a046f`), `@valancex/mesh-runtime` 0.6.0, `@valancex/nexus` 0.8.0.
 **Inputs:** [PORT contract](../../CONTRACT.md), [Web value realization](../../architecture/2026-09-28-web-value-realization.md), MESH spec §9.7.7, §9.8.7, §9.9, and MESH's runtime manual (keys, program identity, handler identifiers, determinism).

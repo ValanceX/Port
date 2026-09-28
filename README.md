@@ -54,7 +54,7 @@ There is deliberately **no shared `@valancex/port` package** and no Canvas place
 
 **Web realization on MESH v0.6.** `@valancex/port-web` draws, updates in place, realizes each prop natively or as MESH's text (`propText`), and resolves each interaction to at most one binding, as MESH v0.6 specifies. The vertical slice runs end to end against `@valancex/mesh-compiler` 0.6, `@valancex/mesh-runtime` 0.6 and `@valancex/nexus` 0.8, and the Web PORT passes MESH's conformance vectors.
 
-The two semantic questions PORT handed MESH ([handoff](./docs/architecture/2026-09-27-mesh-semantic-handoff.md)) are settled by MESH v0.6: prop text and realization (spec §9.7.7, §9.8.7; the Web PORT's [value realization](./docs/architecture/2026-09-28-web-value-realization.md)) and event resolution (spec §9.9). Server rendering is next, starting with its design.
+The two semantic questions PORT handed MESH ([handoff](./docs/architecture/2026-09-27-mesh-semantic-handoff.md)) are settled by MESH v0.6: prop text and realization (spec §9.7.7, §9.8.7; the Web PORT's [value realization](./docs/architecture/2026-09-28-web-value-realization.md)) and event resolution (spec §9.9). Server rendering and hydration work for a first, deliberately narrow subset: `@valancex/port-web/server` realizes a tree as HTML with no DOM, and `hydrate` takes it over on the client, verified in full ([design](./docs/superpowers/specs/2026-09-28-port-web-ssr.md)).
 
 Not yet: accessibility and styling beyond a realization table's choices. See the [roadmap](./docs/ROADMAP.md).
 

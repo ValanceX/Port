@@ -117,13 +117,16 @@ The integration slice's table (`integration/test/app.ts`), against MESH's slice 
 
 ## SSR
 
-Settled in the [PORT Web SSR design](../superpowers/specs/2026-09-28-port-web-ssr.md) (§2A, §3), under review:
+Implemented as the [PORT Web SSR design](../superpowers/specs/2026-09-28-port-web-ssr.md) (§2A, §3) specifies, in `@valancex/port-web/server` (`realizeHtml`) and `WebPort.hydrate`:
 
 - **Serializable, by the same `realizeProp` outputs:** `attribute` (a string's value or MESH's `propText`, escaped), `booleanAttribute` (presence), non-empty text runs, and the unknown-component placeholder. No second formatting exists.
 - **Omission on both sides:** an absent prop in any slot, including `property` and `textProperty`.
 - **No HTML form, so SSR v1 refuses the tree** (`unserializable-prop`): a *present* value in `property` or `textProperty`. A browser's reflection of a property to an attribute is platform behavior, not a representation, and PORT never derives one. An application that wants a prop in server HTML realizes it as an attribute.
 - **No HTML form, restored at hydration:** an empty text run. HTML can't express an empty text node, and the tree fixes its position.
 - **Serialization-only refusals:** U+0000 in text (HTML can't hold it) and elements whose content HTML parsing doesn't give back as the tree says (raw text, `template`, SVG, MathML).
+- **Hydration** establishes the client side: it inserts empty text nodes, and applies present property values from the client's tree. It never writes an absent property slot. A property slot's initial value, which present → absent restores, is a fresh element's (`doc.createElement(tag)[name]`), never the adopted element's.
+
+Parity is tested semantically: for every tree the server accepts, parsing the server HTML and hydrating it realizes exactly what `draw` does, node for node, attribute set for attribute set (`packages/port-web/test/ssr-serialize.test.ts`, with MESH's `values/` vectors).
 
 ## Failure behavior
 
@@ -134,5 +137,8 @@ Every failure is a `WebRealizationError`, thrown while checking the tree, before
 | `unrealized-prop` | the table has no slot for the prop (class 4) |
 | `unrealizable-value` | the value can't be held by its slot: a list or record in a text-only slot, or a value of another kind in a native one |
 | `missing-prop-text` | a number, boolean or `null` in a text-only slot, with no `propText` entry. The runtime always gives one, so this means the tree didn't come from MESH v0.6 or later |
+| `unserializable-prop` | server only: a present value in a `property` or `textProperty` slot |
+| `unserializable-text` | server only: U+0000 in a text-only slot or a text run |
+| `invalid-primitives` | the table gives a prop anything but one plain realization of a known kind, or realizes two props as one attribute or property |
 
 Tests: `packages/port-web/test/values.test.ts` (each class), `packages/port-web/test/conformance.test.ts` (MESH's `values/` vectors, every case in a text-only and a native slot), `packages/port-web/test/port.test.ts` (refusals leave the DOM unchanged) and `integration/test/mesh-v06.test.ts` (the slice).

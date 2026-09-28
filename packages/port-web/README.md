@@ -22,10 +22,26 @@ port.update(next.tree);   // a later tree from the same program: updated in plac
 port.unmount();
 ```
 
+On a server, with no DOM:
+
+```ts
+import { realizeHtml } from "@valancex/port-web/server";
+
+const html = realizeHtml(render.tree, primitives);   // the container's content
+```
+
+In the browser, over that HTML, with the client's own render of the same state:
+
+```ts
+const result = port.hydrate(render.tree);   // { adopted: true }, or { adopted: false, mismatch } after a fresh draw
+port.update(next.tree);                    // as after draw
+```
+
 ## What it does
 
 - **`draw(tree)`** realizes a render-v1 tree afresh inside `container`, replacing whatever was there. Use it for the first tree, and for any tree from a different program: keys aren't comparable across programs.
 - **`update(tree)`** brings the drawn tree to `tree`, from the same program, in place. Every key keeps its DOM node; only attributes and text that differ are written.
+- **`hydrate(tree)`** takes over server HTML in `container`, with nothing drawn. See [Server HTML and hydration](#server-html-and-hydration).
 - **`unmount()`** empties the container. Nothing is reported afterwards.
 - **`report(handler, payload?)`** is called at most once per interaction, for the one binding MESH's event resolution selects, with the drawn tree's handler identifier and the payload the event's realization builds. An event with no payload is reported without one.
 
@@ -74,12 +90,46 @@ It checks every tree in full before touching the DOM, so a refused tree changes 
 | `unrealizable-children` | a node has children (even an empty text run), but its primitive is realized as an HTML void element such as `img`, which can't hold any |
 | `duplicate-key` | two parts of a tree share a key |
 | `not-drawn` | `update` before `draw` |
-| `invalid-primitives` | thrown by `createWebPort`: the table maps one DOM event type to two events of one primitive |
+| `invalid-primitives` | thrown by `createWebPort` and `realizeHtml`: the table maps a prop by anything but one plain realization of a known kind, realizes two props as one attribute or one property, uses `data-component`, uses an element or attribute name the DOM and HTML don't both give back unchanged (lowercase, no special characters), or maps one DOM event type to two events of one primitive |
+| `already-drawn` | `hydrate` with a tree already drawn. A drawn PORT is never cleared by it |
+| `unserializable-prop` | server only: a present value in a `property` or `textProperty` slot, which has no HTML form |
+| `unserializable-text` | server only: U+0000 in a text run or attribute, which HTML can't hold |
+| `unserializable-element` | server only: a primitive realized as `script`, `style`, `textarea`, `title`, `template`, `xmp`, `iframe`, `noembed`, `noframes`, `noscript`, `plaintext`, `svg` or `math`, whose content HTML parsing wouldn't give back as the tree says |
 
 An unknown render-v1 *property* is different: it is ignored, as MESH's schema requires (see the contract's [What may be ignored](../../docs/CONTRACT.md#what-may-be-ignored-and-what-may-not)).
 
 A component with no realization isn't refused. It's drawn as a `<valance-unknown data-component="…">` element with its children inside, so the mistake is visible.
 
+## Server HTML and hydration
+
+The design is the [PORT Web SSR design](../../docs/superpowers/specs/2026-09-28-port-web-ssr.md). `hydrate` is Web-specific, not a PORT contract operation.
+
+**One pipeline.** `realizeHtml` validates the table, checks the tree and realizes every prop exactly as `draw` does (`check.ts`, `realize.ts`), then writes the outputs as HTML. It formats nothing. Escaping is `&` → `&amp;`, `<` → `&lt;`, `>` → `&gt;`, `"` → `&quot;` in attributes, and CR → `&#13;` (a literal CR would parse as LF). Everything else stays literal, C1 characters included, since a reference to one parses as another character. Attributes are written in name order, so a tree has exactly one HTML. A refusal throws, with no output.
+
+**What the server writes.** Server HTML supports:
+
+| Realization | Server HTML |
+|---|---|
+| `attribute` | the string, or MESH's `propText`, escaped; absent: nothing |
+| `booleanAttribute` | the attribute present for `true`; nothing for `false` or absent |
+| `property`, `textProperty`: absent | nothing (omission on both sides) |
+| `property`, `textProperty`: present | **refused**, `unserializable-prop`: a DOM property isn't HTML, and a browser reflecting one to an attribute doesn't make it one. Realize the prop as an attribute to have it in server HTML |
+| non-empty text run | the text, escaped; U+0000 is refused. Under `pre` and `listing`, a leading LF gets the extra LF the parser drops |
+| empty text run | nothing: HTML can't express an empty text node. Hydration puts it back |
+| unknown component | `<valance-unknown data-component="…">`, with its children |
+| events | nothing. Hydration binds them from the client's tree |
+
+**Hydration, in two phases.**
+
+1. **Verify.** Nothing in the DOM changes. The container must hold exactly one element. Each node's element must have the tag and HTML namespace its realization gives, **exactly** the attributes `draw` would write, and exactly its children (empty text runs left out). Each text node must have exactly its run's text.
+2. **Adopt,** only if everything matched. Every server node is kept. Empty text nodes are inserted in their places, present property values from the client's tree are applied, and absent ones are left as they are. The drawn state is `draw`'s, and listeners are installed.
+
+**Mismatch.** The first mismatch in document order (`container`, `element`, `component`, `child-count`, `text`, `attribute` or `boolean-attribute`) makes `hydrate` draw the tree afresh, with no server node kept, and return `{ adopted: false, mismatch: { class, key?, expected, found } }`. There is no patching. A nesting the HTML parser restructures (a `button` inside a `button`) shows up here.
+
+**Properties.** A property slot's initial value, which a prop going from present to absent restores, is a fresh element's, never the adopted element's.
+
+**Events around hydration.** Before `hydrate`, nothing is reported. Afterwards, MESH's resolution applies with the client tree's handler identifiers. HTML carries none. Interactions before hydration are not replayed. Input made before hydration into a slot the client's tree realizes as a present property is overwritten; into an absent one, it is kept.
+
 ## Not yet
 
-Accessibility semantics beyond what a realization table chooses, styling, server rendering and hydration. See the [roadmap](../../docs/ROADMAP.md).
+Accessibility semantics beyond what a realization table chooses, styling, streaming or partial hydration, event replay, and preserving input before hydration. See the [roadmap](../../docs/ROADMAP.md).

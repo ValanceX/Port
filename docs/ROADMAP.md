@@ -509,7 +509,7 @@ Repeated application updates produce correct target state while preserving ident
 
 # V0.6 — Web Runtime Architecture
 
-**Status:** Designed, with V0.7, in the [PORT Web SSR design](./superpowers/specs/2026-09-28-port-web-ssr.md) (under review). The server path is `@valancex/port-web/server`, which shares `primitives.ts`, `check.ts` and `realize.ts` with the browser path and loads no DOM code.
+**Status:** Done for the first SSR milestone, as the [PORT Web SSR design](./superpowers/specs/2026-09-28-port-web-ssr.md) specifies. The server path is `@valancex/port-web/server`. It shares `primitives.ts`, `check.ts` and `realize.ts` with the browser path, loads no DOM code (checked by its module graph), and runs in Node with no DOM at all.
 
 ## Objective
 
@@ -557,7 +557,7 @@ Server and browser implementations have explicit responsibilities and do not dep
 
 # V0.7 — SSR
 
-**Status: designed, under review; not implemented.** MESH v0.6 unblocked it (`propText`; spec §9.7.7, §9.8.7). The [PORT Web SSR design](./superpowers/specs/2026-09-28-port-web-ssr.md) settles the server boundary, the HTML serialization and the first milestone. The release integration dependency on a NEXUS release accepting MESH runtime 0.6 is recorded there (§13).
+**Status: first milestone done.** `render-v1 → deterministic HTML → hydrate → normal update`, as the [PORT Web SSR design](./superpowers/specs/2026-09-28-port-web-ssr.md) specifies, for its supported subset: text and boolean attributes, absent property slots, text runs, and unknown components. Present property values, U+0000, and raw-text, `template` and foreign elements are refused explicitly. Route rendering, streaming and server lifecycle are later work. **Release integration dependency:** NEXUS must publish a release accepting MESH runtime 0.6 before PORT's temporary workspace override can be removed (design §13).
 
 ### Notes recorded so far: not a design
 
@@ -606,7 +606,7 @@ A real Valance route can produce HTML on the server without running a browser en
 
 # V0.8 — Hydration and Client Takeover
 
-**Status: designed with V0.7, under review; not implemented.** The [PORT Web SSR design](./superpowers/specs/2026-09-28-port-web-ssr.md) covers hydration identity (structural, verified in full, with no new metadata), the render retained for dispatch, the mismatch policy (a fresh draw) and `hydrate`'s relation to `draw`/`update`. Event replay is future work. The information hydration needs exists: the program (the composer knows it), the snapshot the server rendered (the server's composer has it), and MESH's determinism ("identical inputs give identical results"), so the client re-renders the same tree. Nothing needed is missing from both render-v1 and the composer. Moving the snapshot to the client is composer work (integration audit U8).
+**Status: first milestone done.** `WebPort.hydrate` verifies the whole server DOM against the client's tree, adopts it, or draws afresh on the first mismatch, as the [PORT Web SSR design](./superpowers/specs/2026-09-28-port-web-ssr.md) specifies. The slice runs server → HTML → hydrate → click → NEXUS → update of the server's own nodes (`integration/test/ssr.test.ts`). Not done: event replay, preserving input made before hydration, and partial or progressive hydration. The information hydration needs exists: the program (the composer knows it), the snapshot the server rendered (the server's composer has it), and MESH's determinism ("identical inputs give identical results"), so the client re-renders the same tree. Nothing needed is missing from both render-v1 and the composer. Moving the snapshot to the client is composer work (integration audit U8).
 
 ### Notes recorded so far: not a design
 

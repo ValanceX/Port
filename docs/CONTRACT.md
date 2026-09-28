@@ -38,6 +38,8 @@ A PORT:
 | **update(tree)** | The composer asserts that `tree` comes from the **same program** as the drawn tree. Realize its changes in place: the target object for each key present in both trees is kept. | Every later tree the composer knows comes from the same program. |
 | **unmount()** | Remove the realization. Nothing is reported after it. | When the UI goes away. |
 
+These three are every PORT's. A PORT may add operations for its own target that keep their meanings. The Web PORT adds one, **hydrate**, which isn't part of this contract (see [Web: server HTML and hydrate](#web-server-html-and-hydrate)).
+
 ### Program continuity
 
 *draw* and *update* are not two ways of rendering. They carry one fact, **program continuity**: whether the incoming tree comes from the same MESH program as the drawn tree. That fact decides whether keys may be compared at all. MESH makes keys comparable only within one program, and may give two programs overlapping keys: a key says nothing about which program produced it.
@@ -115,7 +117,16 @@ These are deliberately absent, because nothing upstream provides them yet or not
 - target capability descriptions (no consumer);
 - accessibility semantics and styling (render-v1 carries none);
 - lists, conditional content, insertion, removal and reordering (MPRX has none);
-- server rendering and hydration (see the [roadmap](./ROADMAP.md)).
+- server rendering and hydration as contract operations. They are target-specific: the Web PORT's are described [below](#web-server-html-and-hydrate).
+
+## Web: server HTML and hydrate
+
+Server rendering is a Web realization concern, specified in the [PORT Web SSR design](./superpowers/specs/2026-09-28-port-web-ssr.md). It doesn't change render-v1, MESH or NEXUS, and it isn't a universal PORT operation: a PORT with no server form has none.
+
+- **One realization pipeline.** The server (`realizeHtml` in `@valancex/port-web/server`) and the client share the table validation, the tree check and `realize.ts`. The server only places their outputs as HTML. It makes no text of a value: `propText` stays MESH's.
+- **Property vs attribute.** A MESH prop, the DOM property a table realizes it as, and an HTML attribute are three different things. PORT never derives an attribute from a property, even where the browser reflects one. A present value in a DOM property slot has no HTML form, so the server refuses the tree (`unserializable-prop`). An absent one is omitted on both sides.
+- **hydrate(tree)** takes over server HTML with nothing drawn (otherwise `already-drawn`). It verifies the whole DOM against the tree without changing it, then adopts it, keeping every server node. On the first mismatch in document order it draws the tree afresh and reports why. Either way, PORT is afterwards exactly as after *draw(tree)*, so *update* follows. The meanings of *draw* and *update* don't change, and the composer still owns program continuity: it calls *hydrate* for the program it knows the server rendered, and retains the client's own `Render`, never the server's.
+- **Events** keep MESH's resolution: hydration installs the same listeners as *draw*. Nothing is reported before hydration, and interactions before it are not replayed. Input made before hydration into a slot the client's tree realizes as a present property is overwritten.
 
 ## Conformance
 
