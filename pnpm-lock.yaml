@@ -4,6 +4,9 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+overrides:
+  '@valancex/nexus>@valancex/mesh-runtime': ^0.6.0
+
 importers:
 
   .:
@@ -21,11 +24,11 @@ importers:
         specifier: ^22.0.0
         version: 22.20.4
       '@valancex/mesh-compiler':
-        specifier: ^0.5.0
-        version: 0.5.0
+        specifier: ^0.6.0
+        version: 0.6.0
       '@valancex/mesh-runtime':
-        specifier: ^0.5.0
-        version: 0.5.0
+        specifier: ^0.6.0
+        version: 0.6.0
       '@valancex/nexus':
         specifier: ^0.8.0
         version: 0.8.0
@@ -54,11 +57,11 @@ importers:
         specifier: ^22.0.0
         version: 22.20.4
       '@valancex/mesh-compiler':
-        specifier: ^0.5.0
-        version: 0.5.0
+        specifier: ^0.6.0
+        version: 0.6.0
       '@valancex/mesh-runtime':
-        specifier: ^0.5.0
-        version: 0.5.0
+        specifier: ^0.6.0
+        version: 0.6.0
       jsdom:
         specifier: ^26.0.0
         version: 26.1.0
@@ -427,12 +430,12 @@ packages:
   '@types/tough-cookie@4.0.5':
     resolution: {integrity: sha512-/Ad8+nIOV7Rl++6f1BdKxFSMgmoqEoYbHRpPcx3JEfv8VRsQe9Z4mCXeJBzxs7mbHY/XOZZuXlRNfhpVPbs6ZA==}
 
-  '@valancex/mesh-compiler@0.5.0':
-    resolution: {integrity: sha512-FD+DfU8LdljAQou72WZ/Ya6j6CyUlcdLED/Z56/qQvfGzp66ioHgBawrb8sel2mH4N13Dyu6KrbZUjdmGpzOzA==}
+  '@valancex/mesh-compiler@0.6.0':
+    resolution: {integrity: sha512-+8k7ZTLqb3fmT0pQOfHiX8hxzGwU6anKsbdN7HY17NFarL9h44SpXPxtythRZp4ujm29gheC+Mh1BzBDv7CNxg==}
     engines: {node: '>=22'}
 
-  '@valancex/mesh-runtime@0.5.0':
-    resolution: {integrity: sha512-t8K/Fq8/lQWb1gJa+wsW4qvlYAvwcxsfsfHPhDH1+v9GpTsTARLOenCE67CMWO5gnmTngckWQ8XpSM8lx+llsg==}
+  '@valancex/mesh-runtime@0.6.0':
+    resolution: {integrity: sha512-haovWIo58s9DA1SRwdla2a0QWRRa4CcQCW3QcdRjEo6V0NSeLd4zmfyhXWbJE6vb3QYfq57Tfuj/1pJbPbnTzg==}
     engines: {node: '>=22'}
 
   '@valancex/nexus@0.8.0':
@@ -1039,13 +1042,13 @@ snapshots:
 
   '@types/tough-cookie@4.0.5': {}
 
-  '@valancex/mesh-compiler@0.5.0': {}
+  '@valancex/mesh-compiler@0.6.0': {}
 
-  '@valancex/mesh-runtime@0.5.0': {}
+  '@valancex/mesh-runtime@0.6.0': {}
 
   '@valancex/nexus@0.8.0':
     dependencies:
-      '@valancex/mesh-runtime': 0.5.0
+      '@valancex/mesh-runtime': 0.6.0
       effect: 3.22.2
 
   '@vitest/expect@3.2.7':
