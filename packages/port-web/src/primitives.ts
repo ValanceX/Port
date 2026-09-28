@@ -6,7 +6,7 @@
  *
  * Prop realizations are data, not functions, so that the same table can
  * later drive server rendering: an attribute is the same attribute in the
- * DOM and in HTML.
+ * DOM and in HTML, and a value becomes it by the same rule (realize.ts).
  */
 
 import type { BoundaryValue } from "@valancex/mesh-runtime";
@@ -17,40 +17,74 @@ export interface WebPrimitive {
   readonly element: string;
   /** How each of the primitive's props is realized. A prop in the tree with no entry here is an error. */
   readonly props?: Readonly<Record<string, PropRealization>>;
-  /** How each of the primitive's events is realized. An event in the tree with no entry here is an error. */
+  /**
+   * How each of the primitive's events is realized: which DOM interaction
+   * constitutes it. A primitive may map a DOM event type to at most one of
+   * its events (MESH §9.9.1: one interaction, at most one applicable event
+   * per primitive); `createWebPort` refuses a table that maps two. An event
+   * in the tree with no entry here is an error.
+   */
   readonly events?: Readonly<Record<string, EventRealization>>;
 }
 
 /**
- * A prop as an attribute.
+ * Which DOM slot a prop goes to, and so how its value is realized there
+ * (MESH §9.8.7: natively, in a slot of the value's own kind that holds it
+ * exactly, or as its MESH text, in a slot that holds only text). Each kind
+ * is one of those two ways; nothing else is realization.
  *
- * - `attribute`: a string value is the attribute's value, as given. An
- *   absent prop removes the attribute. Any other value is an error: it has
- *   no text MESH gave, and the PORT must not invent one.
- * - `boolean-attribute`: `true` sets the attribute (empty value), and
- *   `false` or an absent prop removes it. Any other value is an error.
+ * Text-only slots. A string is its own text; a number, boolean or `null`
+ * is the node's `propText` entry, which MESH's runtime made; a list or
+ * record has no text and is refused. An absent prop is omitted.
+ * - `attribute`: an HTML content attribute. Absent removes it.
+ * - `text-property`: a `DOMString` DOM property, such as an input's
+ *   `value`. Absent leaves it at the element's own initial value.
+ *
+ * Native slots. The value must be of the slot's kind; any other is refused.
+ * - `boolean-attribute`: an HTML boolean attribute, a boolean by presence.
+ *   `true` sets it (empty value); `false` or absent removes it.
+ * - `property`: a DOM property that holds a value of the kind `holds`
+ *   exactly: `"boolean"` (an IDL `boolean`), `"number"` (an IDL `double`,
+ *   which is binary64: never an integer or `float` property, which would
+ *   truncate or round), or `"value"` (a property that keeps any JavaScript
+ *   value unchanged, as a custom element's own property may; lists,
+ *   records and `null` are realized natively only here). Absent leaves it
+ *   at the element's own initial value.
  */
 export type PropRealization =
   | { readonly kind: "attribute"; readonly name: string }
-  | { readonly kind: "boolean-attribute"; readonly name: string };
+  | { readonly kind: "text-property"; readonly name: string }
+  | { readonly kind: "boolean-attribute"; readonly name: string }
+  | { readonly kind: "property"; readonly name: string; readonly holds: PropertyKind };
 
-/** An event as a DOM event on the primitive's element. */
+/** The kind of value a native DOM property holds exactly. */
+export type PropertyKind = "boolean" | "number" | "value";
+
+/** A DOM interaction that constitutes one of a primitive's events. */
 export interface EventRealization {
   /** The DOM event type that realizes the event, such as `"click"`. */
   readonly type: string;
   /**
    * Builds the event's payload from the DOM event, as the application's
-   * manifest declares it. Omit it for an event with no payload. It must
-   * return plain data: MESH validates the payload when the host dispatches.
+   * manifest declares it. `element` is the element of the node that
+   * receives the interaction (the DOM event's own target may be inside it).
+   * Omit it for an event with no payload. It must return plain data: MESH
+   * validates the payload when the host dispatches.
    */
-  readonly payload?: (event: Event) => BoundaryValue;
+  readonly payload?: (event: Event, element: Element) => BoundaryValue;
 }
 
 /** Every primitive the Web PORT can realize, by component name. */
 export type WebPrimitives = Readonly<Record<string, WebPrimitive>>;
 
-/** `{ kind: "attribute", name }`. */
+/** A content attribute: a text-only slot. `{ kind: "attribute", name }`. */
 export const attribute = (name: string): PropRealization => ({ kind: "attribute", name });
 
-/** `{ kind: "boolean-attribute", name }`. */
+/** A `DOMString` property: a text-only slot. `{ kind: "text-property", name }`. */
+export const textProperty = (name: string): PropRealization => ({ kind: "text-property", name });
+
+/** A boolean attribute, realized natively by presence. `{ kind: "boolean-attribute", name }`. */
 export const booleanAttribute = (name: string): PropRealization => ({ kind: "boolean-attribute", name });
+
+/** A DOM property holding `holds` natively. `{ kind: "property", name, holds }`. */
+export const property = (name: string, holds: PropertyKind): PropRealization => ({ kind: "property", name, holds });

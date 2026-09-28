@@ -244,12 +244,12 @@ describe("nothing is dropped silently, and a refused tree changes nothing", () =
   const cases: ReadonlyArray<[string, RenderTree, string]> = [
     ["a prop with no realization", tree(node(1, "page", { title: "T", subtitle: "S" })), "unrealized-prop"],
     ["an event with no realization", tree(node(1, "page", { title: "T" }, [], { click: handler(1) })), "unrealized-event"],
-    // MESH gives no text for a number prop, and the PORT must not format one.
-    ["a number for an attribute", tree(node(1, "avatar", { alt: "A", size: 48 })), "unrealizable-value"],
-    ["null for an attribute", tree(node(1, "avatar", { alt: "A", src: null })), "unrealizable-value"],
+    // A text-only slot takes MESH's propText for a number, boolean or null; without one, the PORT must not make one.
+    ["a number with no propText for an attribute", tree(node(1, "avatar", { alt: "A", size: 48 })), "missing-prop-text"],
+    ["null with no propText for an attribute", tree(node(1, "avatar", { alt: "A", src: null })), "missing-prop-text"],
+    ["a boolean with no propText for an attribute", tree(node(1, "avatar", { alt: "A", size: true })), "missing-prop-text"],
     ["a string for a boolean attribute", tree(node(1, "button", { disabled: "yes" })), "unrealizable-value"],
-    // The rest of docs/architecture/2026-09-27-value-realization-audit.md's gap cells: no MESH-given text.
-    ["a boolean for an attribute", tree(node(1, "avatar", { alt: "A", size: true })), "unrealizable-value"],
+    // A list or record has no MESH text (§9.7.8), so no text-only slot can hold it.
     ["a list for an attribute", tree(node(1, "avatar", { alt: "A", size: ["s", "m"] })), "unrealizable-value"],
     ["a record for an attribute", tree(node(1, "avatar", { alt: "A", size: { w: "1" } })), "unrealizable-value"],
     ["null for a boolean attribute", tree(node(1, "button", { disabled: null })), "unrealizable-value"],

@@ -1,4 +1,4 @@
-// The Web PORT's boundaries (docs/CONTRACT.md, obligation 6; the audit's
+// The Web PORT's boundaries (docs/CONTRACT.md, obligation 7; the audit's
 // R8): it depends on neither NEXUS nor the MESH runtime, only on the
 // render tree's types, and uses no browser globals.
 import { readdirSync, readFileSync } from "node:fs";
@@ -50,7 +50,7 @@ describe("port-web's boundaries", () => {
     for (const [file, source] of sources) {
       const constructed = Array.from(codeOf(source).matchAll(/\bnew\s+([A-Za-z_$][\w$]*)/g), (match) => match[1]);
 
-      expect({ file, constructed: constructed.filter((name) => !["Map", "Set", "WebRealizationError"].includes(name!)) }).toEqual({ file, constructed: [] });
+      expect({ file, constructed: constructed.filter((name) => !["Map", "Set", "WeakMap", "WebRealizationError"].includes(name!)) }).toEqual({ file, constructed: [] });
     }
   });
 });
