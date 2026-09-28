@@ -10,17 +10,25 @@
 // - the drawn render: each PORT report is dispatched with the `Render` whose
 //   tree is drawn, never a newer one (NEXUS M1 and M2 leave this to it).
 import type { Mesh } from "@valancex/nexus";
-import type { WebPort, WebPortOptions } from "@valancex/port-web";
+import type { HydrationResult, WebPort, WebPortOptions } from "@valancex/port-web";
 
 import { createWebPort } from "@valancex/port-web";
 import { Effect, Exit, Fiber, Stream } from "effect";
 
-export type Operation = "draw" | "update";
+export type Operation = "draw" | "hydrate" | "update";
 
 export interface Composer<E, R> {
   readonly port: WebPort;
   /** Shows `host`'s program: draws its current render afresh, then updates the PORT with each later render. */
   readonly show: (host: Mesh.Host<E, R>) => Promise<void>;
+  /**
+   * Takes over server HTML of `host`'s program: hydrates the PORT with the
+   * client host's own current render, which the composer retains, then
+   * updates the PORT with each later render. The server's render never
+   * reaches the client: the client render is the source of handler
+   * identifiers, bindings, values and program continuity.
+   */
+  readonly hydrate: (host: Mesh.Host<E, R>) => Promise<HydrationResult>;
   /** Every PORT operation the composer asked for, in order. */
   readonly operations: Array<Operation>;
   /** Every dispatch the composer made, in order, as it settled. */
@@ -52,6 +60,15 @@ export const composer = <E, R>(
     },
   });
 
+  // Every later render of the shown host is the same program: update.
+  const follow = (host: Mesh.Host<E, R>): void => {
+    following = Effect.runFork(Stream.runForEach(host.renders, (later) => Effect.sync(() => {
+      port.update(later.tree);
+      operations.push("update");
+      shown!.render = later;
+    })));
+  };
+
   const stopFollowing = async (): Promise<void> => {
     if (following !== undefined) {
       await Effect.runPromise(Fiber.interrupt(following));
@@ -72,13 +89,23 @@ export const composer = <E, R>(
       port.draw(render.tree);
       operations.push("draw");
       shown = { host, render };
+      follow(host);
+    },
 
-      // Every later render of this host is the same program: update.
-      following = Effect.runFork(Stream.runForEach(host.renders, (later) => Effect.sync(() => {
-        port.update(later.tree);
-        operations.push("update");
-        shown!.render = later;
-      })));
+    hydrate: async (host) => {
+      await stopFollowing();
+
+      // The client's render, never the server's. Hydrating with it and
+      // retaining it happen in one synchronous step, so no interaction can
+      // be reported in between. On a mismatch the PORT has drawn this tree
+      // afresh, and the same render is the drawn one.
+      const render = await Effect.runPromise(host.render);
+      const result = port.hydrate(render.tree);
+      operations.push("hydrate");
+      shown = { host, render };
+      follow(host);
+
+      return result;
     },
 
     settled: async () => {
