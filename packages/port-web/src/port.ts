@@ -78,6 +78,11 @@ export interface WebPort {
    * against `tree` without changing it, then adopts it; on any mismatch it
    * draws `tree` afresh instead, and says why. Either way `tree` is then
    * drawn, exactly as after `draw`, and `update` follows.
+   *
+   * A mismatch can't cause partial adoption: all verification completes
+   * before adoption begins. Adoption itself isn't rollbackable across DOM
+   * property setters: if one throws, `hydrate` throws `adoption-failed`,
+   * with nothing drawn, and neither undoes what was written nor retries.
    */
   hydrate(tree: RenderTree): HydrationResult;
   /** Removes what was drawn. Nothing is reported after this. */
@@ -476,8 +481,13 @@ export const createWebPort = ({ container, primitives, report }: WebPortOptions)
     return element;
   };
 
-  /** Adopts the verified `dom` as `part`: records it, fills in what HTML couldn't carry, and nothing else. */
-  const adopt = (part: RenderNode, dom: Element, parent: DrawnNode | undefined, plan: Plan): DrawnNode => {
+  /**
+   * Adopts the verified `dom` as `part`: records it, fills in what HTML
+   * couldn't carry (empty text nodes, present property values), and
+   * nothing else. The records go to `adopted`, and are registered only
+   * once all of adoption has succeeded.
+   */
+  const adopt = (part: RenderNode, dom: Element, parent: DrawnNode | undefined, plan: Plan, adopted: Array<DrawnNode>): DrawnNode => {
     const node = record(part, parent, dom, plan);
 
     if (node.primitive !== undefined) {
@@ -497,12 +507,18 @@ export const createWebPort = ({ container, primitives, report }: WebPortOptions)
         const realization = own(primitive.props, name)!;
 
         if (isPropertyClass(realization) && !("absent" in output)) {
-          writeProp(node, realization, output);
+          try {
+            writeProp(node, realization, output);
+          } catch (error) {
+            // A DOM property setter is outside PORT: its failure, and anything
+            // it or adoption did before it, is reported, not rolled back.
+            throw new WebRealizationError("adoption-failed", `<${part.component}>'s prop \`${name}\`: assigning the DOM property \`${realization.name}\` threw during hydration's adoption, after verification succeeded. The server DOM may be partly adopted, and PORT doesn't roll it back. Nothing is drawn.`, part.key, error);
+          }
         }
       }
     }
 
-    nodeOf.set(dom, node);
+    adopted.push(node);
 
     const nodes = Array.from(dom.childNodes);
     let next = 0;
@@ -520,7 +536,7 @@ export const createWebPort = ({ container, primitives, report }: WebPortOptions)
         return { kind: "text", key: child.key, dom: nodes[next++] as Text, text: child.text };
       }
 
-      return adopt(child, nodes[next++] as Element, node, plan);
+      return adopt(child, nodes[next++] as Element, node, plan, adopted);
     });
 
     return node;
@@ -557,7 +573,17 @@ export const createWebPort = ({ container, primitives, report }: WebPortOptions)
         return { adopted: false, mismatch };
       }
 
-      drawn = adopt(tree.root, nodes[0] as Element, undefined, plan);
+      // Adoption: only now, with everything verified, does the DOM change. A
+      // setter failure here throws adoption-failed, with nothing drawn and no
+      // listeners; there is no retry and no fallback draw.
+      const adopted: Array<DrawnNode> = [];
+      const root = adopt(tree.root, nodes[0] as Element, undefined, plan, adopted);
+
+      for (const node of adopted) {
+        nodeOf.set(node.dom, node);
+      }
+
+      drawn = root;
       listen(true);
 
       return { adopted: true };

@@ -25,6 +25,13 @@ export type WebRealizationCode =
   | "invalid-primitives"
   /** `hydrate` was called with a tree already drawn. */
   | "already-drawn"
+  /**
+   * During hydration's adoption, after verification succeeded, assigning a
+   * DOM property threw. The server DOM may be partly adopted: PORT reports
+   * the failure, and doesn't roll back or retry. Nothing is drawn. The
+   * setter's own error is the `cause`.
+   */
+  | "adoption-failed"
   /** Server only: a present value in a DOM property slot, which HTML can't represent. */
   | "unserializable-prop"
   /** Server only: a text or attribute value containing U+0000, which HTML can't hold. */
@@ -33,9 +40,12 @@ export type WebRealizationCode =
   | "unserializable-element";
 
 /**
- * The Web PORT can't realize what it was given. Nothing on the page has
- * changed when this is thrown: every tree is checked before the DOM is
- * touched.
+ * The Web PORT can't realize what it was given. Every tree is checked
+ * before the DOM is touched, so for every code but `adoption-failed`
+ * nothing on the page has changed when this is thrown. `adoption-failed`
+ * comes from a DOM property setter, which is outside PORT, throwing after
+ * hydration's verification: PORT doesn't promise to undo what that setter
+ * or the adoption before it did.
  */
 export class WebRealizationError extends Error {
   override readonly name = "WebRealizationError";
@@ -44,8 +54,10 @@ export class WebRealizationError extends Error {
     readonly code: WebRealizationCode,
     message: string,
     /** The key of the node the problem is at, when there is one. */
-    readonly key?: string
+    readonly key?: string,
+    /** The error that caused it, when it came from outside PORT. */
+    cause?: unknown
   ) {
-    super(message);
+    super(message, cause === undefined ? undefined : { cause });
   }
 }

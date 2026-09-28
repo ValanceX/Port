@@ -182,3 +182,94 @@ describe("server HTML carries no keys, handler identifiers or program identity",
     expect(html).toBe('<section aria-label="T"><button>Go</button><p title="n"></p></section>');
   });
 });
+
+// A DOM property setter is external behavior: PORT can't roll back what it,
+// or adoption before it, did. So a setter that throws during adoption is
+// reported as adoption-failed, a realization failure: not a mismatch, not
+// { adopted: true }, and never retried or turned into a fresh draw.
+describe("a property setter that throws during adoption", () => {
+  const table: WebPrimitives = {
+    ...primitives,
+    gauge: { element: "valance-gauge", props: { level: property("level", "value") } },
+  };
+  // In document order: an empty text run (adoption inserts it), the failing
+  // gauge, then a field whose present value adoption would assign next.
+  const client = tree(node(1, "page", { title: "T" }, [
+    node(2, "para", { note: "first" }, [node(3, "text", {}, [text(4, "")])]),
+    node(5, "gauge", { level: 1 }),
+    node(6, "button", {}, [text(7, "Go")], { click: handler(1) }),
+    node(8, "field", { value: "client" }),
+  ]));
+  const server = tree(node(1, "page", { title: "T" }, [
+    node(2, "para", { note: "first" }, [node(3, "text", {}, [text(4, "")])]),
+    node(5, "gauge", {}),
+    node(6, "button", {}, [text(7, "Go")], { click: handler(1) }),
+    node(8, "field", {}),
+  ]));
+
+  const setup = () => {
+    const { window, container } = parse(realizeHtml(server, table));
+    const serverNodes = allNodes(container);
+    const gauge = container.querySelector("valance-gauge")!;
+    let reached = 0;
+    const failure = new Error("the gauge refuses");
+    Object.defineProperty(gauge, "level", { configurable: true, get: () => undefined, set: () => { reached += 1; throw failure; } });
+    const value = assignments(container.querySelector("input")!, "value");
+    const calls: Array<ReadonlyArray<unknown>> = [];
+    const port = createWebPort({ container, primitives: table, report: (...args) => { calls.push(args); } });
+    const observer = new window.MutationObserver(() => {});
+    observer.observe(window.document, { subtree: true, childList: true, attributes: true, characterData: true });
+
+    return { window, container, serverNodes, failure, reached: () => reached, value, calls, port, observer };
+  };
+
+  it("is reported as adoption-failed, after verification succeeded and adoption began, with the setter's error as its cause", () => {
+    const { port, failure, reached, observer } = setup();
+    let returned: unknown;
+    let thrown: unknown;
+
+    try {
+      returned = port.hydrate(client);
+    } catch (error) {
+      thrown = error;
+    }
+
+    // Not { adopted: true }, and not a mismatch: hydrate returned nothing.
+    expect(returned).toBeUndefined();
+    expect(thrown).toMatchObject({ name: "WebRealizationError", code: "adoption-failed", key: key(5), cause: failure });
+    // The setter was reached, exactly once: no second adoption.
+    expect(reached()).toBe(1);
+    // Adoption had begun, so verification had succeeded: the empty text node
+    // before the gauge was inserted. No fresh draw replaced the container.
+    expect(observer.takeRecords().map((record) => ({ type: record.type, added: Array.from(record.addedNodes, (added) => added.nodeType), removed: record.removedNodes.length })))
+      .toEqual([{ type: "childList", added: [3], removed: 0 }]);
+  });
+
+  it("leaves the state as it is, stated explicitly: partly adopted DOM, nothing drawn, no listeners, no rollback", () => {
+    const { window, container, serverNodes, value, calls, port } = setup();
+
+    expect(codeOf(() => port.hydrate(client))).toBe("adoption-failed");
+
+    // The DOM: every server node still in place, plus the one inserted empty
+    // text node, which is not removed again. Adoption stopped at the gauge,
+    // so the field after it was never assigned.
+    expect(serverNodes.every((server) => container.contains(server))).toBe(true);
+    expect(allNodes(container).filter((node) => !serverNodes.includes(node)).map((node) => [node.nodeType, node.textContent])).toEqual([[3, ""]]);
+    expect(value.count()).toBe(0);
+    // PORT: nothing drawn, and nothing reported.
+    expect(codeOf(() => port.update(client))).toBe("not-drawn");
+    container.querySelector("button")!.dispatchEvent(new window.Event("click", { bubbles: true }));
+    expect(calls).toEqual([]);
+  });
+
+  it("is not a mismatch: a structural or attribute difference is still reported as a mismatch, with no adoption at all", () => {
+    const { container, reached } = setup();
+    const changed = tree(node(1, "page", { title: "Other" }, (client.root.children as ReadonlyArray<never>)));
+    const port = createWebPort({ container, primitives: table, report: () => {} });
+
+    expect(port.hydrate(changed)).toMatchObject({ adopted: false, mismatch: { class: "attribute" } });
+    // The mismatch came first, so adoption never began and the setter was never reached;
+    // the fresh draw's own gauge is a new element, without the throwing setter.
+    expect(reached()).toBe(0);
+  });
+});
