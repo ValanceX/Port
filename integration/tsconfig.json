@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "types": ["node"],
+    "types": ["node", "@vitest/browser/providers/playwright"],
     "target": "ES2022",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
@@ -12,5 +12,5 @@
     "isolatedModules": true,
     "noEmit": true
   },
-  "include": ["test", "vitest.config.ts"]
+  "include": ["test", "browser", "vitest.config.ts", "vitest.browser.config.ts"]
 }
