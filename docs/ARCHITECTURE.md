@@ -107,7 +107,7 @@ The Web has two kinds of slot for a prop, and they don't share semantics. An **H
 | text-only slot | `attribute(name)`, `textProperty(name)` | a string's own value, or MESH's `propText`; a list or record is refused |
 | unsupported | anything not in the table | refused |
 
-A numeric DOM property therefore takes the number natively, while an attribute showing a number takes MESH's text for it. The values, slots, sources, SSR consequences and failures are tabulated in the [Web value realization](./architecture/2026-09-28-web-value-realization.md). One pure step (`realize.ts`) decides every prop's output before the DOM is touched, so a later server path serializes the same outputs rather than formatting values a second way.
+A numeric DOM property therefore takes the number natively, while an attribute showing a number takes MESH's text for it. The values, slots, sources, SSR consequences and failures are tabulated in the [Web value realization](./architecture/2026-09-28-web-value-realization.md). One pure step (`realize.ts`) decides every prop's output before anything is written. The Web PORT's server path (`@valancex/port-web/server`) writes the same outputs as HTML rather than formatting values a second way, and never derives an attribute from a DOM property: a present property value has no HTML form, and is refused on the server. Server rendering and `hydrate` are Web-specific, not PORT contract operations ([CONTRACT.md](./CONTRACT.md#web-server-html-and-hydrate)).
 
 What crosses should describe **guarantees, not mechanisms**, so NEXUS and MESH can change internals without breaking PORTs. The evolution rule, in both directions:
 

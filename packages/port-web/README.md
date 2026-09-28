@@ -128,7 +128,7 @@ The design is the [PORT Web SSR design](../../docs/superpowers/specs/2026-09-28-
 
 **Properties.** A property slot's initial value, which a prop going from present to absent restores, is a fresh element's, never the adopted element's.
 
-**Events around hydration.** Before `hydrate`, nothing is reported. Afterwards, MESH's resolution applies with the client tree's handler identifiers. HTML carries none. Interactions before hydration are not replayed. Input made before hydration into a slot the client's tree realizes as a present property is overwritten; into an absent one, it is kept.
+**Events around hydration.** Before `hydrate`, nothing is reported. Afterwards, MESH's resolution applies with the client tree's handler identifiers. HTML carries none. Interactions before hydration are not replayed. Hydration doesn't preserve input made before it: a slot the client's tree realizes as a present property is written, over whatever it held. A slot whose prop is absent isn't written at all, since PORT never writes an absent slot, so its state is left untouched; that is the absent-prop rule, not input preservation.
 
 ## Not yet
 
