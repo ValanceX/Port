@@ -117,10 +117,13 @@ The integration slice's table (`integration/test/app.ts`), against MESH's slice 
 
 ## SSR
 
-What this table means for server rendering (the design will be `docs/superpowers/specs/2026-09-28-port-web-ssr.md`, which isn't written yet):
+Settled in the [PORT Web SSR design](../superpowers/specs/2026-09-28-port-web-ssr.md) (§2A, §3), under review:
 
-- **Serializable:** `attribute` (every kind MESH gives text for), `booleanAttribute`, and text runs except empty ones. For these, the server places `realizeProp`'s outputs exactly as the DOM writer does. No second formatting exists.
-- **Not serializable:** `textProperty` and `property`, whatever the value, and empty text runs. Server rendering either refuses them explicitly or leaves them to the client to apply from the tree when it takes over. Which one is an SSR design decision; it is never a server-side fallback text.
+- **Serializable, by the same `realizeProp` outputs:** `attribute` (a string's value or MESH's `propText`, escaped), `booleanAttribute` (presence), non-empty text runs, and the unknown-component placeholder. No second formatting exists.
+- **Omission on both sides:** an absent prop in any slot, including `property` and `textProperty`.
+- **No HTML form, so SSR v1 refuses the tree** (`unserializable-prop`): a *present* value in `property` or `textProperty`. A browser's reflection of a property to an attribute is platform behavior, not a representation, and PORT never derives one. An application that wants a prop in server HTML realizes it as an attribute.
+- **No HTML form, restored at hydration:** an empty text run. HTML can't express an empty text node, and the tree fixes its position.
+- **Serialization-only refusals:** U+0000 in text (HTML can't hold it) and elements whose content HTML parsing doesn't give back as the tree says (raw text, `template`, SVG, MathML).
 
 ## Failure behavior
 

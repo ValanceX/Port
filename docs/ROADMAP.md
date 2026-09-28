@@ -509,7 +509,7 @@ Repeated application updates produce correct target state while preserving ident
 
 # V0.6 — Web Runtime Architecture
 
-**Status:** Unblocked, with V0.7: its design comes first. Value realization is already one DOM-free step (`realize.ts`) that both paths can share.
+**Status:** Designed, with V0.7, in the [PORT Web SSR design](./superpowers/specs/2026-09-28-port-web-ssr.md) (under review). The server path is `@valancex/port-web/server`, which shares `primitives.ts`, `check.ts` and `realize.ts` with the browser path and loads no DOM code.
 
 ## Objective
 
@@ -557,7 +557,7 @@ Server and browser implementations have explicit responsibilities and do not dep
 
 # V0.7 — SSR
 
-**Status: unblocked, design first.** MESH v0.6 gives every number, boolean and `null` prop its MESH text (`propText`), and says lists and records have none (spec §9.7.7, §9.8.7), which was what blocked it. Which Web slots have an HTML form is in the [Web value realization](./architecture/2026-09-28-web-value-realization.md). The design is next, and nothing is implemented until it is reviewed.
+**Status: designed, under review; not implemented.** MESH v0.6 unblocked it (`propText`; spec §9.7.7, §9.8.7). The [PORT Web SSR design](./superpowers/specs/2026-09-28-port-web-ssr.md) settles the server boundary, the HTML serialization and the first milestone. The release integration dependency on a NEXUS release accepting MESH runtime 0.6 is recorded there (§13).
 
 ### Notes recorded so far: not a design
 
@@ -606,7 +606,7 @@ A real Valance route can produce HTML on the server without running a browser en
 
 # V0.8 — Hydration and Client Takeover
 
-**Status:** Design follows V0.7's; not implemented before SSR is proven. The information hydration needs exists: the program (the composer knows it), the snapshot the server rendered (the server's composer has it), and MESH's determinism ("identical inputs give identical results"), so the client re-renders the same tree. Nothing needed is missing from both render-v1 and the composer. Moving the snapshot to the client is composer work (integration audit U8).
+**Status: designed with V0.7, under review; not implemented.** The [PORT Web SSR design](./superpowers/specs/2026-09-28-port-web-ssr.md) covers hydration identity (structural, verified in full, with no new metadata), the render retained for dispatch, the mismatch policy (a fresh draw) and `hydrate`'s relation to `draw`/`update`. Event replay is future work. The information hydration needs exists: the program (the composer knows it), the snapshot the server rendered (the server's composer has it), and MESH's determinism ("identical inputs give identical results"), so the client re-renders the same tree. Nothing needed is missing from both render-v1 and the composer. Moving the snapshot to the client is composer work (integration audit U8).
 
 ### Notes recorded so far: not a design
 
