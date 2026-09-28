@@ -1,10 +1,10 @@
 # Changelog
 
-All notable changes to PORT are recorded here. Until 1.0, minor versions may include breaking changes.
+All notable changes to PORT are recorded here. The project follows [Semantic Versioning](https://semver.org). Until 1.0, minor versions may include breaking changes.
 
-## [0.2.0] - 2026-09-28
+## [Unreleased]
 
-The Web PORT on MESH v0.6, with server rendering and hydration for a deliberately narrow subset. Nothing is published to npm by this release.
+Planned as 0.2.0: the Web PORT on MESH v0.6, with server rendering and hydration for a deliberately narrow subset. See the draft [v0.2 release notes](./docs/releases/v0.2.md) for an overview.
 
 ### Included
 
@@ -56,3 +56,7 @@ These are the documented semantics of v0.2, not defects:
 
 - `@valancex/port-web` 0.2.0, with its entries `@valancex/port-web`, `@valancex/port-web/server` and `@valancex/port-web/package.json`.
 - There is no shared `@valancex/port` package.
+
+### Release
+
+- **A release workflow**, `.github/workflows/release.yml`, as MESH's. A pushed `v*` tag runs all of CI on the tagged commit, packs `@valancex/port-web`, and checks that the tag is `v` + its version and that npm doesn't have it yet. It then publishes it to npm with provenance, and creates the GitHub release from `docs/releases/vX.Y.md` with the tarball attached. A manual run publishes only with `publish` set and only from a tag. A manual run without it, or a pull request changing the workflow, is a dry run. Publishing needs the `NPM_ACCESS_TOKEN` secret. CI no longer runs on tag pushes, since the release workflow runs it, and can be called and run by hand.
