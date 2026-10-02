@@ -40,7 +40,7 @@ port.update(next.tree);                    // as after draw
 ## What it does
 
 - **`draw(tree)`** realizes a render-v1 tree afresh inside `container`, replacing whatever was there. Use it for the first tree, and for any tree from a different program: keys aren't comparable across programs.
-- **`update(tree)`** brings the drawn tree to `tree`, from the same program, in place. Every key keeps its DOM node; only attributes and text that differ are written.
+- **`update(tree)`** brings the drawn tree to `tree`, from the same program, in place. Children are matched by key, never by position: every key present in both trees keeps its DOM node (moved if its order changed), a new key gets a new node, a key that is gone has its node disposed, and a key that leaves and later returns gets a fresh node. A key whose component changed is replaced. Only attributes and text that differ are written.
 - **`hydrate(tree)`** takes over server HTML in `container`, with nothing drawn. See [Server HTML and hydration](#server-html-and-hydration).
 - **`unmount()`** empties the container. Nothing is reported afterwards.
 - **`report(handler, payload?)`** is called at most once per interaction, for the one binding MESH's event resolution selects, with the drawn tree's handler identifier and the payload the event's realization builds. An event with no payload is reported without one.

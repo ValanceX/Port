@@ -473,7 +473,7 @@ A representative application can preserve its semantic and accessibility require
 
 # V0.5 — Update Model and Realization Lifecycle
 
-**Status:** Established for today's MPRX. A program's trees all have the same structure, so an *update* changes props and text only, and every key keeps its DOM node (tested, and in the slice). A different program is *drawn* afresh, never reconciled by key. Insertion, removal and reordering can't occur until MESH adds lists or conditionals (audit U5); the Web PORT already treats a key only in the new tree as new and one only in the old tree as gone, as MESH's guide asks.
+**Status:** Established for today's MPRX. A program's trees all have the same structure, so an *update* changes props and text only, and every key keeps its DOM node (tested, and in the slice). A different program is *drawn* afresh, never reconciled by key. Insertion, removal and reordering could not occur until MESH added lists and conditionals (audit U5; MESH 0.7's provisional `mesh-each` and `mesh-if`). Through 0.2.1 the Web PORT matched children by position and only checked the key, so they were not kept; from 0.2.2 `update` matches children by key, recursively, as the contract says.
 
 ## Objective
 
@@ -613,7 +613,7 @@ A real Valance route can produce HTML on the server without running a browser en
 Observations only, recorded while SSR was blocked. The design may discard any of these.
 
 
-- **Identity by structure.** Every tree of one program has the same structure (audit F4), so hydration can pair server DOM with the tree in document order, with no keys in the markup. That presumes the composer tells the client PORT the server's program. Program continuity stays the composer's, as for *update* ([CONTRACT.md](./CONTRACT.md#program-continuity)). A mismatch (a different element, or a missing node) is detected explicitly, never patched silently.
+- **Identity by structure.** Every tree of a static program has the same structure (audit F4; a program with MESH 0.7's conditional or repeated structure varies, and hydration is neither changed nor tested for it in 0.2.2), so hydration can pair server DOM with the tree in document order, with no keys in the markup. That presumes the composer tells the client PORT the server's program. Program continuity stays the composer's, as for *update* ([CONTRACT.md](./CONTRACT.md#program-continuity)). A mismatch (a different element, or a missing node) is detected explicitly, never patched silently.
 - **One model, not two.** Hydration adopts server nodes into exactly the drawn-node records `draw` builds, then behaves as `update`. SSR adds no second identity or update model.
 - **State crosses as the snapshot.** Dispatch needs a `Render` (NEXUS M1), and a `Render` can only be made by rendering. So the client renders the *serialized snapshot* the server rendered, gets the same tree, and adopts the server DOM for it. Who serializes the snapshot, the composer or NEXUS, is open (audit U8).
 

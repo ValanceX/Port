@@ -365,25 +365,38 @@ export const createWebPort = ({ container, primitives, report }: WebPortOptions)
       // DOM element, stay as they are when a binding changes.
       old.handlers = new Map(Object.entries(next.events));
 
-      // Within one program the structure never changes. If it does anyway, a
-      // key only in the new tree is new and a key only in the old one is gone.
-      const children: Drawn[] = [];
-
-      next.children.forEach((child, index) => {
-        const was = old.children[index];
+      // Children are matched by key, never by position (MESH §9.10): a key
+      // in both trees keeps its drawn part, which is patched in place and
+      // moved if its order changed; a key only in the new tree is created; a
+      // key only in the old one is disposed. Position carries no identity.
+      const previous = new Map(old.children.map((child) => [child.key, child] as const));
+      const children = next.children.map((child): Drawn => {
+        const was = previous.get(child.key);
 
         if (was === undefined) {
-          const created = create(child, old, plan);
-          old.dom.append(created.dom);
-          children.push(created);
-        } else {
-          children.push(patch(was, child, old, plan));
+          return create(child, old, plan);
         }
+
+        previous.delete(child.key);
+
+        return patch(was, child, old, plan);
       });
 
-      for (const gone of old.children.slice(next.children.length)) {
+      for (const gone of previous.values()) {
         dispose(gone);
         gone.dom.remove();
+      }
+
+      // Put the DOM in the new order, touching only what is out of place: a
+      // part already where it belongs is not detached, so it keeps its state.
+      let cursor: ChildNode | null = old.dom.firstChild;
+
+      for (const child of children) {
+        if (child.dom === cursor) {
+          cursor = cursor.nextSibling;
+        } else {
+          old.dom.insertBefore(child.dom, cursor);
+        }
       }
 
       old.children = children;
