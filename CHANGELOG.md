@@ -4,6 +4,10 @@ All notable changes to PORT are recorded here. The project follows [Semantic Ver
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-10-02
+
+A patch release: **`@valancex/port-web`'s API is unchanged**, and `update` now does what the contract has always said it does. See the [v0.2 release notes](./docs/releases/v0.2.md#v022).
+
 ### Fixed
 
 - **`update` matched children by position, not by key.** The contract says the target object for each key present in both trees is kept, but a child whose key differed from the one at its index was replaced and every later child with it, so an insertion before a node recreated that node and a reorder recreated all of them. Children are now matched by key, recursively: a key in both trees keeps its object (moved in the DOM only if out of place), a new key is created, a removed key is disposed, and a key that leaves and returns is a new object. No MESH, NEXUS or schema change; draw, hydrate and the static-program behavior are unchanged.
@@ -12,6 +16,17 @@ All notable changes to PORT are recorded here. The project follows [Semantic Ver
 
 - **Realization compatibility** in the contract: a realization is retained only when the key and the component are compatible; a key whose component changes is replaced. PORT's own safety rule, not a MESH identity rule.
 - **An integration tracer for MESH dynamic structure** (`integration/test/mesh-dynamic.test.ts`): real MESH output (the provisional `mesh-if` and `mesh-each`, from a MESH checkout's build, found at `MESH_CHECKOUT` or `../Mesh`; skipped without one) reconciled by PORT, asserting target-object identity for reorder, insert, remove, reappearance, conditional switching, and handlers. PORT's dependency on MESH 0.6.0 is unchanged.
+
+### Changed
+
+- **`@valancex/port-web`'s peer dependency on `@valancex/mesh-runtime` is `^0.6.0 || ^0.7.0`** (was `^0.6.0`, which excludes 0.7). The package only imports MESH's types; it still treats a render-v1 key as an opaque string and gains no dependency.
+
+### Compatibility
+
+- **API, entries and options:** unchanged from 0.2.1.
+- **Static programs:** identical behavior. Every tree of a static program has the same keys in the same order, so key matching and position matching agree.
+- **Programs whose structure varies** (MESH 0.7's provisional `mesh-if` and `mesh-each`): from 0.2.2 `update` keeps each key's DOM node across insertion, removal and reordering. Before it, an insertion recreated the nodes after it and a reorder recreated every moved node, and their state (focus, scroll, input) was lost.
+- **Hydration** is unchanged, and not tested with conditional or repeated structure.
 
 ## [0.2.1] - 2026-09-28
 
@@ -104,5 +119,6 @@ These are the documented semantics of v0.2, not defects:
 
 - **A release workflow**, `.github/workflows/release.yml`, as MESH's. A pushed `v*` tag runs all of CI on the tagged commit, packs `@valancex/port-web`, and checks that the tag is `v` + its version and that npm doesn't have it yet. It then publishes it to npm with provenance, and creates the GitHub release from `docs/releases/vX.Y.md` with the tarball attached. A manual run publishes only with `publish` set and only from a tag. A manual run without it, or a pull request changing the workflow, is a dry run. Publishing needs the `NPM_ACCESS_TOKEN` secret. CI no longer runs on tag pushes, since the release workflow runs it, and can be called and run by hand.
 
+[0.2.2]: https://github.com/ValanceX/Port/releases/tag/v0.2.2
 [0.2.1]: https://github.com/ValanceX/Port/releases/tag/v0.2.1
 [0.2.0]: https://github.com/ValanceX/Port/releases/tag/v0.2.0
