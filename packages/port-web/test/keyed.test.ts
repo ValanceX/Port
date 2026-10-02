@@ -245,8 +245,9 @@ describe("keyed reconciliation: the boundary", () => {
   });
 
   it("does not keep a realization across a change of component: the key matches, the object is replaced", () => {
-    // OBSERVATION, not a decision: the contract says the object for each key
-    // in both trees is kept, and is silent about a key whose component changed.
+    // Realization compatibility (docs/CONTRACT.md): a realization is retained
+    // only when the key and the component are compatible. PORT's own safety
+    // rule for malformed input, not a MESH identity rule.
     const { port, container } = setup();
     const as = (component: string) => tree(node(1, "page", {}, [node(2, component, {}, [text(3, "same")])]));
 
