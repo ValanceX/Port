@@ -2,6 +2,12 @@
 
 All notable changes to PORT are recorded here. The project follows [Semantic Versioning](https://semver.org). Until 1.0, minor versions may include breaking changes.
 
+## [Unreleased]
+
+### Fixed
+
+- **`update` matched children by position, not by key.** The contract says the target object for each key present in both trees is kept, but a child whose key differed from the one at its index was replaced and every later child with it, so an insertion before a node recreated that node and a reorder recreated all of them. Children are now matched by key, recursively: a key in both trees keeps its object (moved in the DOM only if out of place), a new key is created, a removed key is disposed, and a key that leaves and returns is a new object. No MESH, NEXUS or schema change; draw, hydrate and the static-program behavior are unchanged.
+
 ## [0.2.1] - 2026-09-28
 
 A patch release. `@valancex/port-web`'s source, API and behavior are unchanged from 0.2.0. Everything else is in the private integration workspace. See the [v0.2 release notes](./docs/releases/v0.2.md#v021).
