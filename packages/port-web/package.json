@@ -1,6 +1,6 @@
 {
   "name": "@valancex/port-web",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "Web PORT: realizes MESH render trees as DOM, and reports interactions as handler identifiers and payloads.",
   "type": "module",
   "license": "MIT",
