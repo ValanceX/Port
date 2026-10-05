@@ -41,6 +41,18 @@ describe("port-web's boundaries", () => {
     expect(Object.keys(manifest["peerDependencies"] ?? {})).toEqual(["@valancex/mesh-runtime"]);
   });
 
+  it("the peer range names every MESH 0.x line from the minimum, since a 0.x caret admits one minor only", () => {
+    const range = (manifest["peerDependencies"] as Record<string, string>)["@valancex/mesh-runtime"]!;
+    const minors = range.split(" || ").map((alternative) => {
+      expect(alternative).toMatch(/^\^0\.\d+\.0$/);
+
+      return Number(alternative.split(".")[1]);
+    });
+
+    // 0.6 is the minimum supported; each later line PORT was run against is listed, with no gap (0.6 through 0.9).
+    expect(minors).toEqual([6, 7, 8, 9]);
+  });
+
   it("uses no browser globals: every DOM object comes from the container's document", () => {
     for (const [file, source] of sources) {
       expect({ file, globals: codeOf(source).match(/\b(window|document|globalThis|navigator|self|AbortController)\b/g) ?? [] }).toEqual({ file, globals: [] });

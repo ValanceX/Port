@@ -4,6 +4,19 @@ All notable changes to PORT are recorded here. The project follows [Semantic Ver
 
 ## [Unreleased]
 
+## [0.2.4] - 2026-10-05
+
+A compatibility release: **`@valancex/port-web`'s source, API and behavior are unchanged.** See the [v0.2 release notes](./docs/releases/v0.2.md#v024).
+
+### Changed
+
+- **`@valancex/port-web`'s peer dependency on `@valancex/mesh-runtime` is `^0.6.0 || ^0.7.0 || ^0.8.0 || ^0.9.0`** (was `^0.6.0 || ^0.7.0 || ^0.8.0`, which excludes 0.9). Source, API and behavior are unchanged: the package only imports MESH's types and treats a render-v1 key as opaque, and MESH 0.9 adds only the compiler's `compileProgram` and changes neither `render-v1` nor `template-v1`. The package's 258 tests, typecheck and build pass against the 0.9.0 runtime and compiler, and `integration/test/mesh-dynamic.test.ts` passes (13 tests) against a MESH 0.9.0 build. Without the new range a project on MESH 0.9 gets an unmet-peer warning (an error under npm).
+
+### Compatibility
+
+- **API, entries and options:** unchanged from 0.2.3.
+- **MESH:** 0.6, 0.7, 0.8 and 0.9. The minimum supported version is unchanged.
+
 ## [0.2.3] - 2026-10-04
 
 A compatibility release: **`@valancex/port-web`'s source, API and behavior are unchanged.** See the [v0.2 release notes](./docs/releases/v0.2.md#v023).
@@ -133,6 +146,7 @@ These are the documented semantics of v0.2, not defects:
 
 - **A release workflow**, `.github/workflows/release.yml`, as MESH's. A pushed `v*` tag runs all of CI on the tagged commit, packs `@valancex/port-web`, and checks that the tag is `v` + its version and that npm doesn't have it yet. It then publishes it to npm with provenance, and creates the GitHub release from `docs/releases/vX.Y.md` with the tarball attached. A manual run publishes only with `publish` set and only from a tag. A manual run without it, or a pull request changing the workflow, is a dry run. Publishing needs the `NPM_ACCESS_TOKEN` secret. CI no longer runs on tag pushes, since the release workflow runs it, and can be called and run by hand.
 
+[0.2.4]: https://github.com/ValanceX/Port/releases/tag/v0.2.4
 [0.2.3]: https://github.com/ValanceX/Port/releases/tag/v0.2.3
 [0.2.2]: https://github.com/ValanceX/Port/releases/tag/v0.2.2
 [0.2.1]: https://github.com/ValanceX/Port/releases/tag/v0.2.1
