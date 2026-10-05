@@ -55,6 +55,7 @@ const attributesOf = (node: RenderNode, primitives: WebPrimitives, plan: Plan): 
 
       switch (realization.kind) {
         case "attribute":
+        case "controlled":
           if ("text" in output) {
             attributes.push([realization.name, output.text]);
           }

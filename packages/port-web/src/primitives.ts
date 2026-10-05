@@ -39,6 +39,13 @@ export interface WebPrimitive {
  * - `attribute`: an HTML content attribute. Absent removes it.
  * - `text-property`: a `DOMString` DOM property, such as an input's
  *   `value`. Absent leaves it at the element's own initial value.
+ * - `controlled`: a text slot that is BOTH a content attribute and the
+ *   same-named DOM property, for a field the user can edit (an input's
+ *   `value`). It is serialized, verified and hydrated as the attribute, so
+ *   it has an HTML form; and after every `draw`, `update` and `hydrate` the
+ *   DOM property is made equal to the rendered text, whatever the user did
+ *   to the field since and whether or not the rendered text changed. See
+ *   `controlled`.
  *
  * Native slots. The value must be of the slot's kind; any other is refused.
  * - `boolean-attribute`: an HTML boolean attribute, a boolean by presence.
@@ -54,6 +61,7 @@ export interface WebPrimitive {
 export type PropRealization =
   | { readonly kind: "attribute"; readonly name: string }
   | { readonly kind: "text-property"; readonly name: string }
+  | { readonly kind: "controlled"; readonly name: string }
   | { readonly kind: "boolean-attribute"; readonly name: string }
   | { readonly kind: "property"; readonly name: string; readonly holds: PropertyKind };
 
@@ -82,6 +90,17 @@ export const attribute = (name: string): PropRealization => ({ kind: "attribute"
 
 /** A `DOMString` property: a text-only slot. `{ kind: "text-property", name }`. */
 export const textProperty = (name: string): PropRealization => ({ kind: "text-property", name });
+
+/**
+ * A text slot the user can change, realized as the content attribute `name` and as the DOM property `name` (an input's `value`). `{ kind: "controlled", name }`.
+ *
+ * The contract, for the node that has it: after each `draw`, `update` and `hydrate`, the property holds the rendered text (or the element's own initial value, when the
+ * prop is absent). The property is written only when it differs from that, so a field that already agrees is not touched, and a focused field keeps its selection
+ * (clamped to the new length). The PORT writes nothing between presentations: it cannot know whether the application has accepted an edit, so an edit the application
+ * declines, by committing nothing, stays in the field until the next presentation reasserts the application's value. Text the user typed before `hydrate` is replaced by
+ * the rendered text, which is the application's.
+ */
+export const controlled = (name: string): PropRealization => ({ kind: "controlled", name });
 
 /** A boolean attribute, realized natively by presence. `{ kind: "boolean-attribute", name }`. */
 export const booleanAttribute = (name: string): PropRealization => ({ kind: "boolean-attribute", name });

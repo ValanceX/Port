@@ -55,7 +55,7 @@ const isRealization = (entry: unknown): entry is PropRealization => {
   const { kind, name, holds } = entry as { readonly kind?: unknown; readonly name?: unknown; readonly holds?: unknown };
 
   return typeof name === "string"
-    && (kind === "attribute" || kind === "text-property" || kind === "boolean-attribute" || (kind === "property" && (holds === "boolean" || holds === "number" || holds === "value")));
+    && (kind === "attribute" || kind === "text-property" || kind === "controlled" || kind === "boolean-attribute" || (kind === "property" && (holds === "boolean" || holds === "number" || holds === "value")));
 };
 
 /**

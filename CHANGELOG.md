@@ -4,6 +4,10 @@ All notable changes to PORT are recorded here. The project follows [Semantic Ver
 
 ## [Unreleased]
 
+### Added
+
+- **`controlled(name)`**, a text-slot realization for a field the user edits (an input's `value`): the content attribute **and** the same-named DOM property. It has an HTML form (it serializes, verifies and hydrates as `attribute`), and after every `draw`, `update` and `hydrate` the DOM property equals the rendered text, written only when it differs and keeping a focused field's selection. Until now the only server-renderable form of `value`, `attribute`, stopped affecting a field once the user had typed in it, and `textProperty` could not be server-rendered and was diffed against the previous render rather than the DOM, so an application that reset or declined an edit could leave the field showing text its state did not hold. The edit an application declines by committing nothing is reasserted by the next presentation, not before (documented and tested). Additive: `attribute`, `textProperty` and every existing table behave as before.
+
 ## [0.2.4] - 2026-10-05
 
 A compatibility release: **`@valancex/port-web`'s source, API and behavior are unchanged.** See the [v0.2 release notes](./docs/releases/v0.2.md#v024).

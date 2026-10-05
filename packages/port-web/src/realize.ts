@@ -44,6 +44,7 @@ export const realizeProp = (node: RenderNode, name: string, realization: PropRea
 
   switch (realization.kind) {
     case "attribute":
+    case "controlled":
     case "text-property": {
       if (typeof value === "string") {
         return { text: value };
