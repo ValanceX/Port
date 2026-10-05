@@ -4,6 +4,10 @@ All notable changes to PORT are recorded here. The project follows [Semantic Ver
 
 ## [Unreleased]
 
+### Changed
+
+- **`@valancex/port-web`'s peer dependency on `@valancex/mesh-runtime` is `^0.6.0 || ^0.7.0 || ^0.8.0 || ^0.9.0`** (was `^0.6.0 || ^0.7.0 || ^0.8.0`, which excludes 0.9). Source, API and behavior are unchanged: the package only imports MESH's types and treats a render-v1 key as opaque, and MESH 0.9 adds only the compiler's `compileProgram` and changes neither `render-v1` nor `template-v1`. The package's 258 tests, typecheck and build pass against the 0.9.0 runtime and compiler, and `integration/test/mesh-dynamic.test.ts` passes (13 tests) against a MESH 0.9.0 build. Without the new range a project on MESH 0.9 gets an unmet-peer warning (an error under npm).
+
 ## [0.2.3] - 2026-10-04
 
 A compatibility release: **`@valancex/port-web`'s source, API and behavior are unchanged.** See the [v0.2 release notes](./docs/releases/v0.2.md#v023).
