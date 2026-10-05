@@ -63,6 +63,7 @@ A DOM attribute and a DOM property are different slots. An attribute holds only 
 |---|---|---|
 | `attribute(name)` | content attribute: **text only** | a string as given; a number, boolean or `null` as the node's `propText` (MESH's text); absent removes it |
 | `textProperty(name)` | `DOMString` property, such as `value`: **text only** | as `attribute`; absent leaves the element's own initial value |
+| `controlled(name)` | content attribute **and** the same-named DOM property, for a field the user edits (an input's `value`): **text only** | as `attribute`, serialized and hydrated as the attribute; and after every `draw`, `update` and `hydrate` the property is made equal to the rendered text (absent: the element's own initial value). See [Controlled fields](#controlled-fields) |
 | `booleanAttribute(name)` | boolean attribute: **native**, by presence | `true` sets it, `false` or absent removes it |
 | `property(name, "boolean")` | IDL `boolean` property: **native** | a boolean |
 | `property(name, "number")` | IDL `double` property: **native** | the number itself (never a `long` or `float` property, which would truncate or round) |
@@ -105,13 +106,22 @@ A component with no realization isn't refused. It's drawn as a `<valance-unknown
 
 The design is the [PORT Web SSR design](../../docs/superpowers/specs/2026-09-28-port-web-ssr.md). `hydrate` is Web-specific, not a PORT contract operation.
 
+### Controlled fields
+
+`textProperty` is live but has no HTML form, and `attribute` has one but stops affecting a field once the user has typed in it (the DOM's dirty-value rule). `controlled` is both, and states what a presentation guarantees:
+
+- **After every `draw`, `update` and `hydrate`, the DOM property equals the rendered text** (or the element's own initial value, when the prop is absent), whatever the user did to the field since, and whether or not the rendered text changed. The property is written **only when it differs**, so a field that already agrees is untouched, and a **focused field keeps its selection** (clamped to the new length; assigning a property otherwise moves the caret to the end).
+- **Nothing is written between presentations.** The PORT cannot know whether the application accepted an edit, and writing the old value back immediately would erase what the user is typing while the application is still deciding. So an edit the application declines by committing nothing stays in the field **until the next presentation**, which reasserts the application's value. A composer that wants the field corrected sooner must present again.
+- Text typed before `hydrate` is replaced by the rendered text: the application's value is authoritative.
+- It applies where the attribute and the property share a name (`value`). It is not for `checked`, `selected` or a `<textarea>`'s content.
+
 **One pipeline.** `realizeHtml` validates the table, checks the tree and realizes every prop exactly as `draw` does (`check.ts`, `realize.ts`), then writes the outputs as HTML. It formats nothing. Escaping is `&` → `&amp;`, `<` → `&lt;`, `>` → `&gt;`, `"` → `&quot;` in attributes, and CR → `&#13;` (a literal CR would parse as LF). Everything else stays literal, C1 characters included, since a reference to one parses as another character. Attributes are written in name order, so a tree has exactly one HTML. A refusal throws, with no output.
 
 **What the server writes.** Server HTML supports:
 
 | Realization | Server HTML |
 |---|---|
-| `attribute` | the string, or MESH's `propText`, escaped; absent: nothing |
+| `attribute`, `controlled` | the string, or MESH's `propText`, escaped; absent: nothing |
 | `booleanAttribute` | the attribute present for `true`; nothing for `false` or absent |
 | `property`, `textProperty`: absent | nothing (omission on both sides) |
 | `property`, `textProperty`: present | **refused**, `unserializable-prop`: a DOM property isn't HTML, and a browser reflecting one to an attribute doesn't make it one. Realize the prop as an attribute to have it in server HTML |

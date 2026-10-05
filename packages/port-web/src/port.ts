@@ -137,11 +137,15 @@ const slots = (element: Element): Record<string, unknown> => element as unknown 
 
 const isPropertyClass = (realization: PropRealization): boolean => realization.kind === "property" || realization.kind === "text-property";
 
+/** The slots whose DOM property slot has an initial value to restore: the property class, and a controlled slot (which is an attribute and a property). */
+const hasPropertySlot = (realization: PropRealization): boolean => isPropertyClass(realization) || realization.kind === "controlled";
+
 const writeProp = (node: DrawnNode, realization: PropRealization, output: Output): void => {
   const element = node.dom;
 
   switch (realization.kind) {
     case "attribute":
+    case "controlled":
       if ("text" in output) {
         element.setAttribute(realization.name, output.text);
       } else {
@@ -160,6 +164,46 @@ const writeProp = (node: DrawnNode, realization: PropRealization, output: Output
     case "text-property":
     case "property":
       slots(element)[realization.name] = "text" in output ? output.text : "native" in output ? output.native : node.initial.get(realization.name);
+  }
+};
+
+/**
+ * A controlled slot's contract: the DOM property holds the rendered text (or the element's initial value when absent). Written only when it differs, so a field
+ * that agrees is untouched; a focused field keeps its selection, clamped to the new length, because assigning a property moves the caret to the end.
+ */
+const reassert = (node: DrawnNode): void => {
+  if (node.primitive === undefined) {
+    return;
+  }
+
+  for (const [name, output] of node.outputs) {
+    const realization = own(node.primitive.props, name);
+
+    if (realization?.kind !== "controlled") {
+      continue;
+    }
+
+    const slot = slots(node.dom);
+    const want = "text" in output ? output.text : (node.initial.get(realization.name) as string | undefined) ?? "";
+
+    if (slot[realization.name] === want) {
+      continue;
+    }
+
+    const field = node.dom as Element & { selectionStart?: number | null; selectionEnd?: number | null; setSelectionRange?: (start: number, end: number) => void };
+    const focused = node.dom.ownerDocument.activeElement === node.dom;
+    let start: number | null = null;
+    let end: number | null = null;
+
+    if (focused) {
+      try { start = field.selectionStart ?? null; end = field.selectionEnd ?? null; } catch { /* a field with no selection (a number input) */ }
+    }
+
+    slot[realization.name] = want;
+
+    if (focused && start !== null && end !== null && typeof field.setSelectionRange === "function") {
+      try { field.setSelectionRange(Math.min(start, want.length), Math.min(end, want.length)); } catch { /* as above */ }
+    }
   }
 };
 
@@ -201,7 +245,7 @@ const expectedAttributes = (node: RenderNode, primitive: WebPrimitive | undefine
   for (const [name, output] of plan.get(node.key) ?? []) {
     const realization = own(primitive.props, name)!;
 
-    if (realization.kind === "attribute" && "text" in output) {
+    if ((realization.kind === "attribute" || realization.kind === "controlled") && "text" in output) {
       expected.push([realization.name, output.text, "attribute"]);
     } else if (realization.kind === "boolean-attribute" && "native" in output && output.native === true) {
       expected.push([realization.name, "", "boolean-attribute"]);
@@ -319,7 +363,7 @@ export const createWebPort = ({ container, primitives, report }: WebPortOptions)
     } else {
       // The element is fresh, so its property slots hold their initial values.
       for (const realization of Object.values(primitive.props ?? {})) {
-        if (isPropertyClass(realization)) {
+        if (hasPropertySlot(realization)) {
           node.initial.set(realization.name, slots(node.dom)[realization.name]);
         }
       }
@@ -327,6 +371,8 @@ export const createWebPort = ({ container, primitives, report }: WebPortOptions)
       for (const [name, output] of node.outputs) {
         writeProp(node, own(primitive.props, name)!, output);
       }
+
+      reassert(node);
     }
 
     nodeOf.set(node.dom, node);
@@ -361,6 +407,7 @@ export const createWebPort = ({ container, primitives, report }: WebPortOptions)
       }
 
       old.outputs = outputs;
+      reassert(old);   // every presentation, changed or not: a controlled field shows what was rendered
       // Bindings are read when an interaction resolves, so the node, and its
       // DOM element, stay as they are when a binding changes.
       old.handlers = new Map(Object.entries(next.events));
@@ -509,7 +556,7 @@ export const createWebPort = ({ container, primitives, report }: WebPortOptions)
       // The initial value is a fresh element's, never the adopted element's,
       // whose state the server's markup or the user may have changed.
       for (const realization of Object.values(primitive.props ?? {})) {
-        if (isPropertyClass(realization)) {
+        if (hasPropertySlot(realization)) {
           node.initial.set(realization.name, slots(probe(primitive.element))[realization.name]);
         }
       }
@@ -530,6 +577,8 @@ export const createWebPort = ({ container, primitives, report }: WebPortOptions)
         }
       }
     }
+
+    reassert(node);   // text typed before hydration is replaced by what was rendered: the application's value
 
     adopted.push(node);
 
