@@ -18,7 +18,7 @@ MPRX ─▶ MESH compiler ─▶ template-v1 ─▶ MESH runtime ─▶ render-v
                                                   │ Render
                                                   ▼
                                                composer ── keeps the drawn Render
-                                                  │ draw(tree) / update(tree) / unmount()
+                                                  │ draw(tree) / update(tree) / patch(patches) / unmount()
                                                   ▼
                                                PORT ─▶ target (DOM)
                                                   │ report(handler, payload?)
@@ -29,7 +29,7 @@ MPRX ─▶ MESH compiler ─▶ template-v1 ─▶ MESH runtime ─▶ render-v
 - **In:** a MESH render tree ([render-v1](https://github.com/ValanceX/Mesh/blob/main/schemas/render-v1.schema.json)), and whether it comes from the same program as the drawn one (*update*) or not (*draw* afresh). That fact, **program continuity**, is the composer's: PORT never infers it from the tree.
 - **Out:** the drawn tree's handler identifier for an event, and its payload.
 
-That's the whole [PORT contract](./docs/CONTRACT.md). It is language-neutral: render-v1 is a JSON Schema MESH implements in Rust and JavaScript, and the operations are three verbs and a report. Each PORT binds them in whatever language suits its target.
+That's the whole [PORT contract](./docs/CONTRACT.md). It is language-neutral: render-v1 is a JSON Schema MESH implements in Rust and JavaScript, and the operations are three verbs (plus `patch`, below) and a report. Each PORT binds them in whatever language suits its target.
 
 ## Packages
 
@@ -55,6 +55,8 @@ There is deliberately **no shared `@valancex/port` package** and no Canvas place
 **v0.3.0 (released 2026-10-05): Web realization on MESH v0.6 to v0.9, with server rendering and controlled fields.** v0.3 adds `controlled(name)`, a text-slot realization for a field the user edits (see the [v0.3 release notes](./docs/releases/v0.3.md)); VALANCE's `Web.textField` is built on it. The sections below describe the v0.2 base it extends. See the [changelog](./CHANGELOG.md) for what v0.2 guarantees, what it doesn't support, and its known limitations. `@valancex/port-web` draws, updates in place, realizes each prop natively or as MESH's text (`propText`), and resolves each interaction to at most one binding, as MESH v0.6 specifies. The vertical slice runs end to end against `@valancex/mesh-compiler` 0.6, `@valancex/mesh-runtime` 0.6 and `@valancex/nexus` 0.9 (the declared peer range is MESH runtime 0.6 to 0.9; VALANCE 0.5 runs on PORT Web 0.3.0 with MESH 0.9 and NEXUS 0.10.3), in jsdom and, since v0.2.1, in real Chromium with a NEXUS platform and one capability. The Web PORT passes MESH's conformance vectors.
 
 The two semantic questions PORT handed MESH ([handoff](./docs/architecture/2026-09-27-mesh-semantic-handoff.md)) are settled by MESH v0.6: prop text and realization (spec §9.7.7, §9.8.7; the Web PORT's [value realization](./docs/architecture/2026-09-28-web-value-realization.md)) and event resolution (spec §9.9). The Web PORT also renders on a server, for a first, deliberately narrow subset: `@valancex/port-web/server` realizes a tree as HTML with no DOM, and the Web PORT's own `hydrate` takes it over in the browser, verified in full before anything is adopted. Neither is a PORT contract operation ([design](./docs/superpowers/specs/2026-09-28-port-web-ssr.md)).
+
+**Unreleased: `patch(patches)`.** When MESH's `update` is used instead of rendering again, the composer gives PORT the `render-patch-v1` list it returns, and the Web PORT applies it in place: `setProp`, `removeProp` and `setText` change a kept part; `insert`, `remove` and `move` add, take away and reorder parts by key (a moved part keeps its DOM node); `replace` is a draw. The whole list is checked before the DOM is touched, each operation against the effect of the ones before it; an operation it doesn't know is refused, never skipped; and the result is what `update` of the full new tree gives (tested against hand-written lists, and end to end against the real MESH runtime's patches over thousands of random updates). It needs a MESH that has `update`, which is not yet released, so it has no released MESH peer range yet. See the [CONTRACT](./docs/CONTRACT.md#patch) and the [patch design](./docs/superpowers/specs/2026-10-06-port-web-patch-application.md).
 
 Not yet: accessibility and styling beyond a realization table's choices. See the [roadmap](./docs/ROADMAP.md).
 

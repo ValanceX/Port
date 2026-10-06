@@ -58,7 +58,7 @@ MPRX has no loops and no conditional elements (runtime manual, "The render tree"
 
 ### F5. Updates are whole trees
 
-"A change of values is a new render" (runtime manual, "Updates"). The runtime does no dependency tracking and no diffing: "Finding what changed is the renderer's job."
+"A change of values is a new render" (runtime manual, "Updates"). The runtime does no dependency tracking and no diffing: "Finding what changed is the renderer's job." *(Superseded for hosts that ask, 2026-10-06: MESH's `update` now returns the patches, and the Web PORT's `patch` applies them; the audit's findings below are as they were.)*
 
 ### F6. The component vocabulary is per application
 

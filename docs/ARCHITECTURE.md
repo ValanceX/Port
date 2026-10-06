@@ -84,7 +84,7 @@ Established from MESH v0.5 and NEXUS v0.8 in the [integration audit](./architect
 
 - **NEXUS → PORT is not a dependency.** NEXUS's `Mesh.host` renders MESH programs into `Render`s. A **composer** (the application, or later tooling) gives PORT each `render.tree`, says whether it comes from the program already drawn, and keeps the `Render` whose tree is drawn. NEXUS and PORT never import each other (NEXUS §16, MESH rule 13).
 - **Program continuity is the composer's.** *draw* means "a different program", *update* "the same program". PORT never works this out from keys, handler identifiers, shape or anything else in a tree ([CONTRACT.md](./CONTRACT.md#program-continuity)).
-- **In:** render-v1, owned by MESH. PORT doesn't redefine or wrap it. There is no "MESH IR" to consume: MESH's IR is internal to its compiler.
+- **In:** render-v1, owned by MESH. PORT doesn't redefine or wrap it. A PORT may also take MESH's `render-patch-v1` patch lists, the changes between two trees of one program, instead of a whole new tree ([CONTRACT.md](./CONTRACT.md#patch)). There is no "MESH IR" to consume: MESH's IR is internal to its compiler.
 - **Out:** `report(handler, payload?)`. The composer dispatches it through NEXUS with the drawn `Render`. PORT never sees an intent or a command, and target events never leave PORT.
 - **PORT → target** is PORT's own business.
 - **The application's primitives** are declared in its MESH manifest; there is no Valance-wide primitive set. What each becomes on a target is configuration of that target's PORT (for Web, a realization table).

@@ -1,14 +1,14 @@
 # PORT Web: applying render patches (design)
 
-Status: **proposal for review** (2026-10-06). Nothing here is implemented. Companion: MESH's [fine-grained reactivity and composition design](https://github.com/ValanceX/Mesh/blob/main/docs/superpowers/specs/2026-10-06-mesh-fine-grained-reactivity-and-composition.md), which defines `render-patch-v1` and the equivalence law.
+Status: **built** (2026-10-06): `patch` with all its operations, the Web Components recipe's tests, the error behavior, and the devtools hooks `inspect(key)` and the touched keys `patch` returns are in `@valancex/port-web` (unreleased, with MESH's `update`), tested in jsdom and end to end against the real MESH runtime's patches. Replaying a session log and the Chromium version of the one-DOM-node test are not built. Companion: MESH's [fine-grained reactivity and composition design](https://github.com/ValanceX/Mesh/blob/main/docs/superpowers/specs/2026-10-06-mesh-fine-grained-reactivity-and-composition.md), which defines `render-patch-v1` and the equivalence law.
 
 ## What changes for PORT
 
-Today the composer gives PORT a whole tree on every state change and `update(tree)` reconciles it by key. MESH will additionally offer `update(render, snapshot)`, returning a **patch list** against the drawn tree. PORT gets one new verb:
+Today the composer gives PORT a whole tree on every state change and `update(tree)` reconciles it by key. MESH additionally offers `update(render, snapshot)`, returning a **patch list** against the drawn tree. PORT gets one new verb:
 
 | Operation | Meaning |
 |---|---|
-| **patch(patches)** | Apply `render-patch-v1` operations, in order, to the drawn tree's realization. The composer asserts the patches were produced from the render whose tree is drawn. |
+| **patch(patches)** | Apply `render-patch-v1` operations (`setProp`, `removeProp`, `setText`, `insert`, `remove`, `move`, or a `replace`), in order, to the drawn tree's realization. The composer asserts the patches were produced from the render whose tree is drawn. |
 
 `draw`, `update`, `unmount` and Web's `hydrate` keep their meanings. `update(tree)` remains valid and is the fallback: a composer that doesn't use patches loses nothing. This is an addition to contract version 1, not a break (the contract already allows a PORT to add operations that keep the others' meanings).
 
@@ -18,8 +18,8 @@ Today the composer gives PORT a whole tree on every state change and `update(tre
 2. **Keys only.** Patches name nodes by key. PORT compares keys for equality and parses nothing (obligation 5). It still never infers program continuity; the composer asserts it.
 3. **Identity is kept.** `setProp`, `removeProp`, `setText` and `move` never replace the target object. `remove` disposes it; a key that later returns is a new object (MESH §9.10).
 4. **Values are realized as before.** A `setProp` value goes through the same value realization table (spec §9.8.7): natively, or as the `propText` the patch carries. PORT converts nothing. A value with no conforming slot is a realization error.
-5. **Atomic validation.** The whole patch list is validated against the drawn tree and the primitives table (unknown key, unknown prop, unrealizable value) *before* any target mutation. A refused list changes nothing, matching the existing "an error refuses the tree before the target is touched" rule.
-6. **`replace` is `draw`.** A `replace` op means the composer must treat the following tree as a draw: nothing is reused. (The composer asked for patches on the premise of program continuity, so a MESH that emits `replace` is signalling that it could not patch; PORT still never infers anything from it.)
+5. **Atomic validation.** The whole patch list is validated against the drawn tree and the primitives table (unknown key, unknown prop, unrealizable value, a part inserted twice, an operation on the root) *before* any target mutation, each operation against the tree as the ones before it leave it: a later operation may name a part an earlier one inserted, or find one it removed gone. The Web PORT keeps a shadow of only the parts a list touches, made from what is drawn when an operation first needs it. A refused list changes nothing, matching the existing "an error refuses the tree before the target is touched" rule.
+6. **`replace` is `draw`.** A `replace` carries a whole tree, is the only operation of its list, and is a draw of that tree: nothing is reused. (The composer asked for patches on the premise of program continuity, so a MESH that emits `replace` is signalling that it could not patch; PORT still never infers anything from it.)
 7. **Events.** Handler identifiers stay stable across patches, so existing listeners remain correct. An `insert` installs listeners exactly as `draw` does for those nodes. Event resolution (§9.9) is unchanged.
 8. **Hydration.** A hydrated tree is as after `draw`, so `patch` is valid after `hydrate` exactly as `update` is.
 
@@ -55,13 +55,13 @@ PORT keeps no history; it only realizes. It helps devtools in two ways: (1) it e
 
 ## Milestones (PORT's side of MESH's M1 and M2)
 
-1. **M1:** `patch` for `setProp`, `removeProp`, `setText`; validation-before-mutation; unit tests in jsdom; the equivalence test against `update`; a Chromium test that a one-field change mutates exactly one DOM node (observed with a `MutationObserver`).
-2. **M2:** `insert`, `remove`, `move`; reuse of node objects across `move`; keyed-reorder test.
-3. **Web Components (can ship with M1):** documented table recipe, jsdom and Chromium tests as above.
-4. **Error handling (with M1):** `patch-failed` and validation-before-mutation tests, including a throwing property setter.
-5. **Devtools hooks (with M2):** `inspect(key)` and touched-keys return value.
-6. Bump `@valancex/mesh-runtime` peer range in lockstep with MESH's release, and cover the new schema in the integration slice.
+1. **M1 (built):** `patch` for `setProp`, `removeProp`, `setText`; validation-before-mutation; unit tests in jsdom; the equivalence test against `update`; a Chromium test that a one-field change mutates exactly one DOM node (observed with a `MutationObserver`).
+2. **M2 (built):** `insert`, `remove`, `move`; reuse of node objects across `move`; keyed-reorder test.
+3. **Web Components (built):** the table recipe above, with jsdom tests using a real autonomous custom element (properties written before connection, the same element across update and patch, one report per event, the server's refusal). The Chromium test is not built.
+4. **Error handling (built):** `patch-failed` and validation-before-mutation tests, including a throwing property setter.
+5. **Devtools hooks (built):** `inspect(key)` and touched-keys return value.
+6. **Not yet (needs MESH's release):** bump the `@valancex/mesh-runtime` peer range in lockstep, and move the end-to-end check, which runs today as a script against the unreleased MESH packages, into the integration slice that runs against published ones.
 
-## Documentation to change when this lands
+## Documentation that changed with it
 
-`docs/CONTRACT.md` (new operation, and the "Not in version 1" list stays as is until M2 settles lists and conditionals), the Web value realization note, `docs/ROADMAP.md`, the README status and the changelog.
+`docs/CONTRACT.md` (the `patch` section and table row; the "Not in version 1" list no longer says lists and conditionals are absent, since PORT realizes whatever keys a tree has), `docs/ARCHITECTURE.md`, `docs/ROADMAP.md` (two status lines), the audit's superseded note, the README status, the package README and the changelog. The Web value realization note needed no change: `patch` realizes values by the same table.

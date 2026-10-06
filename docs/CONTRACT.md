@@ -13,7 +13,7 @@ It is **not** an API. Each PORT binds these operations to its own language and t
  (render, h, p)│ ▼
             composer  ── keeps the Render whose tree is drawn
               ▲ │
-report (h, p) │ │ draw(tree) / update(tree) / unmount()
+report (h, p) │ │ draw(tree) / update(tree) / patch(patches) / unmount()
               │ ▼
              PORT  ── realizes on ──▶ target
 ```
@@ -38,9 +38,9 @@ A PORT:
 | **update(tree)** | The composer asserts that `tree` comes from the **same program** as the drawn tree. Realize its changes in place: the target object for each key present in both trees is kept. | Every later tree the composer knows comes from the same program. |
 | **unmount()** | Remove the realization. Nothing is reported after it. | When the UI goes away. |
 
-| **patch(patches)** | *Proposed, not yet in version 1.* The composer asserts the MESH `render-patch-v1` list was made from the render whose tree is drawn. Realize its operations in place; the result is exactly what *update* of the full new tree gives. | Instead of *update*, when the composer's MESH has `update` and the program is the same. |
+| **patch(patches)** | *An addition to version 1 that keeps the others' meanings.* The composer asserts the MESH `render-patch-v1` list was made from the render whose tree is drawn. Realize its operations in place; the result is exactly what *update* of the full new tree gives. See [patch](#patch). | Instead of *update*, when the composer's MESH has `update` and the program is the same. |
 
-The first three are every PORT's; `patch` is proposed (MESH's `update` is new, unreleased). A PORT may add operations for its own target that keep their meanings. The Web PORT adds one, **hydrate**, which isn't part of this contract (see [Web: server HTML and hydrate](#web-server-html-and-hydrate)).
+The first three are every PORT's. `patch` is optional: a PORT without it loses nothing, since *update* of the full tree is always valid, and it needs a MESH that has `update` (new, unreleased). A PORT may add operations for its own target that keep their meanings. The Web PORT adds one, **hydrate**, which isn't part of this contract (see [Web: server HTML and hydrate](#web-server-html-and-hydrate)).
 
 ### Program continuity
 
@@ -52,6 +52,27 @@ The first three are every PORT's; `patch` is proposed (MESH's `update` is new, u
 - **PORT infers nothing** from keys, handler identifiers, tree shape, component names, payloads or any other property of render-v1. A *draw* reuses nothing, even when every key matches the drawn tree. An *update* reconciles by key, even when the tree looks nothing like the drawn one.
 - **An update whose structure differs** doesn't make PORT decide that the program changed. PORT stays at the key level: a key only in the new tree is new, a key only in the old one is gone, as MESH's guide says. Matching is by key and nothing else, never by child index: reordering, inserting before and removing others keep each remaining key's target object, and a key that leaves and later returns is a new object (MESH §9.10). **Realization compatibility:** a target realization is retained only when the opaque key *and* the component are compatible; a key whose component changes is replaced (the old object disposed, a new one created). This is PORT's own safety rule for a target object that can't be a different component's, not a statement about MESH identity: MESH's identity already includes the component, so a valid MESH render doesn't give one identity two components, and PORT neither knows nor checks that.
 - **Consequence of a wrong signal:** an *update* given a different program's tree is reconciled by key, which is meaningless across programs. That is the composer's error, and PORT can't detect it.
+
+## patch
+
+MESH's `update` returns a **patch list** (`render-patch-v1`, [`render-patch-v1.schema.json`](https://github.com/ValanceX/Mesh/blob/main/schemas/render-patch-v1.schema.json)): the operations that turn the previous tree into the next, which a PORT that has *patch* applies in place instead of reconciling a whole tree. Like render-v1 it is MESH's, and PORT neither redefines nor extends it.
+
+| Operation | Meaning |
+|---|---|
+| `setProp(key, prop, value, propText?)` | The prop now has this value (and this MESH text). Realized exactly as a prop of a tree is (obligation 1). |
+| `removeProp(key, prop)` | The prop is now absent. |
+| `setText(key, text)` | A text run's new text. |
+| `insert(parent, before?, node)` | A node (with its whole subtree) or text run is new under `parent`, before its child `before`, or last. |
+| `remove(key)` | The part and everything under it is gone. |
+| `move(key, before?)` | The same part, kept, now stands before its sibling `before`, or last. |
+| `replace(tree)` | A *draw* of `tree`. It is the only operation of its list. |
+
+- **The law.** After *patch(p)* the realization is equivalent to *update(tree′)*, where `tree′` is what `p` makes of the drawn tree. This is the PORT's conformance test: apply the list, and compare with a full *update*.
+- **Keys only, and by key.** Operations name parts by key, compared for equality and never parsed (obligation 5), and parts are matched by key, never by position. The composer asserts program continuity, as for *update*; PORT infers nothing from a list, a `replace` included.
+- **Identity is kept.** `setProp`, `removeProp`, `setText` and `move` never replace the target object, so a moved part keeps its realization and its state. `remove` disposes the part, and a key that returns is a new part (MESH §9.10). A part `insert`ed is realized exactly as a part of a drawn tree, listeners and all.
+- **The list is read in order, and checked in full first.** Each operation is checked against the tree as the operations before it leave it (a later one may name a part an earlier one inserted, or no longer find one it removed), and every operation is checked before the target is touched. A list that can't be realized changes nothing, for the same reasons a tree is refused: a key not in the tree at that point (`unknown-key`), a key inserted twice (`duplicate-key`), an operation on a part of the wrong kind or on the root, which has no siblings (`unsupported-patch`), a prop with no realization or whose value its slot can't hold.
+- **An operation it doesn't know is refused,** never skipped (`unsupported-patch`): skipping one would break the law. A later MESH may add operations without changing the version, and a PORT that doesn't know them must say so.
+- **A target failure while applying is reported, not hidden.** A DOM setter or insertion can still throw after the check. The Web PORT stops, throws `patch-failed` with the step and the cause, doesn't undo the steps before it, and leaves the composer to recover with *draw* of the full tree it holds. It never retries.
 
 ## Output: interaction reports
 
@@ -118,7 +139,7 @@ These are deliberately absent, because nothing upstream provides them yet or not
 
 - target capability descriptions (no consumer);
 - accessibility semantics and styling (render-v1 carries none);
-- lists, conditional content, insertion, removal and reordering (MPRX has none);
+- lists and conditional content as *language* constructs: MESH's `mesh-if` and `mesh-each` are provisional, and PORT realizes whatever keys a tree has, so *update* and *patch* add, remove and reorder parts by key (the contract is MESH §9.10);
 - server rendering and hydration as contract operations. They are target-specific: the Web PORT's are described [below](#web-server-html-and-hydrate).
 
 ## Web: server HTML and hydrate
