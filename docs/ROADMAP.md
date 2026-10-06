@@ -686,6 +686,8 @@ A Valance Web application can be built and deployed as an actual application rat
 
 # V0.10 — End-to-End Reference Application
 
+**Status:** Partly met outside this repository. VALANCE 0.5 (which composes NEXUS, MESH and PORT Web) ships a documentation-site example with routes, links, navigation, forms (`controlled` fields), SSR, hydration and conditional and repeated content, tested in jsdom and real Chromium. A reference application owned by PORT itself is not built; styles and accessibility semantics are not done.
+
 ## Objective
 
 Build one serious application that exercises the entire stack.

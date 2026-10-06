@@ -145,7 +145,7 @@ The design is the [PORT Web SSR design](../../docs/superpowers/specs/2026-09-28-
 
 ## Known limitations
 
-These are the documented semantics of v0.2, not defects. Each is a different case:
+These are the documented semantics of v0.2 and v0.3, not defects. Each is a different case:
 
 - **Structural mismatch.** Server HTML that differs from the client's tree in any verified way (element, component, child count, text, attribute, boolean attribute, container) is never adopted: `hydrate` draws the whole tree afresh and reports the first mismatch. The page is correct, and the server-rendered DOM isn't reused.
 - **Parser restructuring.** Some element nestings are rewritten by the browser's HTML parser (a `button` inside a `button`, a `div` inside a `p`, table content). The server doesn't model the parser, so these are caught only at hydration, as a structural mismatch, and drawn afresh.

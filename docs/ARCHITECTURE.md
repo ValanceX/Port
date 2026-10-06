@@ -104,7 +104,7 @@ The Web has two kinds of slot for a prop, and they don't share semantics. An **H
 |---|---|---|
 | native DOM property | `property(name, "boolean" \| "number" \| "value")` | itself, if of the property's kind; anything else is refused |
 | native DOM attribute | `booleanAttribute(name)` | a boolean, by presence; anything else is refused |
-| text-only slot | `attribute(name)`, `textProperty(name)` | a string's own value, or MESH's `propText`; a list or record is refused |
+| text-only slot | `attribute(name)`, `textProperty(name)`, `controlled(name)` (v0.3) | a string's own value, or MESH's `propText`; a list or record is refused. `controlled` is the attribute and the same-named property together, for a field the user edits |
 | unsupported | anything not in the table | refused |
 
 A numeric DOM property therefore takes the number natively, while an attribute showing a number takes MESH's text for it. The values, slots, sources, SSR consequences and failures are tabulated in the [Web value realization](./architecture/2026-09-28-web-value-realization.md). One pure step (`realize.ts`) decides every prop's output before anything is written. The Web PORT's server path (`@valancex/port-web/server`) writes the same outputs as HTML rather than formatting values a second way, and never derives an attribute from a DOM property: a present property value has no HTML form, and is refused on the server. Server rendering and `hydrate` are Web-specific, not PORT contract operations ([CONTRACT.md](./CONTRACT.md#web-server-html-and-hydrate)).
