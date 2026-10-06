@@ -23,6 +23,22 @@ export type WebRealizationCode =
    * unchanged, or one DOM event type constituting two events of a primitive.
    */
   | "invalid-primitives"
+  /**
+   * A patch list isn't one this PORT can apply: not `format: "mesh-render-patch"`,
+   * `version: 1`, an operation it doesn't know (skipping it would break the
+   * law that patches give exactly the full tree), a `replace` among other
+   * operations, or an operation that names a key of the wrong kind.
+   */
+  | "unsupported-patch"
+  /** A patch names a key that isn't in the drawn tree. */
+  | "unknown-key"
+  /**
+   * Applying a validated patch list, a DOM property setter threw. The
+   * operations before it were applied and PORT doesn't undo them or retry:
+   * the composer recovers with `draw` of the full tree it holds. The
+   * setter's own error is the `cause`, and the message names the operation.
+   */
+  | "patch-failed"
   /** `hydrate` was called with a tree already drawn. */
   | "already-drawn"
   /**
@@ -41,11 +57,11 @@ export type WebRealizationCode =
 
 /**
  * The Web PORT can't realize what it was given. Every tree is checked
- * before the DOM is touched, so for every code but `adoption-failed`
- * nothing on the page has changed when this is thrown. `adoption-failed`
- * comes from a DOM property setter, which is outside PORT, throwing after
- * hydration's verification: PORT doesn't promise to undo what that setter
- * or the adoption before it did.
+ * before the DOM is touched, so for every code but `adoption-failed` and
+ * `patch-failed` nothing on the page has changed when this is thrown. Those
+ * two come from a DOM property setter, which is outside PORT, throwing after
+ * validation succeeded: PORT doesn't promise to undo what that setter or the
+ * work before it did.
  */
 export class WebRealizationError extends Error {
   override readonly name = "WebRealizationError";

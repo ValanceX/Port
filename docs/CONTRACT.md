@@ -38,7 +38,9 @@ A PORT:
 | **update(tree)** | The composer asserts that `tree` comes from the **same program** as the drawn tree. Realize its changes in place: the target object for each key present in both trees is kept. | Every later tree the composer knows comes from the same program. |
 | **unmount()** | Remove the realization. Nothing is reported after it. | When the UI goes away. |
 
-These three are every PORT's. A PORT may add operations for its own target that keep their meanings. The Web PORT adds one, **hydrate**, which isn't part of this contract (see [Web: server HTML and hydrate](#web-server-html-and-hydrate)).
+| **patch(patches)** | *Proposed, not yet in version 1.* The composer asserts the MESH `render-patch-v1` list was made from the render whose tree is drawn. Realize its operations in place; the result is exactly what *update* of the full new tree gives. | Instead of *update*, when the composer's MESH has `update` and the program is the same. |
+
+The first three are every PORT's; `patch` is proposed (MESH's `update` is new, unreleased). A PORT may add operations for its own target that keep their meanings. The Web PORT adds one, **hydrate**, which isn't part of this contract (see [Web: server HTML and hydrate](#web-server-html-and-hydrate)).
 
 ### Program continuity
 

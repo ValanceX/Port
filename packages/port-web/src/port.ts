@@ -17,6 +17,7 @@ import type { Output } from "./realize.js";
 
 import { COMPONENT_ATTRIBUTE, UNKNOWN_COMPONENT_ELEMENT, checkTree, own, validatePrimitives } from "./check.js";
 import { WebRealizationError } from "./error.js";
+import { isUnrealizable, realizeProp } from "./realize.js";
 
 export { UNKNOWN_COMPONENT_ELEMENT } from "./check.js";
 
@@ -67,11 +68,41 @@ export type HydrationResult =
   | { readonly adopted: true }
   | { readonly adopted: false; readonly mismatch: HydrationMismatch };
 
+/**
+ * A MESH patch list (`render-patch-v1`, MESH's `schemas/render-patch-v1.schema.json`):
+ * the operations that turn the drawn tree into the next one from the same
+ * program. PORT reads the format, as it reads render-v1, and doesn't
+ * depend on the MESH runtime to have it.
+ */
+export interface RenderPatches {
+  readonly format: "mesh-render-patch";
+  readonly version: 1;
+  readonly patches: ReadonlyArray<RenderPatch>;
+}
+
+/** One operation of a patch list. */
+export type RenderPatch =
+  | { readonly op: "setProp"; readonly key: string; readonly prop: string; readonly value: BoundaryValue; readonly propText?: string }
+  | { readonly op: "removeProp"; readonly key: string; readonly prop: string }
+  | { readonly op: "setText"; readonly key: string; readonly text: string }
+  | { readonly op: "replace"; readonly tree: RenderTree };
+
 export interface WebPort {
   /** Draws `tree` afresh, replacing whatever was drawn: the first tree, or one from a different program. */
   draw(tree: RenderTree): void;
   /** Updates the drawn tree to `tree`, from the same program, in place. Each key keeps its DOM node. */
   update(tree: RenderTree): void;
+  /**
+   * Applies `patches`, which the composer asserts were made from the render
+   * whose tree is drawn (program continuity, as for `update`), in order, in
+   * place: each key keeps its DOM node, and only what a patch names is
+   * written. The result is exactly what `update` of the full new tree gives.
+   * The whole list is checked before the DOM is touched, so a list this PORT
+   * can't realize changes nothing; if a DOM property setter then throws,
+   * `patch` throws `patch-failed` and the composer recovers with `draw`.
+   * A `replace` is a `draw` of its tree, and is the only operation of its list.
+   */
+  patch(patches: RenderPatches): void;
   /**
    * Takes over the server HTML in the container, realized from `tree`'s
    * program and state, with nothing drawn yet. It verifies the whole DOM
@@ -272,6 +303,8 @@ export const createWebPort = ({ container, primitives, report }: WebPortOptions)
   const nodeOf = new WeakMap<Node, DrawnNode>();
   /** One fresh element per tag, whose properties are the initial values of adopted elements' slots. */
   const probes = new Map<string, Element>();
+  /** The drawn part each key realizes: what a patch finds its target by. Kept in step with what is drawn. */
+  const byKey = new Map<string, Drawn>();
   let drawn: Drawn | undefined;
   let listening = false;
 
@@ -330,6 +363,11 @@ export const createWebPort = ({ container, primitives, report }: WebPortOptions)
 
   /** Stops `part` and everything under it from receiving interactions. */
   const dispose = (part: Drawn): void => {
+    // Only if the key is still this part's: a part drawn afresh for the same key has replaced it.
+    if (byKey.get(part.key) === part) {
+      byKey.delete(part.key);
+    }
+
     if (part.kind === "node") {
       nodeOf.delete(part.dom);
       part.children.forEach(dispose);
@@ -351,7 +389,10 @@ export const createWebPort = ({ container, primitives, report }: WebPortOptions)
 
   const create = (part: RenderNode | TextRun, parent: DrawnNode | undefined, plan: Plan): Drawn => {
     if (part.type === "text") {
-      return { kind: "text", key: part.key, dom: doc.createTextNode(part.text), text: part.text };
+      const created: DrawnText = { kind: "text", key: part.key, dom: doc.createTextNode(part.text), text: part.text };
+      byKey.set(part.key, created);
+
+      return created;
     }
 
     const primitive = own(primitives, part.component);
@@ -376,6 +417,7 @@ export const createWebPort = ({ container, primitives, report }: WebPortOptions)
     }
 
     nodeOf.set(node.dom, node);
+    byKey.set(node.key, node);
     node.children = part.children.map((child) => create(child, node, plan));
     node.dom.append(...node.children.map((child) => child.dom));
 
@@ -581,6 +623,7 @@ export const createWebPort = ({ container, primitives, report }: WebPortOptions)
     reassert(node);   // text typed before hydration is replaced by what was rendered: the application's value
 
     adopted.push(node);
+    byKey.set(node.key, node);
 
     const nodes = Array.from(dom.childNodes);
     let next = 0;
@@ -591,11 +634,16 @@ export const createWebPort = ({ container, primitives, report }: WebPortOptions)
           // An empty text run has no server node: it is created, in its place.
           const text = doc.createTextNode("");
           dom.insertBefore(text, nodes[next] ?? null);
+          const empty: DrawnText = { kind: "text", key: child.key, dom: text, text: "" };
+          byKey.set(child.key, empty);
 
-          return { kind: "text", key: child.key, dom: text, text: "" };
+          return empty;
         }
 
-        return { kind: "text", key: child.key, dom: nodes[next++] as Text, text: child.text };
+        const adoptedText: DrawnText = { kind: "text", key: child.key, dom: nodes[next++] as Text, text: child.text };
+        byKey.set(child.key, adoptedText);
+
+        return adoptedText;
       }
 
       return adopt(child, nodes[next++] as Element, node, plan, adopted);
@@ -616,6 +664,132 @@ export const createWebPort = ({ container, primitives, report }: WebPortOptions)
 
       const plan = checkTree(tree, primitives);
       drawn = patch(drawn, tree.root, undefined, plan);
+    },
+
+    patch(patches) {
+      if (drawn === undefined) {
+        throw new WebRealizationError("not-drawn", "patch needs a drawn tree: call draw first");
+      }
+
+      if (patches.format !== "mesh-render-patch" || patches.version !== 1) {
+        throw new WebRealizationError("unsupported-patch", `expected a render-patch-v1 list (format "mesh-render-patch", version 1), got format ${JSON.stringify(patches.format)}, version ${JSON.stringify(patches.version)}`);
+      }
+
+      const list = patches.patches;
+      const only = list[0];
+
+      // A replace is a draw: nothing is reused, and it stands alone.
+      if (list.some((patch) => patch.op === "replace")) {
+        if (list.length !== 1 || only === undefined || only.op !== "replace") {
+          throw new WebRealizationError("unsupported-patch", "a replace is the only operation of its list");
+        }
+
+        drawChecked(only.tree, checkTree(only.tree, primitives));
+
+        return;
+      }
+
+      // Check every operation before the DOM is touched: a list that can't
+      // be realized changes nothing. A prop is realized exactly as `update`
+      // would (checkTree's rule, through realizeProp).
+      type Step =
+        | { readonly kind: "prop"; readonly node: DrawnNode; readonly name: string; readonly realization: PropRealization; readonly output: Output }
+        | { readonly kind: "text"; readonly part: DrawnText; readonly text: string };
+
+      const steps: Step[] = [];
+
+      list.forEach((patch, index) => {
+        if (patch.op === "replace") {
+          return; // alone in its list, handled above
+        }
+
+        const at = `operation ${index} (${JSON.stringify((patch as { readonly op: unknown }).op)})`;
+
+        // An operation this PORT doesn't know is refused, never skipped: skipping it would break the law that patches give the full tree.
+        if (patch.op !== "setProp" && patch.op !== "removeProp" && patch.op !== "setText") {
+          throw new WebRealizationError("unsupported-patch", `${at}: this PORT doesn't know that operation`);
+        }
+
+        const target = byKey.get(patch.key);
+
+        if (target === undefined) {
+          throw new WebRealizationError("unknown-key", `${at} names the key ${patch.key}, which isn't in the drawn tree`, patch.key);
+        }
+
+        if (patch.op === "setText") {
+          if (target.kind !== "text") {
+            throw new WebRealizationError("unsupported-patch", `${at} sets the text of ${patch.key}, which is a node, not a text run`, patch.key);
+          }
+
+          steps.push({ kind: "text", part: target, text: patch.text });
+
+          return;
+        }
+
+        if (target.kind !== "node") {
+          throw new WebRealizationError("unsupported-patch", `${at} changes a prop of ${patch.key}, which is a text run, not a node`, patch.key);
+        }
+
+        // An unknown component's props aren't realized, as for `update`.
+        if (target.primitive === undefined) {
+          return;
+        }
+
+        const realization = own(target.primitive.props, patch.prop);
+
+        if (realization === undefined) {
+          if (patch.op === "removeProp" && !target.outputs.has(patch.prop)) {
+            return;
+          }
+
+          throw new WebRealizationError("unrealized-prop", `<${target.component}> has no realization for its prop \`${patch.prop}\``, patch.key);
+        }
+
+        const output = patch.op === "removeProp"
+          ? ABSENT
+          : realizeProp({ type: "node", key: target.key, component: target.component, props: { [patch.prop]: patch.value }, events: {}, children: [], ...(patch.propText === undefined ? {} : { propText: { [patch.prop]: patch.propText } }) }, patch.prop, realization);
+
+        if (isUnrealizable(output)) {
+          throw new WebRealizationError(output.code, `<${target.component}>'s prop \`${patch.prop}\` ${output.reason} (its ${realization.kind} \`${realization.name}\`)`, patch.key);
+        }
+
+        steps.push({ kind: "prop", node: target, name: patch.prop, realization, output });
+      });
+
+      // Apply. Only a DOM property setter can fail from here, and it is outside PORT.
+      let index = 0;
+
+      try {
+        for (; index < steps.length; index += 1) {
+          const step = steps[index]!;
+
+          if (step.kind === "text") {
+            if (step.part.text !== step.text) {
+              step.part.dom.data = step.text;
+              step.part.text = step.text;
+            }
+
+            continue;
+          }
+
+          const outputs = new Map(step.node.outputs);
+
+          if ("absent" in step.output) {
+            outputs.delete(step.name);
+          } else {
+            outputs.set(step.name, step.output);
+          }
+
+          if (!sameOutput(step.node.outputs.get(step.name) ?? ABSENT, step.output)) {
+            writeProp(step.node, step.realization, step.output);
+          }
+
+          step.node.outputs = outputs;
+          reassert(step.node);
+        }
+      } catch (error) {
+        throw new WebRealizationError("patch-failed", `applying step ${index} of the validated patch list threw from a DOM property setter. The steps before it were applied, and PORT doesn't undo them: draw the full tree to recover.`, undefined, error);
+      }
     },
 
     hydrate(tree) {
@@ -660,6 +834,7 @@ export const createWebPort = ({ container, primitives, report }: WebPortOptions)
 
       container.replaceChildren();
       drawn = undefined;
+      byKey.clear();
     },
   };
 };

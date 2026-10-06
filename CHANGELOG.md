@@ -4,6 +4,11 @@ All notable changes to PORT are recorded here. The project follows [Semantic Ver
 
 ## [Unreleased]
 
+### Added
+
+- **`patch(patches)`** on the Web PORT: applies a MESH `render-patch-v1` list (`setProp`, `removeProp`, `setText`, or a `replace`) to the drawn tree in place. Each key keeps its DOM node and only what a patch names is written, and the result is what `update` of the full new tree gives. The whole list is checked before the DOM is touched (`unknown-key`, `unsupported-patch`, `unrealized-prop`, `unrealizable-value`, `missing-prop-text`); an operation it doesn't know is refused, never skipped. If a DOM property setter throws while applying, it throws `patch-failed` (the earlier steps stay applied, and the composer recovers with `draw`). The `RenderPatches` and `RenderPatch` types are PORT's own, so it needs no unreleased MESH package.
+- A key index, so a patch finds its target by key without walking the tree. It is kept in step by `draw`, `update`, `hydrate` and `unmount`.
+
 ## [0.3.0] - 2026-10-05
 
 A minor release: **one realization is added to `@valancex/port-web`'s API; nothing existing changes.** See the [v0.3 release notes](./docs/releases/v0.3.md).

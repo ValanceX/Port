@@ -7,7 +7,7 @@
  */
 
 export { createWebPort, UNKNOWN_COMPONENT_ELEMENT } from "./port.js";
-export type { HydrationMismatch, HydrationMismatchClass, HydrationResult, Report, WebPort, WebPortOptions } from "./port.js";
+export type { HydrationMismatch, HydrationMismatchClass, HydrationResult, RenderPatch, RenderPatches, Report, WebPort, WebPortOptions } from "./port.js";
 export { attribute, booleanAttribute, controlled, property, textProperty } from "./primitives.js";
 export type { EventRealization, PropertyKind, PropRealization, WebPrimitive, WebPrimitives } from "./primitives.js";
 export { WebRealizationError } from "./error.js";
