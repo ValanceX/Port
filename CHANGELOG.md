@@ -16,7 +16,7 @@ A minor release: **`@valancex/port-web` gains `patch`, and a presentation can en
 
 ### Compatibility
 
-- **API, entries and options:** additive. `patch` and the types `RenderPatch` and `RenderPatches` are new; `inspect` is a devtools hook and not part of the contract; every existing realization, table and behavior is unchanged.
+- **API, entries and options:** additive for code that calls the Web PORT. `WebPort` gained `patch`, `inspect` and `[Symbol.dispose]`, so code that implements it (a wrapper typed as `WebPort`) must add them or be typed as the smaller contract it needs. `patch` and the types `RenderPatch` and `RenderPatches` are new; `inspect` is a devtools hook and not part of the contract; every existing realization, table and behavior is unchanged.
 - **MESH:** 0.6 to 0.10. `patch` applies the `render-patch-v1` documents that MESH 0.10's `update` and `updateChanges` return; on an older MESH the Web PORT is used with `draw` and `update` as before.
 
 ## [0.3.0] - 2026-10-05
