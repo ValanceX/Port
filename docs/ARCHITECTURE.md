@@ -43,7 +43,7 @@ A PORT:
 - receives MESH render trees that are already compiled, evaluated and renderer-independent, and nothing from NEXUS (see [The boundary](#the-boundary));
 - lowers it through whatever representations suit its target, **keeping semantic information (identity, interaction intent, accessibility role, update semantics) for as long as it helps decide something**. Information is discarded by lowering, never hidden early behind an opaque object;
 - may specialize aggressively: target scheduling, memory behavior, native widget systems, compositing, event processing, caching, SIMD, hardware-specific paths. Any optimization is valid if it preserves the semantic guarantees established upstream;
-- handles the lifecycle of what it realizes: mount, update, and unmount;
+- handles the lifecycle of what it realizes: draw, update, and unmount;
 - *(direction, not built)* describes its own capabilities (for example `retained-rendering`). PORT is the authority on what its target can guarantee, so MESH never needs an encyclopedia of platforms. Nothing consumes such a description yet, so no format exists (audit U4);
 - *(direction, not built)* realizes style semantics in the target's own styling system, always explicitly (e.g. under `@target linux`), never by pretending every target styles alike. render-v1 carries no style or accessibility information yet (audit U1, U2);
 - should be **inspectable**: a developer should eventually be able to see what a PORT did with a given element (which target object it became, which optimizations applied) rather than treating it as an opaque engine;

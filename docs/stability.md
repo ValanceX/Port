@@ -13,7 +13,7 @@ What each public surface of PORT promises. The tiers have one meaning each, shar
 
 | Surface | Tier |
 |---|---|
-| `createWebPort`, `WebPort.draw`, `update`, `hydrate`, `unmount`, `WebPortOptions`, `Report`, the primitives helpers (`attribute`, `booleanAttribute`, `controlled`, `property`, `textProperty`), `WebRealizationError` and its `code`s, `UNKNOWN_COMPONENT_ELEMENT`, and contract version 1 (`docs/CONTRACT.md`) | Stable |
+| `createWebPort`, `WebPort.draw`, `update`, `hydrate`, `unmount`, `WebPortOptions`, `Report`, the primitives helpers (`attribute`, `booleanAttribute`, `controlled`, `property`, `textProperty`), `WebRealizationError` and its `code`s, `UNKNOWN_COMPONENT_ELEMENT`, `realizeHtml` (the server entry), `HydrationResult`, `HydrationMismatch`, `WebPrimitive` / `WebPrimitives`, and contract version 1 (`docs/CONTRACT.md`) | Stable |
 | `WebPort.patch` and `RenderPatch` / `RenderPatches` (an addition to contract version 1) | Unreleased |
 | `WebPort[Symbol.dispose]` (where the platform has it) and the `unmount` guarantees: safe to call twice, usable again by `draw` | Unreleased |
 | `WebPort.inspect`, and the touched keys `patch` returns | Not part of the contract (devtools hooks) |

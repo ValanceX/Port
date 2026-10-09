@@ -334,7 +334,9 @@ describe("interaction reports", () => {
 
     port.draw(first);
     expect(typeof port[Symbol.dispose]).toBe("function");
-    port[Symbol.dispose]!();
+    const asDisposable: Disposable = port; // what `using` needs
+    void asDisposable;
+    port[Symbol.dispose]();
     port.unmount();
     expect(container.childNodes).toHaveLength(0);
     expect(() => port.update(first)).toThrow(WebRealizationError);

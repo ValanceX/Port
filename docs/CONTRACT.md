@@ -36,8 +36,7 @@ A PORT:
 |---|---|---|
 | **draw(tree)** | Realize `tree` afresh, discarding whatever was realized before. No target object is reused. | The first tree, and any tree the composer knows comes from a **different program** than the drawn one. |
 | **update(tree)** | The composer asserts that `tree` comes from the **same program** as the drawn tree. Realize its changes in place: the target object for each key present in both trees is kept. | Every later tree the composer knows comes from the same program. |
-| **unmount()** | Remove the realization. Nothing is reported after it. | When the UI goes away. |
-
+| **unmount()** | Remove the realization. Nothing is reported after it. Safe to call twice and before anything was drawn; the PORT stays usable (`draw` draws again; `update` and `patch` refuse until then). | When the UI goes away. |
 | **patch(patches)** | *An addition to version 1 that keeps the others' meanings.* The composer asserts the MESH `render-patch-v1` list was made from the render whose tree is drawn. Realize its operations in place; the result is exactly what *update* of the full new tree gives. See [patch](#patch). | Instead of *update*, when the composer's MESH has `update` and the program is the same. |
 
 The first three are every PORT's. `patch` is optional: a PORT without it loses nothing, since *update* of the full tree is always valid, and it needs a MESH that has `update` (new, unreleased). A PORT may add operations for its own target that keep their meanings. The Web PORT adds one, **hydrate**, which isn't part of this contract (see [Web: server HTML and hydrate](#web-server-html-and-hydrate)).
@@ -85,7 +84,7 @@ report(handler, payload?)
 - `handler` is the handler identifier the **drawn** tree gives for the binding the interaction resolved to. PORT never interprets it.
 - `payload` is a value from MESH's boundary data model, or absent. What the payload is for a given event is declared in the application's manifest; how a target interaction produces it is the PORT's realization decision. It is the receiving node's event's payload.
 
-The composer passes the report to `host.dispatch(render, handler, payload)` with the `Render` whose tree was drawn. PORT never sees an intent or a command, and target event objects never leave PORT.
+The composer passes the report to `host.dispatch(render, handler, payload)` with the `Render` whose tree was drawn. PORT never sees an intent or a command, and target event objects never leave PORT. A composer that updates through MESH `update` or `updateChanges` releases the previous `Render` (`render.release()`) once its patches are applied.
 
 ### Event resolution
 
@@ -124,7 +123,7 @@ Four different situations, each with its own rule. They must not be conflated.
 
 | Situation | Example | The PORT | Why |
 |---|---|---|---|
-| **Unknown schema property**: a property render-v1 doesn't define | a later MESH adds `"hint"` to nodes | **ignores** it | MESH's schema evolution rule: within a version, MESH may only *add* properties, and "renderers must ignore properties they don't know". MESH's rule 15 makes such additions optional: they "improve realization but [are] never needed for correctness". Ignoring one loses no meaning a v1 renderer is responsible for. |
+| **Unknown schema property**: a property render-v1 doesn't define | a later MESH adds `"badge"` to nodes | **ignores** it | MESH's schema evolution rule: within a version, MESH may only *add* properties, and "renderers must ignore properties they don't know". MESH's rule 15 makes such additions optional: they "improve realization but [are] never needed for correctness". Ignoring one loses no meaning a v1 renderer is responsible for. |
 | **Known content the target can't carry**: a node, prop, event or text run defined by render-v1 that this realization has nowhere to put | children (even an empty text run) under a primitive the Web PORT realizes as a void element like `img` | **refuses** the tree with a realization error | The content has meaning in render-v1. Letting it vanish, or putting it where the target never shows it, is a silent drop. |
 | **Unknown component**: a node whose component this PORT has no realization for | a composite whose template the program left out arrives as a primitive of its name | **surfaces** it visibly, and still realizes its children | MESH requires it to be surfaced, not dropped. Its props and events aren't realized; the visible placeholder is how that is made known. |
 | **Unsupported realization**: a known component whose prop or event has no realization, or whose value doesn't fit it | a `subtitle` prop the realization table doesn't list; a list for an attribute | **refuses** the tree with a realization error | The configuration is incomplete for this tree, so realizing it partially would drop meaning. |

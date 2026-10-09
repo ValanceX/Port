@@ -143,10 +143,11 @@ export interface WebPort {
    */
   unmount(): void;
   /**
-   * Where the platform has `Symbol.dispose`, the same as `unmount()`, so that
-   * `using port = createWebPort(...)` unmounts at the end of the block.
+   * The same as `unmount()`, so that `using port = createWebPort(...)` unmounts
+   * at the end of the block. It exists where the platform has `Symbol.dispose`
+   * (the `using` statement needs that platform too); elsewhere call `unmount()`.
    */
-  [Symbol.dispose]?(): void;
+  [Symbol.dispose](): void;
 }
 
 // ---------------------------------------------------------------------------
@@ -682,7 +683,7 @@ export const createWebPort = ({ container, primitives, report }: WebPortOptions)
     return node;
   };
 
-  const port: WebPort = {
+  const port: Omit<WebPort, typeof Symbol.dispose> = {
     draw(tree) {
       drawChecked(tree, checkTree(tree, primitives));
     },
@@ -1050,5 +1051,5 @@ export const createWebPort = ({ container, primitives, report }: WebPortOptions)
     Object.defineProperty(port, Symbol.dispose, { value: () => port.unmount(), configurable: true });
   }
 
-  return port;
+  return port as WebPort;
 };
