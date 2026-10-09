@@ -105,6 +105,8 @@ It checks every tree in full before touching the DOM, so a refused tree changes 
 Handle a refusal by its `code`, never its message:
 
 ```ts
+import { WebRealizationError } from "@valancex/port-web";
+
 try {
   port.update(next.tree);
 } catch (error) {
