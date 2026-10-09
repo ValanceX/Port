@@ -135,8 +135,18 @@ export interface WebPort {
    * and it is not part of the contract.
    */
   inspect(key: string): Node | undefined;
-  /** Removes what was drawn. Nothing is reported after this. */
+  /**
+   * Removes what was drawn. Nothing is reported after this. Safe to call
+   * twice or before anything was drawn. The PORT stays usable: `draw` (or
+   * `hydrate`) draws a tree again, while `update` and `patch` refuse with
+   * `not-drawn`. It is synchronous.
+   */
   unmount(): void;
+  /**
+   * Where the platform has `Symbol.dispose`, the same as `unmount()`, so that
+   * `using port = createWebPort(...)` unmounts at the end of the block.
+   */
+  [Symbol.dispose]?(): void;
 }
 
 // ---------------------------------------------------------------------------
@@ -672,7 +682,7 @@ export const createWebPort = ({ container, primitives, report }: WebPortOptions)
     return node;
   };
 
-  return {
+  const port: WebPort = {
     draw(tree) {
       drawChecked(tree, checkTree(tree, primitives));
     },
@@ -1034,4 +1044,11 @@ export const createWebPort = ({ container, primitives, report }: WebPortOptions)
       byKey.clear();
     },
   };
+
+  // Where the platform has `Symbol.dispose`, `using port = ...` unmounts at the end of the block.
+  if (typeof Symbol.dispose === "symbol") {
+    Object.defineProperty(port, Symbol.dispose, { value: () => port.unmount(), configurable: true });
+  }
+
+  return port;
 };

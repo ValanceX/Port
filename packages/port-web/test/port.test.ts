@@ -327,6 +327,21 @@ describe("interaction reports", () => {
     expect(container.childNodes).toHaveLength(0);
   });
 
+  it("unmounts at dispose, twice safely, and can draw again afterwards", () => {
+    const { container } = dom();
+    const { report } = reports();
+    const port = createWebPort({ container, primitives: slicePrimitives, report });
+
+    port.draw(first);
+    expect(typeof port[Symbol.dispose]).toBe("function");
+    port[Symbol.dispose]!();
+    port.unmount();
+    expect(container.childNodes).toHaveLength(0);
+    expect(() => port.update(first)).toThrow(WebRealizationError);
+    port.draw(first);
+    expect(container.querySelector("button")).not.toBeNull();
+  });
+
   it("reports nothing from a node an update removed or replaced", () => {
     const { window, container } = dom();
     const { calls, report } = reports();
