@@ -29,7 +29,7 @@ MPRX ─▶ MESH compiler ─▶ template-v1 ─▶ MESH runtime ─▶ render-v
 - **In:** a MESH render tree ([render-v1](https://github.com/ValanceX/Mesh/blob/main/schemas/render-v1.schema.json)), and whether it comes from the same program as the drawn one (*update*) or not (*draw* afresh). That fact, **program continuity**, is the composer's: PORT never infers it from the tree.
 - **Out:** the drawn tree's handler identifier for an event, and its payload.
 
-That's the whole [PORT contract](./docs/CONTRACT.md). It is language-neutral: render-v1 is a JSON Schema MESH implements in Rust and JavaScript, and the operations are three verbs (plus `patch`, below) and a report. Each PORT binds them in whatever language suits its target.
+That's the whole [PORT contract](./docs/CONTRACT.md). What each public surface promises (stable, unreleased, not part of the contract): [API stability](./docs/stability.md). It is language-neutral: render-v1 is a JSON Schema MESH implements in Rust and JavaScript, and the operations are three verbs (plus `patch`, below) and a report. Each PORT binds them in whatever language suits its target.
 
 ## Packages
 
