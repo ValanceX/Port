@@ -4,7 +4,7 @@ All notable changes to PORT are recorded here. The project follows [Semantic Ver
 
 ## [Unreleased]
 
-## [0.4.0] - 2026-10-09
+## [0.4.0] - 2026-10-10
 
 A minor release: **`@valancex/port-web` gains `patch`, and a presentation can end with `unmount` safely.** Nothing existing changes. See the [v0.4 release notes](./docs/releases/v0.4.md).
 
