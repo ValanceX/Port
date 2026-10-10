@@ -4,7 +4,7 @@ What each public surface of PORT promises. The tiers have one meaning each, shar
 
 | Tier | Meaning |
 |---|---|
-| **Stable** | In a released version (0.4.0 or earlier). PORT is 0.x, so a minor version may change it, but only with the change named in that version's release notes, never silently. Error `code`s never change meaning and are never reused. |
+| **Stable** | In a released version (0.4.1 or earlier). PORT is 0.x, so a minor version may change it, but only with the change named in that version's release notes, never silently. Error `code`s never change meaning and are never reused. |
 | **Unreleased** | In the changelog's "Unreleased" section. Complete and tested, but not in any release: it may change before one. |
 | **Not part of the contract** | Offered for tools, and said so in the documentation. May change or go in any release. |
 | **Internal** | Not a contract. |

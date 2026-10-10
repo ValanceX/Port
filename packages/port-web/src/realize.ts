@@ -33,6 +33,26 @@ export const kindOf = (value: BoundaryValue): string =>
 const own = <V>(record: Readonly<Record<string, V>> | undefined, name: string): V | undefined =>
   record !== undefined && Object.hasOwn(record, name) ? record[name] : undefined;
 
+// Attributes whose value the browser follows or loads as a URL. A script scheme in one is code a link click (or a load) runs, from data the application may not have written.
+const URL_ATTRIBUTES = new Set(["href", "src", "action", "formaction", "poster", "cite", "background", "ping", "manifest", "codebase", "longdesc", "usemap"]);
+const NAVIGATING_ATTRIBUTES = new Set(["href", "action", "formaction", "cite"]);
+
+/** The scheme the browser would read from `text` as a URL: it ignores leading controls and spaces, drops tab and newlines anywhere, and compares case-insensitively. */
+const schemeOf = (text: string): string | undefined => /^([a-z][a-z0-9+.-]*):/.exec(text.replace(/^[\u0000-\u0020]+/, "").replace(/[\t\n\r]/g, "").toLowerCase())?.[1];
+
+/** Why a string cannot be written into the attribute `name`, if it cannot: a URL slot never holds a script (`javascript:`, `vbscript:`), nor a navigable `data:` document. */
+const unsafeUrl = (name: string, text: string): string | undefined => {
+  if (!URL_ATTRIBUTES.has(name)) {
+    return undefined;
+  }
+
+  const scheme = schemeOf(text);
+
+  return scheme === "javascript" || scheme === "vbscript" || (scheme === "data" && NAVIGATING_ATTRIBUTES.has(name))
+    ? `is a \`${scheme}:\` URL, which the attribute "${name}" never holds (a URL that runs code); the application's data can't make a link run script`
+    : undefined;
+};
+
 /** Realizes `node`'s prop `name` in the slot `realization` names. */
 export const realizeProp = (node: RenderNode, name: string, realization: PropRealization): Output | Unrealizable => {
   if (!Object.hasOwn(node.props, name)) {
@@ -47,7 +67,9 @@ export const realizeProp = (node: RenderNode, name: string, realization: PropRea
     case "controlled":
     case "text-property": {
       if (typeof value === "string") {
-        return { text: value };
+        const unsafe = realization.kind === "attribute" ? unsafeUrl(realization.name, value) : undefined;
+
+        return unsafe === undefined ? { text: value } : { code: "unrealizable-value", reason: unsafe };
       }
 
       if (value === null || typeof value === "number" || typeof value === "boolean") {

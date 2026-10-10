@@ -62,7 +62,7 @@ A DOM attribute and a DOM property are different slots. An attribute holds only 
 
 | Realization | Slot | Takes |
 |---|---|---|
-| `attribute(name)` | content attribute: **text only** | a string as given; a number, boolean or `null` as the node's `propText` (MESH's text); absent removes it |
+| `attribute(name)` | content attribute: **text only** | a string as given (a URL attribute such as `href` or `src` refuses a `javascript:` or `vbscript:` URL, and a `data:` URL in `href`, `action`, `formaction` or `cite`: `unrealizable-value`); a number, boolean or `null` as the node's `propText` (MESH's text); absent removes it |
 | `textProperty(name)` | `DOMString` property, such as `value`: **text only** | as `attribute`; absent leaves the element's own initial value |
 | `controlled(name)` | content attribute **and** the same-named DOM property, for a field the user edits (an input's `value`): **text only** | as `attribute`, serialized and hydrated as the attribute; and after every `draw`, `update` and `hydrate` the property is made equal to the rendered text (absent: the element's own initial value). See [Controlled fields](#controlled-fields) |
 | `booleanAttribute(name)` | boolean attribute: **native**, by presence | `true` sets it, `false` or absent removes it |

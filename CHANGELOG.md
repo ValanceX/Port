@@ -4,6 +4,14 @@ All notable changes to PORT are recorded here. The project follows [Semantic Ver
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-10-10
+
+A patch release: **a URL attribute never holds code.** Found by validating the released 0.4.0 against the API design principles (§11 secure defaults). See the [v0.4 release notes](./docs/releases/v0.4.md).
+
+### Fixed
+
+- An `attribute` realization of a URL attribute (`href`, `src`, `action`, `formaction`, `poster`, `cite`, `background`, `ping`, `manifest`, `codebase`, `longdesc`, `usemap`) given a `javascript:` or `vbscript:` URL is refused as `unrealizable-value`, and so is a `data:` URL in `href`, `action`, `formaction` or `cite` (a `data:` image in `src` is allowed). Before, `<a href="javascript:alert(1)">` was written as given, so data a consumer did not write could run script on a click. The browser's own scheme reading is followed (leading controls and spaces ignored, tab and newlines dropped, case ignored). Draw, update, hydrate, `patch` and the server's HTML refuse by the one rule, before any DOM is touched. Relative URLs, `http`, `https`, `mailto`, `tel` and every non-URL attribute are unchanged.
+
 ## [0.4.0] - 2026-10-10
 
 A minor release: **`@valancex/port-web` gains `patch`, and a presentation can end with `unmount` safely.** Nothing existing changes. See the [v0.4 release notes](./docs/releases/v0.4.md).
