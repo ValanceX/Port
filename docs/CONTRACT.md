@@ -39,7 +39,7 @@ A PORT:
 | **unmount()** | Remove the realization. Nothing is reported after it. Safe to call twice and before anything was drawn; the PORT stays usable (`draw` draws again; `update` and `patch` refuse until then). | When the UI goes away. |
 | **patch(patches)** | *An addition to version 1 that keeps the others' meanings.* The composer asserts the MESH `render-patch-v1` list was made from the render whose tree is drawn. Realize its operations in place; the result is exactly what *update* of the full new tree gives. See [patch](#patch). | Instead of *update*, when the composer's MESH has `update` and the program is the same. |
 
-The first three are every PORT's. `patch` is optional: a PORT without it loses nothing, since *update* of the full tree is always valid, and it needs a MESH that has `update` (new, unreleased). A PORT may add operations for its own target that keep their meanings. The Web PORT adds one, **hydrate**, which isn't part of this contract (see [Web: server HTML and hydrate](#web-server-html-and-hydrate)).
+The first three are every PORT's. `patch` is optional: a PORT without it loses nothing, since *update* of the full tree is always valid, and it needs a MESH that has `update` (MESH 0.10). A PORT may add operations for its own target that keep their meanings. The Web PORT adds one, **hydrate**, which isn't part of this contract (see [Web: server HTML and hydrate](#web-server-html-and-hydrate)).
 
 ### Program continuity
 
