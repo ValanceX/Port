@@ -340,7 +340,7 @@ A producer can exercise PORT using the semantic boundary without depending on ME
 
 # V0.2 — Web Realization Core
 
-**Status:** Done for what render-v1 carries: elements, identity, text, attributes, boolean attributes, hierarchy, ordering, draw, update, unmount (`@valancex/port-web`). Not done: DOM properties and styles, which nothing yet requires. Number, list, record and `null` values have no given text, so an attribute realization refuses them (audit U3).
+**Status:** Done for what render-v1 carries: elements, identity, text, attributes, boolean attributes, hierarchy, ordering, draw, update, unmount (`@valancex/port-web`). Not done: DOM properties and styles, which nothing yet requires. *(Update 2026-10-06: the Web PORT also has `patch`, which applies MESH's patch lists in place; see the CONTRACT.)* Number, list, record and `null` values have no given text, so an attribute realization refuses them (audit U3).
 
 ## Objective
 
@@ -473,7 +473,7 @@ A representative application can preserve its semantic and accessibility require
 
 # V0.5 — Update Model and Realization Lifecycle
 
-**Status:** Established for today's MPRX. A program's trees all have the same structure, so an *update* changes props and text only, and every key keeps its DOM node (tested, and in the slice). A different program is *drawn* afresh, never reconciled by key. Insertion, removal and reordering could not occur until MESH added lists and conditionals (audit U5; MESH 0.7's provisional `mesh-each` and `mesh-if`). Through 0.2.1 the Web PORT matched children by position and only checked the key, so they were not kept; from 0.2.2 `update` matches children by key, recursively, as the contract says.
+**Status:** Established for today's MPRX. A program's trees all have the same structure, so an *update* changes props and text only, and every key keeps its DOM node (tested, and in the slice). A different program is *drawn* afresh, never reconciled by key. Insertion, removal and reordering could not occur until MESH added lists and conditionals (audit U5; MESH 0.7's provisional `mesh-each` and `mesh-if`). *(Update 2026-10-06: `patch` realizes them as `insert`, `remove` and `move` by key, with the same identity rule as `update`: a moved part keeps its DOM node, and a removed one is disposed.)* Through 0.2.1 the Web PORT matched children by position and only checked the key, so they were not kept; from 0.2.2 `update` matches children by key, recursively, as the contract says.
 
 ## Objective
 

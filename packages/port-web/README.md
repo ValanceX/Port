@@ -41,8 +41,9 @@ port.update(next.tree);                    // as after draw
 
 - **`draw(tree)`** realizes a render-v1 tree afresh inside `container`, replacing whatever was there. Use it for the first tree, and for any tree from a different program: keys aren't comparable across programs.
 - **`update(tree)`** brings the drawn tree to `tree`, from the same program, in place. Children are matched by key, never by position: every key present in both trees keeps its DOM node (moved if its order changed), a new key gets a new node, a key that is gone has its node disposed, and a key that leaves and later returns gets a fresh node. A key whose component changed is replaced. Only attributes and text that differ are written.
+- **`patch(patches)`** (unreleased) applies a MESH `render-patch-v1` list (from MESH's `update`) to the drawn tree in place, instead of `update(tree)`. `setProp`, `removeProp` and `setText` change a kept part; `insert`, `remove` and `move` add, take away and reorder parts by key, and a moved part keeps its DOM node; `replace` is a `draw`. The result is what `update` of the full new tree gives. The whole list is checked before the DOM is touched, each operation against the effect of the ones before it, so a list it can't realize changes nothing (`unknown-key`, `duplicate-key`, `unsupported-patch`, `unrealized-prop`, `unrealizable-value`, `missing-prop-text`); an operation it doesn't know is refused, never skipped. If a DOM setter then throws, `patch` throws `patch-failed` (the steps before it stay applied) and you recover with `draw`. Its types, `RenderPatches` and `RenderPatch`, are this package's own. See [the contract](../../docs/CONTRACT.md#patch).
 - **`hydrate(tree)`** takes over server HTML in `container`, with nothing drawn. See [Server HTML and hydration](#server-html-and-hydration).
-- **`unmount()`** empties the container. Nothing is reported afterwards.
+- **`unmount()`** empties the container. Nothing is reported afterwards. It is synchronous, safe to call twice or before anything was drawn, and leaves the PORT usable: `draw` (or `hydrate`) draws again, while `update` and `patch` refuse with `not-drawn`. Where the platform has `Symbol.dispose`, the PORT has `[Symbol.dispose]()` (unreleased), the same as `unmount()`, so `using port = createWebPort(...)` unmounts at the end of a block. The `using` statement itself needs a runtime or transpiler that supports explicit resource management (it is a syntax error on Node 22); otherwise call `unmount()`.
 - **`report(handler, payload?)`** is called at most once per interaction, for the one binding MESH's event resolution selects, with the drawn tree's handler identifier and the payload the event's realization builds. An event with no payload is reported without one.
 
 It uses no browser globals. Every DOM object comes from `container.ownerDocument`, so it runs against any DOM implementation.
@@ -79,7 +80,7 @@ So the DOM's propagation decides nothing: a DOM event that doesn't bubble resolv
 
 ## What it refuses
 
-It checks every tree in full before touching the DOM, so a refused tree changes nothing. The one exception is `adoption-failed`, which isn't a refusal of the tree: a DOM property setter threw after hydration's verification had succeeded (see [Server HTML and hydration](#server-html-and-hydration)). It throws a `WebRealizationError` whose `code` is:
+It checks every tree in full before touching the DOM, so a refused tree changes nothing. The exceptions are `adoption-failed` and `patch-failed`, which aren't refusals of the tree or the list: a DOM property setter threw after hydration's verification (or a patch list's validation) had succeeded (see [Server HTML and hydration](#server-html-and-hydration)). It throws a `WebRealizationError` whose `code` is:
 
 | `code` | When |
 |---|---|
@@ -89,14 +90,30 @@ It checks every tree in full before touching the DOM, so a refused tree changes 
 | `unrealizable-value` | a value its slot can't hold: a list or record in a text-only slot (MESH gives them no text), or a value of another kind in a native slot |
 | `missing-prop-text` | a number, boolean or `null` in a text-only slot, with no `propText` entry (a tree from before MESH v0.6); the PORT doesn't make MESH text |
 | `unrealizable-children` | a node has children (even an empty text run), but its primitive is realized as an HTML void element such as `img`, which can't hold any |
-| `duplicate-key` | two parts of a tree share a key |
-| `not-drawn` | `update` before `draw` |
+| `duplicate-key` | two parts of a tree share a key, or a patch inserts one key twice |
+| `unsupported-patch` | `patch` only: the list isn't `mesh-render-patch` version 1, has an operation this PORT doesn't know, has a `replace` among other operations, or names a key of the wrong kind |
+| `unknown-key` | `patch` only: a patch names a key that is not in the drawn tree at that point |
+| `patch-failed` | `patch` only: a DOM setter threw while applying a validated list. Earlier steps stay applied; recover with `draw` of a full tree |
+| `not-drawn` | `update` or `patch` with nothing drawn (before `draw`, or after `unmount`) |
 | `invalid-primitives` | thrown by `createWebPort` and `realizeHtml`: the table maps a prop by anything but one plain realization of a known kind, realizes two props as one attribute or one property, uses `data-component`, uses an element or attribute name the DOM and HTML don't both give back unchanged (lowercase, no special characters), or maps one DOM event type to two events of one primitive |
 | `already-drawn` | `hydrate` with a tree already drawn. A drawn PORT is never cleared by it |
 | `adoption-failed` | `hydrate` only: after verification succeeded, a DOM property setter threw during adoption. The setter's error is the `cause`. The DOM may be partly adopted and isn't rolled back; nothing is drawn. The one code for which the page may have changed |
 | `unserializable-prop` | server only: a present value in a `property` or `textProperty` slot, which has no HTML form |
 | `unserializable-text` | server only: U+0000 in a text run or attribute, which HTML can't hold |
 | `unserializable-element` | server only: a primitive realized as `script`, `style`, `textarea`, `title`, `template`, `xmp`, `iframe`, `noembed`, `noframes`, `noscript`, `plaintext`, `svg` or `math`, whose content HTML parsing wouldn't give back as the tree says |
+
+Handle a refusal by its `code`, never its message:
+
+```ts
+import { WebRealizationError } from "@valancex/port-web";
+
+try {
+  port.update(next.tree);
+} catch (error) {
+  if (error instanceof WebRealizationError) console.error(error.code, error.key);
+  else throw error;
+}
+```
 
 An unknown render-v1 *property* is different: it is ignored, as MESH's schema requires (see the contract's [What may be ignored](../../docs/CONTRACT.md#what-may-be-ignored-and-what-may-not)).
 

@@ -17,6 +17,7 @@ import type { Output } from "./realize.js";
 
 import { COMPONENT_ATTRIBUTE, UNKNOWN_COMPONENT_ELEMENT, checkTree, own, validatePrimitives } from "./check.js";
 import { WebRealizationError } from "./error.js";
+import { isUnrealizable, realizeProp } from "./realize.js";
 
 export { UNKNOWN_COMPONENT_ELEMENT } from "./check.js";
 
@@ -67,11 +68,53 @@ export type HydrationResult =
   | { readonly adopted: true }
   | { readonly adopted: false; readonly mismatch: HydrationMismatch };
 
+/**
+ * A MESH patch list (`render-patch-v1`, MESH's `schemas/render-patch-v1.schema.json`):
+ * the operations that turn the drawn tree into the next one from the same
+ * program. PORT reads the format, as it reads render-v1, and doesn't
+ * depend on the MESH runtime to have it.
+ */
+export interface RenderPatches {
+  readonly format: "mesh-render-patch";
+  readonly version: 1;
+  readonly patches: ReadonlyArray<RenderPatch>;
+}
+
+/** One operation of a patch list. */
+export type RenderPatch =
+  | { readonly op: "setProp"; readonly key: string; readonly prop: string; readonly value: BoundaryValue; readonly propText?: string }
+  | { readonly op: "removeProp"; readonly key: string; readonly prop: string }
+  | { readonly op: "setText"; readonly key: string; readonly text: string }
+  | { readonly op: "insert"; readonly parent: string; readonly before?: string; readonly node: RenderNode | TextRun }
+  | { readonly op: "remove"; readonly key: string }
+  | { readonly op: "move"; readonly key: string; readonly before?: string }
+  | { readonly op: "replace"; readonly tree: RenderTree };
+
 export interface WebPort {
   /** Draws `tree` afresh, replacing whatever was drawn: the first tree, or one from a different program. */
   draw(tree: RenderTree): void;
   /** Updates the drawn tree to `tree`, from the same program, in place. Each key keeps its DOM node. */
   update(tree: RenderTree): void;
+  /**
+   * Applies `patches`, which the composer asserts were made from the render
+   * whose tree is drawn (program continuity, as for `update`), in order, in
+   * place: each key keeps its DOM node, and only what a patch names is
+   * written. The result is exactly what `update` of the full new tree gives.
+   * `insert`, `remove` and `move` act on parts by key, never by position: a
+   * moved part keeps its DOM node and its state, and a removed one is
+   * disposed (a key that returns is a new part). The whole list is checked
+   * before the DOM is touched, with each operation seeing the effect of the
+   * ones before it, so a list this PORT can't realize changes nothing; if a
+   * DOM setter then throws, `patch` throws `patch-failed` and the composer
+   * recovers with `draw`. A `replace` is a `draw` of its tree, and is the
+   * only operation of its list.
+   *
+   * Returns the keys of the parts the list touched (props or text changed,
+   * parts inserted, removed or moved), in order and without repeats, so a
+   * devtools panel can show what a list did. It is not part of the contract:
+   * nothing is promised about it beyond that.
+   */
+  patch(patches: RenderPatches): ReadonlyArray<string>;
   /**
    * Takes over the server HTML in the container, realized from `tree`'s
    * program and state, with nothing drawn yet. It verifies the whole DOM
@@ -85,8 +128,26 @@ export interface WebPort {
    * with nothing drawn, and neither undoes what was written nor retries.
    */
   hydrate(tree: RenderTree): HydrationResult;
-  /** Removes what was drawn. Nothing is reported after this. */
+  /**
+   * The DOM node that realizes the drawn part `key` names, or none if no
+   * such part is drawn: for devtools, to find or highlight what a MESH node
+   * became. A read only; changing the node is outside what PORT keeps true,
+   * and it is not part of the contract.
+   */
+  inspect(key: string): Node | undefined;
+  /**
+   * Removes what was drawn. Nothing is reported after this. Safe to call
+   * twice or before anything was drawn. The PORT stays usable: `draw` (or
+   * `hydrate`) draws a tree again, while `update` and `patch` refuse with
+   * `not-drawn`. It is synchronous.
+   */
   unmount(): void;
+  /**
+   * The same as `unmount()`, so that `using port = createWebPort(...)` unmounts
+   * at the end of the block. It exists where the platform has `Symbol.dispose`
+   * (the `using` statement needs that platform too); elsewhere call `unmount()`.
+   */
+  [Symbol.dispose](): void;
 }
 
 // ---------------------------------------------------------------------------
@@ -117,6 +178,7 @@ interface DrawnNode {
 interface DrawnText {
   readonly kind: "text";
   readonly key: string;
+  readonly parent: DrawnNode | undefined;
   readonly dom: Text;
   text: string;
 }
@@ -272,6 +334,8 @@ export const createWebPort = ({ container, primitives, report }: WebPortOptions)
   const nodeOf = new WeakMap<Node, DrawnNode>();
   /** One fresh element per tag, whose properties are the initial values of adopted elements' slots. */
   const probes = new Map<string, Element>();
+  /** The drawn part each key realizes: what a patch finds its target by. Kept in step with what is drawn. */
+  const byKey = new Map<string, Drawn>();
   let drawn: Drawn | undefined;
   let listening = false;
 
@@ -330,6 +394,11 @@ export const createWebPort = ({ container, primitives, report }: WebPortOptions)
 
   /** Stops `part` and everything under it from receiving interactions. */
   const dispose = (part: Drawn): void => {
+    // Only if the key is still this part's: a part drawn afresh for the same key has replaced it.
+    if (byKey.get(part.key) === part) {
+      byKey.delete(part.key);
+    }
+
     if (part.kind === "node") {
       nodeOf.delete(part.dom);
       part.children.forEach(dispose);
@@ -351,7 +420,10 @@ export const createWebPort = ({ container, primitives, report }: WebPortOptions)
 
   const create = (part: RenderNode | TextRun, parent: DrawnNode | undefined, plan: Plan): Drawn => {
     if (part.type === "text") {
-      return { kind: "text", key: part.key, dom: doc.createTextNode(part.text), text: part.text };
+      const created: DrawnText = { kind: "text", key: part.key, parent, dom: doc.createTextNode(part.text), text: part.text };
+      byKey.set(part.key, created);
+
+      return created;
     }
 
     const primitive = own(primitives, part.component);
@@ -376,6 +448,7 @@ export const createWebPort = ({ container, primitives, report }: WebPortOptions)
     }
 
     nodeOf.set(node.dom, node);
+    byKey.set(node.key, node);
     node.children = part.children.map((child) => create(child, node, plan));
     node.dom.append(...node.children.map((child) => child.dom));
 
@@ -581,6 +654,7 @@ export const createWebPort = ({ container, primitives, report }: WebPortOptions)
     reassert(node);   // text typed before hydration is replaced by what was rendered: the application's value
 
     adopted.push(node);
+    byKey.set(node.key, node);
 
     const nodes = Array.from(dom.childNodes);
     let next = 0;
@@ -591,11 +665,16 @@ export const createWebPort = ({ container, primitives, report }: WebPortOptions)
           // An empty text run has no server node: it is created, in its place.
           const text = doc.createTextNode("");
           dom.insertBefore(text, nodes[next] ?? null);
+          const empty: DrawnText = { kind: "text", key: child.key, parent: node, dom: text, text: "" };
+          byKey.set(child.key, empty);
 
-          return { kind: "text", key: child.key, dom: text, text: "" };
+          return empty;
         }
 
-        return { kind: "text", key: child.key, dom: nodes[next++] as Text, text: child.text };
+        const adoptedText: DrawnText = { kind: "text", key: child.key, parent: node, dom: nodes[next++] as Text, text: child.text };
+        byKey.set(child.key, adoptedText);
+
+        return adoptedText;
       }
 
       return adopt(child, nodes[next++] as Element, node, plan, adopted);
@@ -604,7 +683,7 @@ export const createWebPort = ({ container, primitives, report }: WebPortOptions)
     return node;
   };
 
-  return {
+  const port: Omit<WebPort, typeof Symbol.dispose> = {
     draw(tree) {
       drawChecked(tree, checkTree(tree, primitives));
     },
@@ -616,6 +695,309 @@ export const createWebPort = ({ container, primitives, report }: WebPortOptions)
 
       const plan = checkTree(tree, primitives);
       drawn = patch(drawn, tree.root, undefined, plan);
+    },
+
+    patch(patches) {
+      if (drawn === undefined) {
+        throw new WebRealizationError("not-drawn", "patch needs a drawn tree: call draw first");
+      }
+
+      if (patches.format !== "mesh-render-patch" || patches.version !== 1) {
+        throw new WebRealizationError("unsupported-patch", `expected a render-patch-v1 list (format "mesh-render-patch", version 1), got format ${JSON.stringify(patches.format)}, version ${JSON.stringify(patches.version)}`);
+      }
+
+      const list = patches.patches;
+      const only = list[0];
+
+      // A replace is a draw: nothing is reused, and it stands alone.
+      if (list.some((patch) => patch.op === "replace")) {
+        if (list.length !== 1 || only === undefined || only.op !== "replace") {
+          throw new WebRealizationError("unsupported-patch", "a replace is the only operation of its list");
+        }
+
+        drawChecked(only.tree, checkTree(only.tree, primitives));
+
+        return [only.tree.root.key];
+      }
+
+      // Check every operation before the DOM is touched: a list that can't
+      // be realized changes nothing. Each operation is checked against the
+      // tree as the operations before it leave it (a shadow of the parts a
+      // list touches, made from what is drawn only when an operation needs
+      // it), because a later operation may name a part an earlier one made.
+      // A prop is realized exactly as `update` would (checkTree's rule,
+      // through realizeProp).
+      interface Shadow {
+        readonly kind: "node" | "text";
+        readonly component: string | undefined;
+        parent: string | undefined;
+        /** A node's children, in order. */
+        children: string[];
+        /** The props a node has now. */
+        props: Set<string>;
+        removed: boolean;
+      }
+
+      const shadows = new Map<string, Shadow>();
+
+      const shadowOf = (key: string): Shadow | undefined => {
+        let found = shadows.get(key);
+
+        if (found === undefined) {
+          const part = byKey.get(key);
+
+          if (part === undefined) {
+            return undefined;
+          }
+
+          found = part.kind === "node"
+            ? { kind: "node", component: part.component, parent: part.parent?.key, children: part.children.map((child) => child.key), props: new Set(part.outputs.keys()), removed: false }
+            : { kind: "text", component: undefined, parent: part.parent?.key, children: [], props: new Set(), removed: false };
+          shadows.set(key, found);
+        }
+
+        return found.removed ? undefined : found;
+      };
+
+      /** Records an inserted part, and every part under it, as present. */
+      const shadowInsert = (part: RenderNode | TextRun, parent: string): void => {
+        if (part.type === "text") {
+          shadows.set(part.key, { kind: "text", component: undefined, parent, children: [], props: new Set(), removed: false });
+
+          return;
+        }
+
+        shadows.set(part.key, { kind: "node", component: part.component, parent, children: part.children.map((child) => child.key), props: new Set(Object.keys(part.props)), removed: false });
+        part.children.forEach((child) => shadowInsert(child, part.key));
+      };
+
+      /** Marks a part, and every part under it, as gone. */
+      const shadowRemove = (key: string): void => {
+        const part = shadowOf(key);
+
+        if (part === undefined) {
+          return;
+        }
+
+        part.removed = true;
+        part.children.forEach(shadowRemove);
+      };
+
+      const rootKey = drawn.key;
+      const unsupported = (message: string, key?: string): WebRealizationError => new WebRealizationError("unsupported-patch", message, key);
+
+      type Step =
+        | { readonly kind: "prop"; readonly key: string; readonly name: string; readonly realization: PropRealization; readonly output: Output }
+        | { readonly kind: "text"; readonly key: string; readonly text: string }
+        | { readonly kind: "insert"; readonly parent: string; readonly before: string | undefined; readonly part: RenderNode | TextRun; readonly plan: Plan }
+        | { readonly kind: "remove"; readonly key: string }
+        | { readonly kind: "move"; readonly key: string; readonly before: string | undefined };
+
+      const steps: Step[] = [];
+
+      list.forEach((patch, index) => {
+        if (patch.op === "replace") {
+          return; // alone in its list, handled above
+        }
+
+        const at = `operation ${index} (${JSON.stringify((patch as { readonly op: unknown }).op)})`;
+
+        // An operation this PORT doesn't know is refused, never skipped: skipping it would break the law that patches give the full tree.
+        if (patch.op !== "setProp" && patch.op !== "removeProp" && patch.op !== "setText" && patch.op !== "insert" && patch.op !== "remove" && patch.op !== "move") {
+          throw unsupported(`${at}: this PORT doesn't know that operation`);
+        }
+
+        const named = patch.op === "insert" ? patch.parent : patch.key;
+        const target = shadowOf(named);
+
+        if (target === undefined) {
+          throw new WebRealizationError("unknown-key", `${at} names the key ${named}, which isn't in the drawn tree at that point`, named);
+        }
+
+        if (patch.op === "insert") {
+          if (target.kind !== "node") {
+            throw unsupported(`${at} inserts under ${patch.parent}, which is a text run`, patch.parent);
+          }
+
+          // A fresh key: the part's, and every key under it, are in the tree at no other place.
+          const fresh = (part: RenderNode | TextRun): void => {
+            if (shadowOf(part.key) !== undefined) {
+              throw new WebRealizationError("duplicate-key", `${at} inserts the key ${part.key}, which is already in the tree`, part.key);
+            }
+
+            if (part.type === "node") {
+              part.children.forEach(fresh);
+            }
+          };
+
+          fresh(patch.node);
+
+          if (patch.before !== undefined && shadowOf(patch.before)?.parent !== patch.parent) {
+            throw new WebRealizationError("unknown-key", `${at} inserts before ${patch.before}, which isn't a child of ${patch.parent} at that point`, patch.before);
+          }
+
+          // The part is checked as a tree of its own would be: every prop and event realized, void elements, adjacent text.
+          const plan = patch.node.type === "node" ? checkTree({ format: "mesh-render", version: 1, root: patch.node }, primitives) : new Map<string, ReadonlyMap<string, Output>>();
+          const siblings = target.children;
+          siblings.splice(patch.before === undefined ? siblings.length : siblings.indexOf(patch.before), 0, patch.node.key);
+          shadowInsert(patch.node, patch.parent);
+          steps.push({ kind: "insert", parent: patch.parent, before: patch.before, part: patch.node, plan });
+
+          return;
+        }
+
+        if (patch.op === "remove" || patch.op === "move") {
+          if (patch.key === rootKey) {
+            throw unsupported(`${at} acts on the root, which has no siblings: use replace`, patch.key);
+          }
+
+          const siblings = shadowOf(target.parent!)!.children;
+          const from = siblings.indexOf(patch.key);
+
+          if (patch.op === "remove") {
+            siblings.splice(from, 1);
+            shadowRemove(patch.key);
+            steps.push({ kind: "remove", key: patch.key });
+
+            return;
+          }
+
+          if (patch.before !== undefined && (patch.before === patch.key || shadowOf(patch.before)?.parent !== target.parent)) {
+            throw new WebRealizationError("unknown-key", `${at} moves ${patch.key} before ${patch.before}, which isn't another child of its parent at that point`, patch.before);
+          }
+
+          siblings.splice(from, 1);
+          siblings.splice(patch.before === undefined ? siblings.length : siblings.indexOf(patch.before), 0, patch.key);
+          steps.push({ kind: "move", key: patch.key, before: patch.before });
+
+          return;
+        }
+
+        if (patch.op === "setText") {
+          if (target.kind !== "text") {
+            throw unsupported(`${at} sets the text of ${patch.key}, which is a node, not a text run`, patch.key);
+          }
+
+          steps.push({ kind: "text", key: patch.key, text: patch.text });
+
+          return;
+        }
+
+        if (target.kind !== "node") {
+          throw unsupported(`${at} changes a prop of ${patch.key}, which is a text run, not a node`, patch.key);
+        }
+
+        // An unknown component's props aren't realized, as for `update`.
+        const primitive = own(primitives, target.component!);
+
+        if (primitive === undefined) {
+          return;
+        }
+
+        const realization = own(primitive.props, patch.prop);
+
+        if (realization === undefined) {
+          if (patch.op === "removeProp" && !target.props.has(patch.prop)) {
+            return;
+          }
+
+          throw new WebRealizationError("unrealized-prop", `<${target.component}> has no realization for its prop \`${patch.prop}\``, patch.key);
+        }
+
+        const output = patch.op === "removeProp"
+          ? ABSENT
+          : realizeProp({ type: "node", key: patch.key, component: target.component!, props: { [patch.prop]: patch.value }, events: {}, children: [], ...(patch.propText === undefined ? {} : { propText: { [patch.prop]: patch.propText } }) }, patch.prop, realization);
+
+        if (isUnrealizable(output)) {
+          throw new WebRealizationError(output.code, `<${target.component}>'s prop \`${patch.prop}\` ${output.reason} (its ${realization.kind} \`${realization.name}\`)`, patch.key);
+        }
+
+        if (patch.op === "removeProp") {
+          target.props.delete(patch.prop);
+        } else {
+          target.props.add(patch.prop);
+        }
+
+        steps.push({ kind: "prop", key: patch.key, name: patch.prop, realization, output });
+      });
+
+      // Apply. Only a DOM setter or insertion can fail from here, and it is outside PORT.
+      let index = 0;
+
+      /** The DOM node `before` names among `parent`'s children, or none for last. */
+      const reference = (before: string | undefined): ChildNode | null => (before === undefined ? null : byKey.get(before)!.dom);
+
+      const place = (parent: DrawnNode, part: Drawn, before: string | undefined): void => {
+        const at = before === undefined ? parent.children.length : parent.children.findIndex((child) => child.key === before);
+        parent.children.splice(at, 0, part);
+        parent.dom.insertBefore(part.dom, reference(before));
+      };
+
+      try {
+        for (; index < steps.length; index += 1) {
+          const step = steps[index]!;
+
+          switch (step.kind) {
+            case "text": {
+              const part = byKey.get(step.key) as DrawnText;
+
+              if (part.text !== step.text) {
+                part.dom.data = step.text;
+                part.text = step.text;
+              }
+
+              break;
+            }
+            case "insert": {
+              const parent = byKey.get(step.parent) as DrawnNode;
+              place(parent, create(step.part, parent, step.plan), step.before);
+
+              break;
+            }
+            case "remove": {
+              const part = byKey.get(step.key)!;
+              const parent = part.parent!;
+              parent.children = parent.children.filter((child) => child !== part);
+              dispose(part);
+              part.dom.remove();
+
+              break;
+            }
+            case "move": {
+              const part = byKey.get(step.key)!;
+              const parent = part.parent!;
+              parent.children = parent.children.filter((child) => child !== part);
+              place(parent, part, step.before);
+
+              break;
+            }
+            case "prop": {
+              const node = byKey.get(step.key) as DrawnNode;
+              const outputs = new Map(node.outputs);
+
+              if ("absent" in step.output) {
+                outputs.delete(step.name);
+              } else {
+                outputs.set(step.name, step.output);
+              }
+
+              if (!sameOutput(node.outputs.get(step.name) ?? ABSENT, step.output)) {
+                writeProp(node, step.realization, step.output);
+              }
+
+              node.outputs = outputs;
+              reassert(node);
+            }
+          }
+        }
+        return [...new Set(steps.map((step) => (step.kind === "insert" ? step.part.key : step.key)))];
+      } catch (error) {
+        throw new WebRealizationError("patch-failed", `applying step ${index} of the validated patch list threw. The steps before it were applied, and PORT doesn't undo them: draw the full tree to recover.`, undefined, error);
+      }
+    },
+
+    inspect(key) {
+      return byKey.get(key)?.dom;
     },
 
     hydrate(tree) {
@@ -660,6 +1042,14 @@ export const createWebPort = ({ container, primitives, report }: WebPortOptions)
 
       container.replaceChildren();
       drawn = undefined;
+      byKey.clear();
     },
   };
+
+  // Where the platform has `Symbol.dispose`, `using port = ...` unmounts at the end of the block.
+  if (typeof Symbol.dispose === "symbol") {
+    Object.defineProperty(port, Symbol.dispose, { value: () => port.unmount(), configurable: true });
+  }
+
+  return port as WebPort;
 };

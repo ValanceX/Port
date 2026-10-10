@@ -4,6 +4,21 @@ All notable changes to PORT are recorded here. The project follows [Semantic Ver
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-10
+
+A minor release: **`@valancex/port-web` gains `patch`, and a presentation can end with `unmount` safely.** Nothing existing changes. See the [v0.4 release notes](./docs/releases/v0.4.md).
+
+### Added
+
+- **`unmount()` is documented as safe to call twice and before any `draw`**, leaving the PORT usable (`draw` draws again; `update` and `patch` refuse with `not-drawn`), and the Web PORT has `[Symbol.dispose]()` where the platform has it, the same as `unmount()`, so `using port = createWebPort(...)` unmounts at the end of a block.
+- **`patch(patches)`** on the Web PORT: applies a MESH `render-patch-v1` list in place. `setProp`, `removeProp` and `setText` change a kept part; `insert`, `remove` and `move` add, take away and reorder parts by key, so a moved part keeps its DOM node and its state and a removed one is disposed; `replace` is a `draw`. The result is what `update` of the full new tree gives. The whole list is checked before the DOM is touched, each operation against the effect of the ones before it (`unknown-key`, `duplicate-key`, `unsupported-patch`, `unrealized-prop`, `unrealizable-value`, `missing-prop-text`); an operation it doesn't know is refused, never skipped. If a DOM setter then throws, it throws `patch-failed` (the earlier steps stay applied, and the composer recovers with `draw`). The `RenderPatches` and `RenderPatch` types are PORT's own, so it needs no unreleased MESH package. It is checked against hand-written lists, with the DOM compared to `update`'s, and end to end against the real MESH runtime's patches over 4,000 random updates (a script, not yet in `integration/`, which runs against published packages).
+- A key index, so a patch finds its target by key without walking the tree. It is kept in step by `draw`, `update`, `hydrate` and `unmount`.
+
+### Compatibility
+
+- **API, entries and options:** additive for code that calls the Web PORT. `WebPort` gained `patch`, `inspect` and `[Symbol.dispose]`, so code that implements it (a wrapper typed as `WebPort`) must add them or be typed as the smaller contract it needs. `patch` and the types `RenderPatch` and `RenderPatches` are new; `inspect` is a devtools hook and not part of the contract; every existing realization, table and behavior is unchanged.
+- **MESH:** 0.6 to 0.10. `patch` applies the `render-patch-v1` documents that MESH 0.10's `update` and `updateChanges` return; on an older MESH the Web PORT is used with `draw` and `update` as before.
+
 ## [0.3.0] - 2026-10-05
 
 A minor release: **one realization is added to `@valancex/port-web`'s API; nothing existing changes.** See the [v0.3 release notes](./docs/releases/v0.3.md).
