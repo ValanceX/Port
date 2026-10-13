@@ -138,7 +138,7 @@ These are deliberately absent, because nothing upstream provides them yet or not
 
 - target capability descriptions (no consumer);
 - accessibility semantics and styling (render-v1 carries none);
-- lists and conditional content as *language* constructs: MESH's `mesh-if` and `mesh-each` are provisional, and PORT realizes whatever keys a tree has, so *update* and *patch* add, remove and reorder parts by key (the contract is MESH §9.10);
+- lists and conditional content as *language* constructs: MESH's `{#if}` and `{#each}` blocks (their runtime behavior is provisional), and PORT realizes whatever keys a tree has, so *update* and *patch* add, remove and reorder parts by key (the contract is MESH §9.10);
 - server rendering and hydration as contract operations. They are target-specific: the Web PORT's are described [below](#web-server-html-and-hydrate).
 
 ## Web: server HTML and hydrate
