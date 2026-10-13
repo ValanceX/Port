@@ -1,3 +1,5 @@
 packages:
   - "packages/*"
   - "integration"
+allowBuilds:
+  esbuild: true
