@@ -9,16 +9,16 @@
 // identity reaching PORT's reconciliation, and the intent is as far back as
 // that needs to go.
 //
-// This uses the MESH checkout's own build (the provisional `mesh-if` and
-// `mesh-each` tracers aren't in the published 0.6.0 this workspace depends
+// This uses the MESH checkout's own build (the `{#if}` and `{#each}` blocks
+// of MESH 0.11 aren't in the published 0.6.0 this workspace depends
 // on), found at `MESH_CHECKOUT` or the sibling `../Mesh`. Without a built
 // checkout the suite is skipped. PORT's dependency is not changed: nothing
 // here is PORT's code importing MESH internals, only the test composing the
 // two packages' public APIs, as the composer does.
 //
 // PORT is given only components `page`, `note` and `row`. It has no
-// realization for `mesh-if` or `mesh-each`, which never reach it: MESH makes
-// them structure, not nodes.
+// realization for a conditional or a repeat, which never reach it: MESH makes
+// blocks structure, not nodes.
 import type { Render as MeshRender, RenderNode, RenderTree } from "@valancex/mesh-runtime";
 import type { WebPrimitives } from "@valancex/port-web";
 
@@ -42,11 +42,6 @@ const MODEL = JSON.stringify({
     page: { props: {}, events: {}, commands: {}, scope: {} },
     note: { props: {}, events: {}, commands: {}, scope: {} },
     row: { props: {}, events: { tap: {} }, commands: {}, scope: {} },
-    "mesh-if": { props: { when: { type: { kind: "boolean" }, required: true } }, events: {}, commands: {}, scope: {} },
-    "mesh-each": { props: {
-      items: { type: { kind: "list", element: { kind: "any" } }, required: true },
-      as: { type: { kind: "string" }, required: true },
-      key: { type: { kind: "any" }, required: true } }, events: {}, commands: {}, scope: {} },
     list: { props: {}, events: {}, commands: { pick: { parameters: [{ name: "id", type: { kind: "any" } }] } },
       scope: { items: { kind: "list", element: { kind: "record", fields: {
         id: { type: { kind: "any" }, required: true }, label: { type: { kind: "string" }, required: true } } } } } },
@@ -55,8 +50,8 @@ const MODEL = JSON.stringify({
   },
 });
 
-const LIST = '<page><note>head</note><mesh-each items={items} as="item" key={item.id}><row on.tap={pick(item.id)}>{item.label}</row></mesh-each><note>tail</note></page>';
-const COND = '<page><mesh-if when={lead}><note>lead</note></mesh-if><note>fixed</note><mesh-if when={show}><row on.tap={go()}>shown</row></mesh-if><mesh-if when={mode}><note>one</note><note>two</note></mesh-if></page>';
+const LIST = '<page><note>head</note>{#each items as item (item.id)}<row on.tap={pick(item.id)}>{item.label}</row>{/each}<note>tail</note></page>';
+const COND = '<page>{#if lead}<note>lead</note>{/if}<note>fixed</note>{#if show}<row on.tap={go()}>shown</row>{/if}{#if mode}<note>one</note>{:else}<note>two</note>{/if}</page>';
 
 const primitives: WebPrimitives = {
   page: { element: "section" },
@@ -145,7 +140,7 @@ describe.skipIf(!built)("MESH dynamic structure → render-v1 → PORT keyed rec
   const items = (...labels: string[]) => ({ items: labels.map((label) => ({ id: label.toLowerCase(), label })) });
   const row = (label: string) => `row:${label}`;
 
-  describe("repeated sites (mesh-each)", () => {
+  describe("repeated sites ({#each})", () => {
     it("reorder: [A, B, C] → [C, A, B] moves the same target objects, under the same keys", async () => {
       const app = await setup("list", LIST);
       await app.show(items("A", "B", "C"));
@@ -254,7 +249,7 @@ describe.skipIf(!built)("MESH dynamic structure → render-v1 → PORT keyed rec
     });
   });
 
-  describe("conditional sites (mesh-if)", () => {
+  describe("conditional sites ({#if})", () => {
     const snapshot = (show: boolean, lead = false, mode = false) => ({ show, lead, mode });
 
     it("disappearance disposes the realization, and reappearance is the same identity in a fresh one", async () => {
