@@ -66,6 +66,10 @@ Two events: **click** (a button) and **change** (the value of a checkbox or a te
 
 An engine in another process (the application, in JavaScript) drives the PORT with one JSON object per line: `hello`, `title`, `draw`, `update`, `unmount` and `closeAnswer` in; `event`, `closeRequested` and `close` out. The module `host` is that conversation, and [the architecture note](../../docs/architecture/2026-10-14-port-desktop.md) specifies it.
 
+## `vlx-window`
+
+A window for any engine, used by `vlx dev` on a desktop project: `cargo install --git https://github.com/ValanceX/Port valancex-port-desktop --bin vlx-window`. It runs the command line in `VLX_ENGINE` (split on spaces) and shows what the engine draws; the window's title is the application's, sent over the protocol.
+
 ## Features
 
 `window` (default): the egui window (`view`, `app`). Without it the crate is the PORT's logic and the host protocol: no graphics dependency.

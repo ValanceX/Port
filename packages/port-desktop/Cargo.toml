@@ -15,6 +15,12 @@ categories = ["gui"]
 name = "port_desktop"
 path = "src/lib.rs"
 
+# The window `vlx dev` opens for any application's engine (VLX_ENGINE).
+[[bin]]
+name = "vlx-window"
+path = "src/bin/vlx-window.rs"
+required-features = ["window"]
+
 [features]
 default = ["window"]
 # The egui window. Without it the crate is the PORT's logic and the host protocol only: no graphics dependency, usable in tests and tools.
