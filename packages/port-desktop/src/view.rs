@@ -36,7 +36,7 @@ fn named(
 }
 
 /// The kinds of image file the window decodes.
-const IMAGE_KINDS: [&str; 6] = ["png", "jpg", "jpeg", "gif", "bmp", "webp"];
+const IMAGE_KINDS: [&str; 7] = ["png", "jpg", "jpeg", "gif", "bmp", "webp", "svg"];
 
 /// The URI of a local image file, or `None`: the engine names a file by its absolute path (an address or a relative path is not one), of a kind the window decodes, that exists.
 fn local_image(src: &str) -> Option<String> {

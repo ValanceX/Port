@@ -58,10 +58,23 @@ fn a_local_png_is_drawn_as_an_image_named_by_its_description() {
 }
 
 #[test]
+fn a_local_svg_is_drawn_as_an_image_too() {
+    let path = format!("{}/tests/fixtures/dot.svg", env!("CARGO_MANIFEST_DIR"));
+    let (named, _) = frame(&path);
+
+    assert!(
+        named
+            .iter()
+            .any(|(role, name)| *role == egui::accesskit::Role::Image && name == "A red square"),
+        "no image named by its description in {named:?}"
+    );
+}
+
+#[test]
 fn what_it_cannot_decode_or_find_is_drawn_as_its_description() {
     for src in [
         "https://example.com/a.png",
-        "/logo.svg",
+        "/not/there/logo.svg",
         "relative/a.png",
         "/no/such/file.png",
     ] {
