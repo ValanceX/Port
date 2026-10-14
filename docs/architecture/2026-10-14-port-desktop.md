@@ -31,13 +31,13 @@ The Web PORT's `controlled` field makes the DOM property equal to the rendered t
 
 ## The vocabulary
 
-Eight components: `window`, `column`, `row`, `heading`, `text`, `button`, `checkbox`, `textfield`. Their props and events are in the [README](../../packages/port-desktop/README.md#the-vocabulary) and in `vocabulary.json` (a MESH manifest, so a build derives what a template may use from the same file the window draws).
+Seven components: `column`, `row`, `heading`, `text`, `button`, `checkbox`, `textfield`. There is no `window` component: the window is the host's (its title comes from the application, its size from the host, and whether it may close from the application's guards), the way it is in SwiftUI (`Window` is a scene, and `navigationTitle` follows where you are) and GTK (the title is set on the window, not in its content). Their props and events are in the [README](../../packages/port-desktop/README.md#the-vocabulary) and in `vocabulary.json` (a MESH manifest, so a build derives what a template may use from the same file the window draws).
 
 Design rules, from the ecosystem's [API design principles](https://github.com/ValanceX/Mesh/blob/main/docs/standards/api-design-principles.md) (the investigation applies them one by one):
 
-1. **Few concepts.** A newcomer's first application needs eight, and no fixed attribute, style or class.
+1. **Few concepts.** A newcomer's first application needs seven, and no fixed attribute, style or class.
 2. **Names a developer from any platform already knows.** A window, rows and columns, text, a button, a checkbox, a text field.
-3. **Intent, not device.** Events are what a person does, not how: `press` (not click or tap), `toggle`, `change`.
+3. **Two verbs.** `click` for a button, and `change` for a control whose value the application owns: it carries the new value, so the same report twice is the same state. `click` is device-independent where it is defined (a DOM `click` is also raised by the keyboard and by assistive technology).
 4. **No markup, no web hooks.** Text is text. There is no `class`, `id` or `tabindex`.
 5. **A target's own things stay the target's.** Anything beyond the eight (images, links, styling) is added to this vocabulary deliberately, not by passing a toolkit's widget through.
 
@@ -48,6 +48,7 @@ An engine in another process (the application, in JavaScript or anything else) d
 | Engine to PORT | Meaning |
 |---|---|
 | `{"op":"hello","protocol":1,"app":"name"}` | First line. A PORT that does not know the number stops. |
+| `{"op":"title","title":"…"}` | What the window is called. Sent before the screen it goes with, and again when it changes. |
 | `{"op":"draw","tree":RenderTree}` | The contract's `draw`. |
 | `{"op":"update","tree":RenderTree}` | The contract's `update`. |
 | `{"op":"unmount"}` | The contract's `unmount`; the window closes. |

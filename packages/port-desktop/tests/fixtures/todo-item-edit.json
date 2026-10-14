@@ -5,136 +5,125 @@
       {
         "children": [
           {
-            "children": [
-              {
-                "key": "k3VPUR4yO1i2SnZxH4JlmKQ",
-                "text": "Edit item",
-                "type": "text"
-              }
-            ],
-            "component": "heading",
-            "events": {},
-            "key": "kna_LmDSbSxrQoqwahBLWmA",
-            "props": {},
-            "type": "node"
-          },
+            "key": "kj8iKKKkNztw3qrz5DDZiRw",
+            "text": "Edit item",
+            "type": "text"
+          }
+        ],
+        "component": "heading",
+        "events": {},
+        "key": "kh2-AYgbhuXpuhD_6rDVrIw",
+        "props": {},
+        "type": "node"
+      },
+      {
+        "children": [
+          {
+            "key": "kHe7eVxvA6LsYnCwl_7YGaQ",
+            "text": "In Groceries",
+            "type": "text"
+          }
+        ],
+        "component": "text",
+        "events": {},
+        "key": "kVWfFc_ZDH1dDnJpHumU6NQ",
+        "props": {},
+        "type": "node"
+      },
+      {
+        "children": [],
+        "component": "textfield",
+        "events": {
+          "change": "h9sVk8NiHzFo.BrGsUG8tj3-HnO20VjEgiA"
+        },
+        "key": "kmcxn0HTUPi9s8K8y_6I_iQ",
+        "props": {
+          "placeholder": "What needs doing?",
+          "value": "Oat milk"
+        },
+        "type": "node"
+      },
+      {
+        "children": [
+          {
+            "key": "k2opPM_70w5A1c1k-QEDsxg",
+            "text": "Unsaved changes",
+            "type": "text"
+          }
+        ],
+        "component": "text",
+        "events": {},
+        "key": "kiCVCXu3nd8TzvolWHDuUVA",
+        "props": {},
+        "type": "node"
+      },
+      {
+        "children": [
           {
             "children": [
               {
-                "key": "kbomNE6fDbvULj-qpSEIgyA",
-                "text": "In Groceries",
+                "key": "k6y5M9O8Slgr1kBLM-EMvaw",
+                "text": "Save",
                 "type": "text"
               }
             ],
-            "component": "text",
-            "events": {},
-            "key": "ktiDvjOqBrRkY42nl9mguUQ",
-            "props": {},
-            "type": "node"
-          },
-          {
-            "children": [],
-            "component": "textfield",
+            "component": "button",
             "events": {
-              "change": "hKAaIU5gy4Yk.i-AxUEJGckz09XluOluNgA"
+              "click": "h9sVk8NiHzFo.REoL2rZe5vGmbkKwIKIY-Q"
             },
-            "key": "k7x6DtSKbARmICUnwsCBj_w",
-            "props": {
-              "placeholder": "What needs doing?",
-              "value": "Oat milk"
-            },
-            "type": "node"
-          },
-          {
-            "children": [
-              {
-                "key": "k5H-8eyb8D9OnvcOtgKSlKA",
-                "text": "Unsaved changes",
-                "type": "text"
-              }
-            ],
-            "component": "text",
-            "events": {},
-            "key": "kwKWJNut7R0VlKIg6cItKxw",
+            "key": "kIwsNJPgLlTacebJw2w1EPQ",
             "props": {},
             "type": "node"
           },
           {
             "children": [
               {
-                "children": [
-                  {
-                    "key": "kaxCrPtZgERXDjbFNtNJIHA",
-                    "text": "Save",
-                    "type": "text"
-                  }
-                ],
-                "component": "button",
-                "events": {
-                  "press": "hKAaIU5gy4Yk.-8lWnmmGUmVTXFSyaohFcQ"
-                },
-                "key": "kwtZRk8nve11VmQYYn4JTlw",
-                "props": {},
-                "type": "node"
-              },
-              {
-                "children": [
-                  {
-                    "key": "kwjU5TiJT3NjNqtYjAK2faw",
-                    "text": "Discard",
-                    "type": "text"
-                  }
-                ],
-                "component": "button",
-                "events": {
-                  "press": "hKAaIU5gy4Yk.ZNZaWzPv8gzEUiKL8AppTw"
-                },
-                "key": "kjVOgo8aKod-3bsxavIGS1Q",
-                "propText": {
-                  "disabled": "false"
-                },
-                "props": {
-                  "disabled": false
-                },
-                "type": "node"
-              },
-              {
-                "children": [
-                  {
-                    "key": "kVwvi8q-9c--ZnMiRmt6uIg",
-                    "text": "Back to list",
-                    "type": "text"
-                  }
-                ],
-                "component": "button",
-                "events": {
-                  "press": "hKAaIU5gy4Yk.pd1PevmXNGJWK1OTuO5gjQ"
-                },
-                "key": "kC23ZLW-dMqnsixuwfLaZ9Q",
-                "props": {},
-                "type": "node"
+                "key": "kbxxC-twKFzar9xxc_MveSA",
+                "text": "Discard",
+                "type": "text"
               }
             ],
-            "component": "row",
-            "events": {},
-            "key": "kOasvIc4HrgBca44Wbsu3OA",
+            "component": "button",
+            "events": {
+              "click": "h9sVk8NiHzFo.PDd5GSqnHR4NwDm9VINHag"
+            },
+            "key": "kXTYhTCGcQOyW6pvkK2Tv-w",
+            "propText": {
+              "disabled": "false"
+            },
+            "props": {
+              "disabled": false
+            },
+            "type": "node"
+          },
+          {
+            "children": [
+              {
+                "key": "k2tr6wc1CMs3CtozmDUTtmA",
+                "text": "Back to list",
+                "type": "text"
+              }
+            ],
+            "component": "button",
+            "events": {
+              "click": "h9sVk8NiHzFo.9xT5E4nsPk6qwTg-OcARRA"
+            },
+            "key": "k32r0f-eTT8mNA4Ikne_QFg",
             "props": {},
             "type": "node"
           }
         ],
-        "component": "column",
+        "component": "row",
         "events": {},
-        "key": "ksk_fwZDiwIlUInNVt75iOQ",
+        "key": "k9wooj6HNKtExPjO_g7kL2w",
         "props": {},
         "type": "node"
       }
     ],
-    "component": "window",
+    "component": "column",
     "events": {},
-    "key": "kfbrj4JZcs63stlxXxg-kwg",
-    "props": {
-      "title": "Edit item"
-    },
+    "key": "kK4AOfKexd2G9nbHIQ2RQEQ",
+    "props": {},
     "type": "node"
   },
   "version": 1

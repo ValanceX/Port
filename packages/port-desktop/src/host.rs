@@ -26,6 +26,10 @@ pub enum FromEngine {
         tree: Tree,
     },
     Unmount,
+    /// What the window is called. The window is the host's, not the template's: the application says its title.
+    Title {
+        title: String,
+    },
     /// The answer to `CloseRequested`: when not allowed (unsaved edits), the window stays open.
     #[serde(rename = "closeAnswer")]
     CloseAnswer {
@@ -79,6 +83,8 @@ pub struct Session {
     pub port: Port,
     pub app: Option<String>,
     pub gone: bool,
+    /// The window's title, as the engine last said it.
+    pub title: Option<String>,
     /// The engine said the window may not close yet (unsaved edits); cleared by the next screen it sends.
     pub close_refused: bool,
 }
@@ -100,6 +106,7 @@ impl Session {
                 Ok(()) => self.close_refused = false,
                 Err(error) => return Applied::Refused(error),
             },
+            FromEngine::Title { title } => self.title = Some(title),
             FromEngine::CloseAnswer { allowed } => self.close_refused = !allowed,
             FromEngine::Unmount => {
                 self.port.unmount();

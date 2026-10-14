@@ -5,121 +5,110 @@
       {
         "children": [
           {
+            "key": "kT6Ln6U7KWzF43C5081VNJg",
+            "text": "Your lists",
+            "type": "text"
+          }
+        ],
+        "component": "heading",
+        "events": {},
+        "key": "kBHSE_HM9Bgt_9zDGleR5Ow",
+        "props": {},
+        "type": "node"
+      },
+      {
+        "children": [
+          {
             "children": [
               {
-                "key": "k-mrXwg3TEe1X7Tf4j-Tbig",
-                "text": "Your lists",
+                "key": "k23khAycWRhvvZJ4uj3lbAg",
+                "text": "Groceries (1 of 2 open)",
                 "type": "text"
               }
             ],
-            "component": "heading",
-            "events": {},
-            "key": "kOW5sKwHB0vqf1mbH2ZfpNw",
-            "props": {},
-            "type": "node"
-          },
-          {
-            "children": [
-              {
-                "children": [
-                  {
-                    "key": "kfIOY82rEo9gX7YQKUscmiQ",
-                    "text": "Groceries (1 of 2 open)",
-                    "type": "text"
-                  }
-                ],
-                "component": "button",
-                "events": {
-                  "press": "hoWyVbWcLV4Q.Sh2SVQx8llJvFy8LmeUR9A"
-                },
-                "key": "k59jgfUm-eGIGu9voAnIeEA",
-                "props": {},
-                "type": "node"
-              }
-            ],
-            "component": "row",
-            "events": {},
-            "key": "kBes2XlMoKZY_8PW0s9LAqw",
-            "props": {},
-            "type": "node"
-          },
-          {
-            "children": [
-              {
-                "children": [
-                  {
-                    "key": "kdEL_N_xDn9emU8k4ceaW0w",
-                    "text": "Weekend (0 of 0 open)",
-                    "type": "text"
-                  }
-                ],
-                "component": "button",
-                "events": {
-                  "press": "hoWyVbWcLV4Q.6mvMi_k1uIR7EAvW2O7YWg"
-                },
-                "key": "ka_lowvbaYyFtAw-9daDPgw",
-                "props": {},
-                "type": "node"
-              }
-            ],
-            "component": "row",
-            "events": {},
-            "key": "kBOEhDO2T5wbutQX0-xj4iw",
-            "props": {},
-            "type": "node"
-          },
-          {
-            "children": [
-              {
-                "children": [],
-                "component": "textfield",
-                "events": {
-                  "change": "hoWyVbWcLV4Q.yIPJneYV2P1BTqeIDppysg"
-                },
-                "key": "kMSOhHB7eqSCLkZq69V-sKA",
-                "props": {
-                  "placeholder": "New list",
-                  "value": ""
-                },
-                "type": "node"
-              },
-              {
-                "children": [
-                  {
-                    "key": "k_Q2lIdkwjANgR5ukCpYnLw",
-                    "text": "Add list",
-                    "type": "text"
-                  }
-                ],
-                "component": "button",
-                "events": {
-                  "press": "hoWyVbWcLV4Q.fyGFdtBwgZyKmdlJeglZnA"
-                },
-                "key": "kjp0Z4xxeYY-bnx3Kq7QewQ",
-                "props": {},
-                "type": "node"
-              }
-            ],
-            "component": "row",
-            "events": {},
-            "key": "kKDRZbh0oRDERCmK638BZrQ",
+            "component": "button",
+            "events": {
+              "click": "hxc9RN_CUjYQ.Acy9MbvBTcZ3EE-ePZBtrg"
+            },
+            "key": "k91Fc8IJ0KjnZLTEL4LLI7w",
             "props": {},
             "type": "node"
           }
         ],
-        "component": "column",
+        "component": "row",
         "events": {},
-        "key": "kZxTG0vWj3BGuJGmJhw4HoA",
+        "key": "kHlmYGSgCXygOfCeUtCzaeA",
+        "props": {},
+        "type": "node"
+      },
+      {
+        "children": [
+          {
+            "children": [
+              {
+                "key": "kcUxDI0fjqlut7eetpKT-pw",
+                "text": "Weekend (0 of 0 open)",
+                "type": "text"
+              }
+            ],
+            "component": "button",
+            "events": {
+              "click": "hxc9RN_CUjYQ.u3AnzXQdYlDU_EAAxIABNQ"
+            },
+            "key": "ksoQjtY2JeNkXrLfK8ODAMg",
+            "props": {},
+            "type": "node"
+          }
+        ],
+        "component": "row",
+        "events": {},
+        "key": "kWVHXO45mERmMkmasonl9Rw",
+        "props": {},
+        "type": "node"
+      },
+      {
+        "children": [
+          {
+            "children": [],
+            "component": "textfield",
+            "events": {
+              "change": "hxc9RN_CUjYQ.LkeAcQ0kuMtVi1mQ4Ty-sQ"
+            },
+            "key": "ko0X_PrqaQ8-Pt-1hO5dqZA",
+            "props": {
+              "placeholder": "New list",
+              "value": ""
+            },
+            "type": "node"
+          },
+          {
+            "children": [
+              {
+                "key": "kfHoTczPZqDSiez-LAbiA4A",
+                "text": "Add list",
+                "type": "text"
+              }
+            ],
+            "component": "button",
+            "events": {
+              "click": "hxc9RN_CUjYQ.1eKtYt8E4qSq0yIaF917ig"
+            },
+            "key": "kYCD8t7MzvvNX4gXOf-HV3g",
+            "props": {},
+            "type": "node"
+          }
+        ],
+        "component": "row",
+        "events": {},
+        "key": "keYefLjR1t80zzMknWPwukw",
         "props": {},
         "type": "node"
       }
     ],
-    "component": "window",
+    "component": "column",
     "events": {},
-    "key": "kDzubFBdseARSRS63eOhd_Q",
-    "props": {
-      "title": "To-do"
-    },
+    "key": "kdCH9GS75CCbBaqGV67y_9w",
+    "props": {},
     "type": "node"
   },
   "version": 1

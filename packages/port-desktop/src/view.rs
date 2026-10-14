@@ -26,7 +26,7 @@ impl View {
                 events,
                 children,
             } => match component.as_str() {
-                "window" | "column" => {
+                "column" => {
                     ui.vertical(|ui| self.each(ui, children, out));
                 }
                 "row" => {
@@ -45,7 +45,7 @@ impl View {
                         .unwrap_or(false);
 
                     if ui.add_enabled(enabled, Button::new(node.text())).clicked() {
-                        report(events, "press", None, out);
+                        report(events, "click", None, out);
                     }
                 }
                 "checkbox" => {
@@ -54,9 +54,9 @@ impl View {
                         .and_then(Value::as_bool)
                         .unwrap_or(false);
 
-                    // The engine owns the value: a click is reported, and the box shows what comes back.
+                    // The engine owns the value: the new value is reported, and the box shows what comes back. A value, not a flip: the same report twice is the same state.
                     if ui.checkbox(&mut checked, "").changed() {
-                        report(events, "toggle", None, out);
+                        report(events, "change", Some(Value::Bool(checked)), out);
                     }
                 }
                 "textfield" => {
@@ -124,7 +124,6 @@ fn report(
 
 /// The components this window draws: exactly the ones `vocabulary.json` declares (a test holds the two together).
 pub const REALIZED: &[&str] = &[
-    "window",
     "column",
     "row",
     "heading",

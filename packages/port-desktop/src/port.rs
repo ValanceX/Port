@@ -117,21 +117,8 @@ pub mod inspect {
         found
     }
 
-    /// The window's title, from the root `window` component.
-    pub fn title(port: &Port) -> Option<String> {
-        port.tree().and_then(|tree| match &tree.root {
-            Node::Node {
-                component, props, ..
-            } if component == "window" => props
-                .get("title")
-                .and_then(Value::as_str)
-                .map(str::to_owned),
-            _ => None,
-        })
-    }
-
-    /// The report for pressing the nth enabled button whose label starts with `label`.
-    pub fn press(port: &Port, label: &str, nth: usize) -> Option<Report> {
+    /// The report for clicking the nth enabled button whose label starts with `label`.
+    pub fn click(port: &Port, label: &str, nth: usize) -> Option<Report> {
         all(port)
             .into_iter()
             .filter_map(|node| match node {
@@ -145,7 +132,7 @@ pub mod inspect {
                         .get("disabled")
                         .and_then(Value::as_bool)
                         .unwrap_or(false),
-                    events.get("press"),
+                    events.get("click"),
                 )),
                 _ => None,
             })
@@ -155,6 +142,61 @@ pub mod inspect {
                 handler,
                 payload: None,
             })
+    }
+
+    /// The report for ticking or unticking the checkbox in the row of the button labelled `label`: its new value.
+    pub fn check(port: &Port, label: &str) -> Option<Report> {
+        fn rows<'a>(node: &'a Node, into: &mut Vec<&'a Node>) {
+            if let Node::Node {
+                component,
+                children,
+                ..
+            } = node
+            {
+                if component == "row" {
+                    into.push(node);
+                }
+                children.iter().for_each(|child| rows(child, into));
+            }
+        }
+        let mut found = Vec::new();
+
+        if let Some(tree) = port.tree() {
+            rows(&tree.root, &mut found);
+        }
+
+        found.into_iter().find_map(|row| {
+            let Node::Node { children, .. } = row else {
+                return None;
+            };
+
+            children
+                .iter()
+                .any(|child| {
+                    matches!(child, Node::Node { component, .. } if component == "button")
+                        && child.text().starts_with(label)
+                })
+                .then_some(())?;
+            children.iter().find_map(|child| match child {
+                Node::Node {
+                    component,
+                    props,
+                    events,
+                    ..
+                } if component == "checkbox" => {
+                    let now = props
+                        .get("checked")
+                        .and_then(Value::as_bool)
+                        .unwrap_or(false);
+
+                    events.get("change").map(|handler| Report {
+                        handler: handler.clone(),
+                        payload: Some(Value::Bool(!now)),
+                    })
+                }
+                _ => None,
+            })
+        })
     }
 
     /// The report for typing `text` into the textfield with this placeholder.

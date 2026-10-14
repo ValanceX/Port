@@ -18,7 +18,6 @@ fn draws_a_tree_and_reads_what_is_on_screen() {
     let mut port = Port::new();
 
     port.draw(fixture("todo-lists")).unwrap();
-    assert_eq!(inspect::title(&port).as_deref(), Some("To-do"));
     assert!(inspect::readable(&port)
         .iter()
         .any(|line| line == "Your lists"));
@@ -91,13 +90,27 @@ fn an_interaction_is_reported_as_the_trees_handler_and_the_payload_and_nothing_e
 
     port.draw(fixture("todo-lists")).unwrap();
 
-    let press = inspect::press(&port, "Add list", 0).expect("the button is there");
+    let click = inspect::click(&port, "Add list", 0).expect("the button is there");
     let typed = inspect::type_into(&port, "New list", "Errands").expect("the field is there");
 
-    assert!(!press.handler.is_empty());
-    assert_eq!(press.payload, None);
+    assert!(!click.handler.is_empty());
+    assert_eq!(click.payload, None);
     assert_eq!(typed.payload, Some(json!("Errands")));
-    assert_ne!(press.handler, typed.handler);
+    assert_ne!(click.handler, typed.handler);
+}
+
+#[test]
+fn a_checkbox_reports_its_new_value_not_a_flip() {
+    let mut port = Port::new();
+
+    port.draw(fixture("todo-list")).unwrap();
+
+    // The sample list has Milk (not done) and Bread (done): each report is the value the box is going to, so the same report twice is the same state.
+    let tick = inspect::check(&port, "Milk").expect("Milk has a checkbox in its row");
+    let untick = inspect::check(&port, "Bread").expect("Bread has a checkbox in its row");
+
+    assert_eq!(tick.payload, Some(json!(true)));
+    assert_eq!(untick.payload, Some(json!(false)));
 }
 
 #[test]
@@ -111,7 +124,7 @@ fn a_disabled_button_reports_nothing_and_an_enabled_one_does() {
 
     port.draw(serde_json::from_str(&text).unwrap()).unwrap();
     assert!(
-        inspect::press(&port, "Clear done", 0).is_some(),
+        inspect::click(&port, "Clear done", 0).is_some(),
         "the sample list has a done item, so Clear done is enabled"
     );
 
@@ -129,6 +142,6 @@ fn a_disabled_button_reports_nothing_and_an_enabled_one_does() {
 
     disable(&mut value["root"]);
     port.update(serde_json::from_value(value).unwrap()).unwrap();
-    assert!(inspect::press(&port, "Clear done", 0).is_none());
-    assert!(inspect::press(&port, "Add item", 0).is_some());
+    assert!(inspect::click(&port, "Clear done", 0).is_none());
+    assert!(inspect::click(&port, "Add item", 0).is_some());
 }

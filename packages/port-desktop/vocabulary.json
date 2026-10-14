@@ -2,20 +2,19 @@
   "version": 1,
   "types": {},
   "components": {
-    "window": { "props": { "title": { "type": { "kind": "string" }, "required": true } }, "events": {}, "commands": {}, "scope": {} },
     "column": { "props": {}, "events": {}, "commands": {}, "scope": {} },
     "row": { "props": {}, "events": {}, "commands": {}, "scope": {} },
     "heading": { "props": {}, "events": {}, "commands": {}, "scope": {} },
     "text": { "props": {}, "events": {}, "commands": {}, "scope": {} },
     "button": {
       "props": { "disabled": { "type": { "kind": "boolean" }, "required": false } },
-      "events": { "press": {} },
+      "events": { "click": {} },
       "commands": {},
       "scope": {}
     },
     "checkbox": {
       "props": { "checked": { "type": { "kind": "boolean" }, "required": true } },
-      "events": { "toggle": {} },
+      "events": { "change": { "payload": { "kind": "boolean" } } },
       "commands": {},
       "scope": {}
     },

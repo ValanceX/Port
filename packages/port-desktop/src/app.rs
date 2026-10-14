@@ -66,7 +66,7 @@ impl eframe::App for App {
             }
         }
 
-        if let Some(title) = crate::port::inspect::title(&self.session.port) {
+        if let Some(title) = self.session.title.clone() {
             if title != self.title {
                 ctx.send_viewport_cmd(egui::ViewportCommand::Title(title.clone()));
                 self.title = title;
