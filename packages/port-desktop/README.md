@@ -70,7 +70,7 @@ An engine in another process (the application, in JavaScript) drives the PORT wi
 
 ## `vlx-window`
 
-A window for any engine, used by `vlx dev` on a desktop project: `cargo install --git https://github.com/ValanceX/Port valancex-port-desktop --bin vlx-window`. It runs the command line in `VLX_ENGINE` (split on spaces) and shows what the engine draws; the window's title is the application's, sent over the protocol.
+A window for any engine, used by `vlx dev` on a desktop project: `cargo install --git https://github.com/ValanceX/Port valancex-port-desktop --bin vlx-window`. It runs the command line in `VLX_ENGINE` (split on spaces) and shows what the engine draws; when `VLX_RELOAD` names a file, a change to that file's modification time starts the engine again in the same window (a development server touches it after a rebuild); the window's title is the application's, sent over the protocol.
 
 ## Features
 

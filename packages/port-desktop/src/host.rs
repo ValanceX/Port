@@ -7,6 +7,7 @@ use serde_json::Value;
 use std::io::{BufRead, BufReader, Write};
 use std::process::{Child, ChildStdin, Command, Stdio};
 use std::sync::mpsc::{channel, Receiver};
+use std::sync::Arc;
 use std::thread;
 
 pub const PROTOCOL: u64 = 1;
@@ -136,6 +137,9 @@ impl Session {
 
 /// The engine as a child process: its stdout is read on a thread, its stdin written to.
 pub struct Engine {
+    program: String,
+    args: Vec<String>,
+    wake: Arc<dyn Fn() + Send + Sync>,
     child: Child,
     stdin: Option<ChildStdin>,
     pub messages: Receiver<FromEngine>,
@@ -146,12 +150,20 @@ impl Engine {
     pub fn spawn(
         program: &str,
         args: &[String],
-        wake: impl Fn() + Send + 'static,
+        wake: impl Fn() + Send + Sync + 'static,
     ) -> std::io::Result<Engine> {
-        let mut command = Command::new(program);
+        Engine::start(program.to_owned(), args.to_vec(), Arc::new(wake))
+    }
+
+    fn start(
+        program: String,
+        args: Vec<String>,
+        wake: Arc<dyn Fn() + Send + Sync>,
+    ) -> std::io::Result<Engine> {
+        let mut command = Command::new(&program);
 
         command
-            .args(args)
+            .args(&args)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::inherit());
@@ -166,6 +178,7 @@ impl Engine {
         let stdin = child.stdin.take();
         let stdout = child.stdout.take().expect("piped");
         let (send, messages) = channel();
+        let woken = wake.clone();
 
         thread::spawn(move || {
             for line in BufReader::new(stdout).lines() {
@@ -176,7 +189,7 @@ impl Engine {
                         if send.send(message).is_err() {
                             break;
                         }
-                        wake();
+                        woken();
                     }
                     Err(error) => {
                         eprintln!("port-desktop: ignoring a line that is not a message: {error}")
@@ -186,10 +199,24 @@ impl Engine {
         });
 
         Ok(Engine {
+            program,
+            args,
+            wake,
             child,
             stdin,
             messages,
         })
+    }
+
+    /// Ends this engine and starts the same command again: the window stays, and the application starts from its first screen. What a development server does after a rebuild.
+    pub fn restart(&mut self) -> std::io::Result<()> {
+        self.stdin = None;
+        let _ = self.child.kill();
+        let _ = self.child.wait();
+
+        *self = Engine::start(self.program.clone(), self.args.clone(), self.wake.clone())?;
+
+        Ok(())
     }
 
     pub fn send(&mut self, message: &ToEngine) {

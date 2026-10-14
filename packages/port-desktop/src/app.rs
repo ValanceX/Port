@@ -1,5 +1,6 @@
 //! The window: a generic runner that starts an engine, draws what it sends and reports what the person does, until the application ends. An application's own binary is a call to `run`.
 use crate::host::{Applied, Engine, Session, ToEngine, PROTOCOL};
+use crate::reload::Reload;
 use crate::view::{Output, View};
 use std::sync::{Arc, OnceLock};
 
@@ -38,6 +39,8 @@ fn engine_command(options: &Options) -> (String, Vec<String>) {
 }
 
 struct App {
+    /// The file a development server touches when it rebuilds the engine (`VLX_RELOAD`).
+    reload: Reload,
     /// The system's colors as last told to the engine.
     told_scheme: Option<egui::Theme>,
     engine: Engine,
@@ -49,6 +52,25 @@ struct App {
 
 impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        // The engine was rebuilt: start it again in this window, from its first screen.
+        if self.reload.watching() {
+            ctx.request_repaint_after(std::time::Duration::from_millis(250));
+
+            if self.reload.changed() {
+                match self.engine.restart() {
+                    Ok(()) => {
+                        self.session = Session::default();
+                        self.view.reset();
+                        self.problem = None;
+                        self.told_scheme = None;
+                    }
+                    Err(error) => {
+                        self.problem = Some(format!("could not restart the engine: {error}"))
+                    }
+                }
+            }
+        }
+
         while let Ok(message) = self.engine.messages.try_recv() {
             let replaced = matches!(message, crate::host::FromEngine::Draw { .. });
 
@@ -178,6 +200,7 @@ pub fn run(options: Options) -> eframe::Result {
             egui_extras::install_image_loaders(&cc.egui_ctx);
 
             Ok(Box::new(App {
+                reload: Reload::from_env("VLX_RELOAD"),
                 told_scheme: None,
                 engine,
                 session: Session::default(),

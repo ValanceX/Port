@@ -6,6 +6,7 @@ All notable changes to PORT are recorded here. The project follows [Semantic Ver
 
 ### Added
 
+- `valancex-port-desktop`: the window can start its engine again in place (`Engine::restart`), triggered by a change to the file `VLX_RELOAD` names, so a development server can rebuild without closing and reopening the window.
 - `valancex-port-desktop`: `submit`, an event of `textfield` (the person pressed Enter in it). A headless test clicks into the field and presses keys.
 - `@valancex/port-web`: an event can be realized by one key (`{ type: "keydown", key: "Enter" }`): any other key is not that event, and the interaction goes on toward the root. Additive.
 - `valancex-port-desktop`: color scheme. The window tells the engine the system's colors (`scheme`, when it opens and when they change), and the engine may ask the window to look `light`, `dark` or `system` (`appearance`); the window follows the system when it asks for nothing.
