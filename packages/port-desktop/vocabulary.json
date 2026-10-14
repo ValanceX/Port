@@ -40,6 +40,12 @@
             "kind": "boolean"
           },
           "required": false
+        },
+        "label": {
+          "type": {
+            "kind": "string"
+          },
+          "required": false
         }
       },
       "events": {
@@ -55,6 +61,12 @@
             "kind": "boolean"
           },
           "required": true
+        },
+        "label": {
+          "type": {
+            "kind": "string"
+          },
+          "required": false
         }
       },
       "events": {
@@ -76,6 +88,12 @@
           "required": true
         },
         "placeholder": {
+          "type": {
+            "kind": "string"
+          },
+          "required": false
+        },
+        "label": {
           "type": {
             "kind": "string"
           },

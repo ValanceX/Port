@@ -3,7 +3,7 @@
 use crate::field::Field;
 use crate::port::Report;
 use crate::tree::Node;
-use egui::{Button, RichText, TextEdit, Ui};
+use egui::{Button, Response, RichText, TextEdit, Ui, WidgetInfo, WidgetType};
 use serde_json::Value;
 use std::collections::{BTreeMap, HashMap};
 
@@ -14,6 +14,25 @@ pub enum Output {
     Report(Report),
     /// A link was activated: its address.
     Link(String),
+}
+
+/// The accessible name of a control. A control's name is its `label` when the template gives one (a checkbox has no text of its own, and a field's hint is not a name); otherwise the platform
+/// reads what the widget shows. `selected` is the state a checkbox reports.
+fn named(
+    response: &Response,
+    kind: WidgetType,
+    props: &BTreeMap<String, Value>,
+    enabled: bool,
+    selected: Option<bool>,
+) {
+    if let Some(name) = props.get("label").and_then(Value::as_str) {
+        let name = name.to_owned();
+
+        response.widget_info(move || match selected {
+            Some(on) => WidgetInfo::selected(kind, enabled, on, &name),
+            None => WidgetInfo::labeled(kind, enabled, &name),
+        });
+    }
 }
 
 /// The window's retained state between frames: its text fields.
@@ -139,7 +158,11 @@ impl View {
                         .and_then(Value::as_bool)
                         .unwrap_or(false);
 
-                    if ui.add_enabled(enabled, Button::new(node.text())).clicked() {
+                    let response = ui.add_enabled(enabled, Button::new(node.text()));
+
+                    named(&response, WidgetType::Button, props, enabled, None);
+
+                    if response.clicked() {
                         report(events, "click", None, out);
                     }
                 }
@@ -150,7 +173,11 @@ impl View {
                         .unwrap_or(false);
 
                     // The engine owns the value: the new value is reported, and the box shows what comes back. A value, not a flip: the same report twice is the same state.
-                    if ui.checkbox(&mut checked, "").changed() {
+                    let response = ui.checkbox(&mut checked, "");
+
+                    named(&response, WidgetType::Checkbox, props, true, Some(checked));
+
+                    if response.changed() {
                         report(events, "change", Some(Value::Bool(checked)), out);
                     }
                 }
@@ -168,14 +195,15 @@ impl View {
 
                     field.incoming(shown);
 
-                    if ui
-                        .add(
-                            TextEdit::singleline(&mut field.buffer)
-                                .hint_text(hint)
-                                .desired_width(240.0),
-                        )
-                        .changed()
-                    {
+                    let response = ui.add(
+                        TextEdit::singleline(&mut field.buffer)
+                            .hint_text(hint)
+                            .desired_width(240.0),
+                    );
+
+                    named(&response, WidgetType::TextEdit, props, true, None);
+
+                    if response.changed() {
                         let text = field.typed();
 
                         report(events, "change", Some(Value::String(text)), out);

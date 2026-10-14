@@ -6,6 +6,8 @@ All notable changes to PORT are recorded here. The project follows [Semantic Ver
 
 ### Added
 
+- `valancex-port-desktop`: an optional `label` on `button`, `checkbox` and `textfield`, the control's accessible name, passed to the platform's accessibility tree (AccessKit, now enabled in the window). A test draws a tree with no window and reads the names back.
+- `vlx-window` (a binary of `valancex-port-desktop`): a window for any engine, for `vlx dev`.
 - The content layer of `valancex-port-desktop` (`content.json`: `paragraph`, `list`, `listitem`, `code`, `blockquote`, `image`, `strong`, `emphasis`, `link`, and `heading` with a `level`), named as WAI-ARIA names them, drawn from real MESH output, with links reported as addresses (`link` in the host protocol).
 - `valancex-port-desktop` 0.1.0 (unreleased): the Desktop PORT. A Rust crate that realizes `render-v1` as a native window (egui) and reports interactions as handler identifiers and payloads. A vocabulary of seven components (`column`, `row`, `heading`, `text`, `button`, `checkbox`, `textfield`) in `vocabulary.json`, with two events (`click`, `change`); the host protocol for an engine in another process; contract tests on real MESH output. See the [architecture note](./docs/architecture/2026-10-14-port-desktop.md).
 

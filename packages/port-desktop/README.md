@@ -44,9 +44,11 @@ Seven components, in [`vocabulary.json`](./vocabulary.json) (a MESH manifest, so
 | `row` | | | Its children side by side, wrapping when the window is narrow. |
 | `heading` | | | A title for what follows. |
 | `text` | | | A run of text. Text is text: nothing in it is markup. |
-| `button` | `disabled` (optional) | `click` | Something to press. Its content is its label. A disabled button reports nothing. |
-| `checkbox` | `checked` | `change` (the new value, true or false) | A box that is ticked or not. The application decides whether it is. |
-| `textfield` | `value`, `placeholder` (optional) | `change` (the text) | A line of text the person edits. |
+| `button` | `disabled`, `label` (optional) | `click` | Something to press. Its content is its label. A disabled button reports nothing. |
+| `checkbox` | `checked`, `label` (optional) | `change` (the new value, true or false) | A box that is ticked or not. The application decides whether it is. |
+| `textfield` | `value`, `placeholder`, `label` (optional) | `change` (the text) | A line of text the person edits. |
+
+**`label`** is a control's accessible name, the one a screen reader says: a checkbox has no text of its own and a field's `placeholder` is a hint, not a name, so a template gives them a `label` (the window passes it to the platform's accessibility tree through AccessKit). A button's name is its content unless a `label` says otherwise.
 
 Two events: **click** (a button) and **change** (the value of a checkbox or a text field changed; it carries the new value). The names are the ones most toolkits already use; [the investigation](https://github.com/ValanceX/Valance/blob/main/docs/application-model/NATIVE-VOCABULARY.md) has the sources. The **content layer** (`content.json`) is what Markdown produces, named as WAI-ARIA names the same things: `paragraph`, `list` (`ordered`), `listitem`, `code`, `blockquote`, `image` (`src`, `label`), `strong`, `emphasis`, `link` (`href`), and `heading` with its `level`. Its names are WAI-ARIA's (the maintainer's decision, after checking them against the toolkits' sources). Images are drawn as their description until the PORT carries an image loader. A link is an address and has no event: activating it reports the address (`link` in the host protocol), and the application decides what it means. Repeating and conditional parts are not components: they are MESH's blocks (`{#each}`, `{#if}`) in the template.
 
