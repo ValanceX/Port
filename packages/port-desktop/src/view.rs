@@ -35,6 +35,21 @@ fn named(
     }
 }
 
+/// The kinds of image file the window decodes.
+const IMAGE_KINDS: [&str; 6] = ["png", "jpg", "jpeg", "gif", "bmp", "webp"];
+
+/// The URI of a local image file, or `None`: the engine names a file by its absolute path (an address or a relative path is not one), of a kind the window decodes, that exists.
+fn local_image(src: &str) -> Option<String> {
+    let path = std::path::Path::new(src);
+    let kind = path.extension()?.to_str()?.to_ascii_lowercase();
+
+    if !path.is_absolute() || !IMAGE_KINDS.contains(&kind.as_str()) || !path.is_file() {
+        return None;
+    }
+
+    Some(format!("file://{}", src.replace('\\', "/")))
+}
+
 /// The window's retained state between frames: its text fields.
 #[derive(Default)]
 pub struct View {
@@ -145,12 +160,25 @@ impl View {
                     });
                 }
                 "image" => {
-                    // Decoding an image needs a loader this PORT does not carry yet: its description stands in.
                     let label = props.get("label").and_then(Value::as_str).unwrap_or("");
+                    let src = props.get("src").and_then(Value::as_str).unwrap_or("");
 
-                    egui::Frame::group(ui.style()).show(ui, |ui| {
-                        ui.label(RichText::new(format!("[image: {label}]")).weak());
-                    });
+                    match local_image(src) {
+                        // A file on this machine the engine named, of a kind the PORT decodes: drawn, named for assistive technology by its description.
+                        Some(uri) => {
+                            ui.add(
+                                egui::Image::new(uri)
+                                    .max_width(480.0)
+                                    .alt_text(label.to_owned()),
+                            );
+                        }
+                        // Anything else (an address on the network, a vector image, a file that is not there): the description stands in. The PORT fetches nothing.
+                        None => {
+                            egui::Frame::group(ui.style()).show(ui, |ui| {
+                                ui.label(RichText::new(format!("[image: {label}]")).weak());
+                            });
+                        }
+                    }
                 }
                 "button" => {
                     let enabled = !props

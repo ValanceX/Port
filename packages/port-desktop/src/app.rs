@@ -148,6 +148,7 @@ pub fn run(options: Options) -> eframe::Result {
         },
         Box::new(move |cc| {
             let _ = window.set(cc.egui_ctx.clone());
+            egui_extras::install_image_loaders(&cc.egui_ctx);
 
             Ok(Box::new(App {
                 engine,
