@@ -47,6 +47,11 @@ pub enum ToEngine {
         payload: Option<Value>,
     },
     Close,
+    /// The person activated a link. A link is an address, not an event: the tree carries its `href` and no handler, so the PORT tells the engine which address and the engine decides what it means
+    /// (the application owns navigation). The PORT never opens an address itself.
+    Link {
+        href: String,
+    },
     /// The person asked to close the window; the engine answers with `closeAnswer`.
     #[serde(rename = "closeRequested")]
     CloseRequested,

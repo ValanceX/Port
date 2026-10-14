@@ -2,28 +2,93 @@
   "version": 1,
   "types": {},
   "components": {
-    "column": { "props": {}, "events": {}, "commands": {}, "scope": {} },
-    "row": { "props": {}, "events": {}, "commands": {}, "scope": {} },
-    "heading": { "props": {}, "events": {}, "commands": {}, "scope": {} },
-    "text": { "props": {}, "events": {}, "commands": {}, "scope": {} },
+    "column": {
+      "props": {},
+      "events": {},
+      "commands": {},
+      "scope": {}
+    },
+    "row": {
+      "props": {},
+      "events": {},
+      "commands": {},
+      "scope": {}
+    },
+    "heading": {
+      "props": {
+        "level": {
+          "type": {
+            "kind": "number"
+          },
+          "required": false
+        }
+      },
+      "events": {},
+      "commands": {},
+      "scope": {}
+    },
+    "text": {
+      "props": {},
+      "events": {},
+      "commands": {},
+      "scope": {}
+    },
     "button": {
-      "props": { "disabled": { "type": { "kind": "boolean" }, "required": false } },
-      "events": { "click": {} },
+      "props": {
+        "disabled": {
+          "type": {
+            "kind": "boolean"
+          },
+          "required": false
+        }
+      },
+      "events": {
+        "click": {}
+      },
       "commands": {},
       "scope": {}
     },
     "checkbox": {
-      "props": { "checked": { "type": { "kind": "boolean" }, "required": true } },
-      "events": { "change": { "payload": { "kind": "boolean" } } },
+      "props": {
+        "checked": {
+          "type": {
+            "kind": "boolean"
+          },
+          "required": true
+        }
+      },
+      "events": {
+        "change": {
+          "payload": {
+            "kind": "boolean"
+          }
+        }
+      },
       "commands": {},
       "scope": {}
     },
     "textfield": {
       "props": {
-        "value": { "type": { "kind": "string" }, "required": true },
-        "placeholder": { "type": { "kind": "string" }, "required": false }
+        "value": {
+          "type": {
+            "kind": "string"
+          },
+          "required": true
+        },
+        "placeholder": {
+          "type": {
+            "kind": "string"
+          },
+          "required": false
+        }
       },
-      "events": { "change": { "payload": { "kind": "string" } } },
+      "events": {
+        "change": {
+          "payload": {
+            "kind": "string"
+          }
+        }
+      },
       "commands": {},
       "scope": {}
     }

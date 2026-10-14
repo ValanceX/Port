@@ -1,6 +1,6 @@
 //! The window: a generic runner that starts an engine, draws what it sends and reports what the person does, until the application ends. An application's own binary is a call to `run`.
 use crate::host::{Applied, Engine, Session, ToEngine, PROTOCOL};
-use crate::view::View;
+use crate::view::{Output, View};
 use std::sync::{Arc, OnceLock};
 
 /// What an application tells the runner.
@@ -103,8 +103,11 @@ impl eframe::App for App {
         if closing {
             self.engine.send(&ToEngine::CloseRequested);
         }
-        for report in reports {
-            self.engine.send(&report.into());
+        for output in reports {
+            match output {
+                Output::Report(report) => self.engine.send(&report.into()),
+                Output::Link(href) => self.engine.send(&ToEngine::Link { href }),
+            }
         }
     }
 
