@@ -46,7 +46,7 @@ Seven components, in [`vocabulary.json`](./vocabulary.json) (a MESH manifest, so
 | `text` | | | A run of text. Text is text: nothing in it is markup. |
 | `button` | `disabled`, `label` (optional) | `click` | Something to press. Its content is its label. A disabled button reports nothing. |
 | `checkbox` | `checked`, `label` (optional) | `change` (the new value, true or false) | A box that is ticked or not. The application decides whether it is. |
-| `textfield` | `value`, `placeholder`, `label` (optional) | `change` (the text) | A line of text the person edits. |
+| `textfield` | `value`, `placeholder`, `label` (optional) | `change` (the text), `submit` | A line of text the person edits. `submit` is Enter: the person is done with what they typed. |
 
 **`label`** is a control's accessible name, the one a screen reader says: a checkbox has no text of its own and a field's `placeholder` is a hint, not a name, so a template gives them a `label` (the window passes it to the platform's accessibility tree through AccessKit). A button's name is its content unless a `label` says otherwise.
 

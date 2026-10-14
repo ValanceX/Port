@@ -105,7 +105,8 @@
           "payload": {
             "kind": "string"
           }
-        }
+        },
+        "submit": {}
       },
       "commands": {},
       "scope": {}

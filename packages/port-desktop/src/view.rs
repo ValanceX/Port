@@ -231,6 +231,13 @@ impl View {
 
                     named(&response, WidgetType::TextEdit, props, true, None);
 
+                    // Enter in a single-line field takes it out of focus: that is the person submitting what they typed.
+                    if response.lost_focus()
+                        && ui.input(|input| input.key_pressed(egui::Key::Enter))
+                    {
+                        report(events, "submit", None, out);
+                    }
+
                     if response.changed() {
                         let text = field.typed();
 
