@@ -16,7 +16,7 @@ import type { PropRealization, WebPrimitives } from "./primitives.js";
 import type { Output } from "./realize.js";
 
 import { WebRealizationError } from "./error.js";
-import { isUnrealizable, realizeProp } from "./realize.js";
+import { URL_ATTRIBUTES, isUnrealizable, realizeProp } from "./realize.js";
 
 export const own = <V>(record: Readonly<Record<string, V>> | undefined, name: string): V | undefined =>
   record !== undefined && Object.hasOwn(record, name) ? record[name] : undefined;
@@ -55,7 +55,7 @@ const isRealization = (entry: unknown): entry is PropRealization => {
   const { kind, name, holds } = entry as { readonly kind?: unknown; readonly name?: unknown; readonly holds?: unknown };
 
   return typeof name === "string"
-    && (kind === "attribute" || kind === "text-property" || kind === "controlled" || kind === "boolean-attribute" || (kind === "property" && (holds === "boolean" || holds === "number" || holds === "value")));
+    && (kind === "attribute" || kind === "text-property" || kind === "controlled" || kind === "controlled-boolean" || kind === "boolean-attribute" || (kind === "property" && (holds === "boolean" || holds === "number" || holds === "value")));
 };
 
 /**
@@ -101,6 +101,31 @@ export const validatePrimitives = (primitives: WebPrimitives): Applicable => {
       }
 
       names.set(realization.name, `its prop \`${prop}\``);
+    }
+
+    // Constant attributes: the element's own, never data. A name is claimed once, whether by a prop or a constant.
+    for (const name of Object.keys(primitive.attributes ?? {})) {
+      const descriptor = Object.getOwnPropertyDescriptor(primitive.attributes, name)!;
+
+      if (!("value" in descriptor) || typeof descriptor.value !== "string") {
+        throw invalid(component, `gives its constant attribute "${name}" a value that isn't a string (an accessor or another type)`);
+      }
+
+      if (!ATTRIBUTE_NAME.test(name)) {
+        throw invalid(component, `has the constant attribute "${name}", which isn't a lowercase attribute name the DOM and HTML both give back unchanged`);
+      }
+
+      if (name.startsWith("on") || URL_ATTRIBUTES.has(name)) {
+        throw invalid(component, `has the constant attribute "${name}", which is ${name.startsWith("on") ? "an event handler" : "a URL slot"}: constants are neither code nor links (use a prop for data)`);
+      }
+
+      const other = attributes.get(name);
+
+      if (other !== undefined) {
+        throw invalid(component, `has the constant attribute "${name}", which ${other} already is`);
+      }
+
+      attributes.set(name, "one of its constant attributes");
     }
 
     const byType = new Map<string, string>();

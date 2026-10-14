@@ -50,6 +50,10 @@ const attributesOf = (node: RenderNode, primitives: WebPrimitives, plan: Plan): 
   if (primitive === undefined) {
     attributes.push([COMPONENT_ATTRIBUTE, node.component]);
   } else {
+    for (const [name, value] of Object.entries(primitive.attributes ?? {})) {
+      attributes.push([name, value]);
+    }
+
     for (const [name, output] of plan.get(node.key) ?? []) {
       const realization = own(primitive.props, name)!;
 
@@ -62,6 +66,7 @@ const attributesOf = (node: RenderNode, primitives: WebPrimitives, plan: Plan): 
 
           break;
         case "boolean-attribute":
+        case "controlled-boolean":
           if ("native" in output && output.native === true) {
             attributes.push([realization.name, undefined]);
           }

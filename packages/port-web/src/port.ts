@@ -200,7 +200,7 @@ const slots = (element: Element): Record<string, unknown> => element as unknown 
 const isPropertyClass = (realization: PropRealization): boolean => realization.kind === "property" || realization.kind === "text-property";
 
 /** The slots whose DOM property slot has an initial value to restore: the property class, and a controlled slot (which is an attribute and a property). */
-const hasPropertySlot = (realization: PropRealization): boolean => isPropertyClass(realization) || realization.kind === "controlled";
+const hasPropertySlot = (realization: PropRealization): boolean => isPropertyClass(realization) || realization.kind === "controlled" || realization.kind === "controlled-boolean";
 
 const writeProp = (node: DrawnNode, realization: PropRealization, output: Output): void => {
   const element = node.dom;
@@ -216,6 +216,7 @@ const writeProp = (node: DrawnNode, realization: PropRealization, output: Output
 
       return;
     case "boolean-attribute":
+    case "controlled-boolean":
       if ("native" in output && output.native === true) {
         element.setAttribute(realization.name, "");
       } else {
@@ -240,6 +241,17 @@ const reassert = (node: DrawnNode): void => {
 
   for (const [name, output] of node.outputs) {
     const realization = own(node.primitive.props, name);
+
+    if (realization?.kind === "controlled-boolean") {
+      const flag = slots(node.dom);
+      const wanted = "native" in output ? output.native === true : (node.initial.get(realization.name) as boolean | undefined) ?? false;
+
+      if (flag[realization.name] !== wanted) {
+        flag[realization.name] = wanted;
+      }
+
+      continue;
+    }
 
     if (realization?.kind !== "controlled") {
       continue;
@@ -302,14 +314,14 @@ const expectedAttributes = (node: RenderNode, primitive: WebPrimitive | undefine
     return [[COMPONENT_ATTRIBUTE, node.component, "component"]];
   }
 
-  const expected: Array<readonly [string, string, HydrationMismatchClass]> = [];
+  const expected: Array<readonly [string, string, HydrationMismatchClass]> = Object.entries(primitive.attributes ?? {}).map(([name, value]) => [name, value, "attribute"] as const);
 
   for (const [name, output] of plan.get(node.key) ?? []) {
     const realization = own(primitive.props, name)!;
 
     if ((realization.kind === "attribute" || realization.kind === "controlled") && "text" in output) {
       expected.push([realization.name, output.text, "attribute"]);
-    } else if (realization.kind === "boolean-attribute" && "native" in output && output.native === true) {
+    } else if ((realization.kind === "boolean-attribute" || realization.kind === "controlled-boolean") && "native" in output && output.native === true) {
       expected.push([realization.name, "", "boolean-attribute"]);
     }
   }
@@ -433,7 +445,11 @@ export const createWebPort = ({ container, primitives, report }: WebPortOptions)
       // Shown, not dropped: its children are still realized inside it.
       node.dom.setAttribute(COMPONENT_ATTRIBUTE, part.component);
     } else {
-      // The element is fresh, so its property slots hold their initial values.
+      // What the primitive always is (`type="checkbox"`), before anything the tree says; the element is fresh, so its property slots hold their initial values.
+      for (const [name, value] of Object.entries(primitive.attributes ?? {})) {
+        node.dom.setAttribute(name, value);
+      }
+
       for (const realization of Object.values(primitive.props ?? {})) {
         if (hasPropertySlot(realization)) {
           node.initial.set(realization.name, slots(node.dom)[realization.name]);
@@ -580,7 +596,7 @@ export const createWebPort = ({ container, primitives, report }: WebPortOptions)
 
     if (extra !== undefined) {
       const realization = Object.values(primitive?.props ?? {}).find((candidate) => candidate.name === extra && candidate.kind !== "property" && candidate.kind !== "text-property");
-      const cls: HydrationMismatchClass = primitive === undefined && extra === COMPONENT_ATTRIBUTE ? "component" : realization?.kind === "boolean-attribute" ? "boolean-attribute" : "attribute";
+      const cls: HydrationMismatchClass = primitive === undefined && extra === COMPONENT_ATTRIBUTE ? "component" : realization?.kind === "boolean-attribute" || realization?.kind === "controlled-boolean" ? "boolean-attribute" : "attribute";
 
       return mismatch(cls, `no ${extra}`, `${extra}="${element.getAttribute(extra)}"`);
     }

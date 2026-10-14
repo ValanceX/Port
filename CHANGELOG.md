@@ -6,6 +6,7 @@ All notable changes to PORT are recorded here. The project follows [Semantic Ver
 
 ### Added
 
+- `@valancex/port-web`: **constant attributes** (`attributes` on a primitive: `{ element: "input", attributes: { type: "checkbox" } }`), written on every draw and server render and verified by hydration; and **`controlledBoolean(name)`**, a boolean slot that is both the boolean attribute and the DOM property (a checkbox's `checked`), so a ticked checkbox has an HTML form and is reasserted after every presentation. Both additive; found by building one application for the web and a window.
 - `valancex-port-desktop`: an optional `label` on `button`, `checkbox` and `textfield`, the control's accessible name, passed to the platform's accessibility tree (AccessKit, now enabled in the window). A test draws a tree with no window and reads the names back.
 - `vlx-window` (a binary of `valancex-port-desktop`): a window for any engine, for `vlx dev`.
 - The content layer of `valancex-port-desktop` (`content.json`: `paragraph`, `list`, `listitem`, `code`, `blockquote`, `image`, `strong`, `emphasis`, `link`, and `heading` with a `level`), named as WAI-ARIA names them, drawn from real MESH output, with links reported as addresses (`link` in the host protocol).
