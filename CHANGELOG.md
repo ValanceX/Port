@@ -8,14 +8,21 @@ All notable changes to PORT are recorded here. The project follows [Semantic Ver
 
 - `valancex-port-desktop`: the window can start its engine again in place (`Engine::restart`), triggered by a change to the file `VLX_RELOAD` names, so a development server can rebuild without closing and reopening the window.
 - `valancex-port-desktop`: `submit`, an event of `textfield` (the person pressed Enter in it). A headless test clicks into the field and presses keys.
-- `@valancex/port-web`: an event can be realized by one key (`{ type: "keydown", key: "Enter" }`): any other key is not that event, and the interaction goes on toward the root. Additive.
 - `valancex-port-desktop`: color scheme. The window tells the engine the system's colors (`scheme`, when it opens and when they change), and the engine may ask the window to look `light`, `dark` or `system` (`appearance`); the window follows the system when it asks for nothing.
 - `valancex-port-desktop`: images. An `image` whose `src` is an absolute path to a PNG, JPEG, GIF, BMP, WebP or SVG file is decoded and drawn, with its `label` as its accessible name; anything else is drawn as its description. The PORT fetches nothing.
-- `@valancex/port-web`: **constant attributes** (`attributes` on a primitive: `{ element: "input", attributes: { type: "checkbox" } }`), written on every draw and server render and verified by hydration; and **`controlledBoolean(name)`**, a boolean slot that is both the boolean attribute and the DOM property (a checkbox's `checked`), so a ticked checkbox has an HTML form and is reasserted after every presentation. Both additive; found by building one application for the web and a window.
 - `valancex-port-desktop`: an optional `label` on `button`, `checkbox` and `textfield`, the control's accessible name, passed to the platform's accessibility tree (AccessKit, now enabled in the window). A test draws a tree with no window and reads the names back.
 - `vlx-window` (a binary of `valancex-port-desktop`): a window for any engine, for `vlx dev`.
 - The content layer of `valancex-port-desktop` (`content.json`: `paragraph`, `list`, `listitem`, `code`, `blockquote`, `image`, `strong`, `emphasis`, `link`, and `heading` with a `level`), named as WAI-ARIA names them, drawn from real MESH output, with links reported as addresses (`link` in the host protocol).
 - `valancex-port-desktop` 0.1.0 (unreleased): the Desktop PORT. A Rust crate that realizes `render-v1` as a native window (egui) and reports interactions as handler identifiers and payloads. A vocabulary of seven components (`column`, `row`, `heading`, `text`, `button`, `checkbox`, `textfield`) in `vocabulary.json`, with two events (`click`, `change`); the host protocol for an engine in another process; contract tests on real MESH output. See the [architecture note](./docs/architecture/2026-10-14-port-desktop.md).
+
+## [0.5.0] - 2026-10-14
+
+A minor release of `@valancex/port-web`: **what a primitive always is, a flag the user changes, and an event made by one key.** Additive: nothing existing changes. Found by building one application for the web and for a native window. See the [v0.5 release notes](./docs/releases/v0.5.md).
+
+### Added
+
+- `@valancex/port-web`: an event can be realized by one key (`{ type: "keydown", key: "Enter" }`): any other key is not that event, and the interaction goes on toward the root. Additive.
+- `@valancex/port-web`: **constant attributes** (`attributes` on a primitive: `{ element: "input", attributes: { type: "checkbox" } }`), written on every draw and server render and verified by hydration; and **`controlledBoolean(name)`**, a boolean slot that is both the boolean attribute and the DOM property (a checkbox's `checked`), so a ticked checkbox has an HTML form and is reasserted after every presentation. Both additive; found by building one application for the web and a window.
 
 ## [0.4.2] - 2026-10-13
 
