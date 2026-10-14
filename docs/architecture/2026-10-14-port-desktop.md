@@ -63,9 +63,9 @@ An engine in another process (the application, in JavaScript or anything else) d
 
 The engine treats the PORT as a separate program and bounds what it reads (lines of at most 64 KiB, handlers of at most 256 characters, payloads of plain data to a depth of 8); the PORT ignores a line that is not a message and says so on its error output.
 
-## The content layer (experimental)
+## The content layer
 
-`content.json` is a second MESH manifest, nine components: what Valance's content model produces (six block kinds and five inline kinds), named as WAI-ARIA names them (`paragraph`, `list`, `listitem`, `code`, `blockquote`, `image`, `strong`, `emphasis`, `link`; `heading` is in `vocabulary.json` with an optional `level`). The window draws all of them from real MESH output (`tests/fixtures/reader-index.json`, a whole page); images are drawn as their description until the PORT carries an image loader. The evidence for the names and for the layering is in Valance's native vocabulary investigation.
+`content.json` is a second MESH manifest, nine components: what Valance's content model produces (six block kinds and five inline kinds), named as WAI-ARIA names them (`paragraph`, `list`, `listitem`, `code`, `blockquote`, `image`, `strong`, `emphasis`, `link`; `heading` is in `vocabulary.json` with an optional `level`). The window draws all of them from real MESH output (`tests/fixtures/reader-index.json`, a whole page); images are drawn as their description until the PORT carries an image loader. It is part of what this PORT promises. The names are WAI-ARIA's, decided on the evidence in Valance's native vocabulary investigation; the web's own tag table is unchanged by that decision.
 
 ## Not yet
 
