@@ -52,11 +52,13 @@ An engine in another process (the application, in JavaScript or anything else) d
 | `{"op":"draw","tree":RenderTree}` | The contract's `draw`. |
 | `{"op":"update","tree":RenderTree}` | The contract's `update`. |
 | `{"op":"unmount"}` | The contract's `unmount`; the window closes. |
+| `{"op":"appearance","appearance":"light"\|"dark"\|"system"}` | How the application asks the window to look; `system` (the default, when it never asks) follows the person's own. |
 | `{"op":"closeAnswer","allowed":true\|false}` | The answer to `closeRequested`. When allowed the engine is ending and `unmount` follows. |
 
 | PORT to engine | Meaning |
 |---|---|
 | `{"op":"event","handler":"…","payload":JSON}` | A report. `handler` is copied from the tree; `payload` is optional plain data. |
+| `{"op":"scheme","scheme":"light"\|"dark"}` | The system's colors, as the window sees them: sent when the window opens and whenever they change. The application learns them as state. |
 | `{"op":"closeRequested"}` | The person asked to close the window. The PORT cancels the close and waits for `closeAnswer`. |
 | `{"op":"link","href":"…"}` | The person activated a link. A link is an address, not an event: the tree carries its `href` and no handler. The PORT never opens an address itself; the engine decides what it means (the application owns navigation). |
 | `{"op":"close"}` | The window has closed; the engine ends. A closed stream means the same. |

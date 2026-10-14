@@ -66,7 +66,7 @@ Two events: **click** (a button) and **change** (the value of a checkbox or a te
 
 ### Driving it from an engine
 
-An engine in another process (the application, in JavaScript) drives the PORT with one JSON object per line: `hello`, `title`, `draw`, `update`, `unmount` and `closeAnswer` in; `event`, `closeRequested` and `close` out. The module `host` is that conversation, and [the architecture note](../../docs/architecture/2026-10-14-port-desktop.md) specifies it.
+An engine in another process (the application, in JavaScript) drives the PORT with one JSON object per line: `hello`, `title`, `appearance`, `draw`, `update`, `unmount` and `closeAnswer` in; `event`, `link`, `scheme`, `closeRequested` and `close` out. The module `host` is that conversation, and [the architecture note](../../docs/architecture/2026-10-14-port-desktop.md) specifies it.
 
 ## `vlx-window`
 

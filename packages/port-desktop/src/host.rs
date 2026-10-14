@@ -30,6 +30,10 @@ pub enum FromEngine {
     Title {
         title: String,
     },
+    /// How the application asks the window to look: `light`, `dark` or `system` (the person's own). The window is the host's, so this is the application's word, not a template's.
+    Appearance {
+        appearance: String,
+    },
     /// The answer to `CloseRequested`: when not allowed (unsaved edits), the window stays open.
     #[serde(rename = "closeAnswer")]
     CloseAnswer {
@@ -51,6 +55,10 @@ pub enum ToEngine {
     /// (the application owns navigation). The PORT never opens an address itself.
     Link {
         href: String,
+    },
+    /// The system's colors, as the window sees them: sent when the window opens and whenever they change. The application learns them as state.
+    Scheme {
+        scheme: String,
     },
     /// The person asked to close the window; the engine answers with `closeAnswer`.
     #[serde(rename = "closeRequested")]
@@ -90,6 +98,8 @@ pub struct Session {
     pub gone: bool,
     /// The window's title, as the engine last said it.
     pub title: Option<String>,
+    /// How the engine asked the window to look (`light`, `dark`, `system`), as it last said it.
+    pub appearance: Option<String>,
     /// The engine said the window may not close yet (unsaved edits); cleared by the next screen it sends.
     pub close_refused: bool,
 }
@@ -112,6 +122,7 @@ impl Session {
                 Err(error) => return Applied::Refused(error),
             },
             FromEngine::Title { title } => self.title = Some(title),
+            FromEngine::Appearance { appearance } => self.appearance = Some(appearance),
             FromEngine::CloseAnswer { allowed } => self.close_refused = !allowed,
             FromEngine::Unmount => {
                 self.port.unmount();

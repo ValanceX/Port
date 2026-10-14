@@ -38,6 +38,8 @@ fn engine_command(options: &Options) -> (String, Vec<String>) {
 }
 
 struct App {
+    /// The system's colors as last told to the engine.
+    told_scheme: Option<egui::Theme>,
     engine: Engine,
     session: Session,
     view: View,
@@ -64,6 +66,31 @@ impl eframe::App for App {
                 }
                 Applied::Refused(error) => self.problem = Some(error.to_string()),
             }
+        }
+
+        // How the application asks the window to look; the window follows the system when it asks for nothing.
+        let preference = match self.session.appearance.as_deref() {
+            Some("light") => egui::ThemePreference::Light,
+            Some("dark") => egui::ThemePreference::Dark,
+            _ => egui::ThemePreference::System,
+        };
+
+        if ctx.options(|options| options.theme_preference) != preference {
+            ctx.set_theme(preference);
+        }
+
+        // The system's colors, told to the engine when the window learns them and when they change.
+        let system = ctx.system_theme();
+
+        if system.is_some() && system != self.told_scheme {
+            self.told_scheme = system;
+            self.engine.send(&ToEngine::Scheme {
+                scheme: match system {
+                    Some(egui::Theme::Dark) => "dark",
+                    _ => "light",
+                }
+                .into(),
+            });
         }
 
         if let Some(title) = self.session.title.clone() {
@@ -151,6 +178,7 @@ pub fn run(options: Options) -> eframe::Result {
             egui_extras::install_image_loaders(&cc.egui_ctx);
 
             Ok(Box::new(App {
+                told_scheme: None,
                 engine,
                 session: Session::default(),
                 view: View::default(),
