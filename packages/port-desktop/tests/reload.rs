@@ -1,4 +1,5 @@
 //! A development server rebuilds the engine and touches a file; the window starts the engine again in place. `Reload` is the watching, `Engine::restart` the starting again.
+#[cfg(unix)]
 use port_desktop::host::{Engine, FromEngine};
 use port_desktop::reload::Reload;
 use std::time::{Duration, SystemTime};
