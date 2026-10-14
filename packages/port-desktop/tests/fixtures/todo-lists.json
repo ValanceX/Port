@@ -1,0 +1,115 @@
+{
+  "format": "mesh-render",
+  "root": {
+    "children": [
+      {
+        "children": [
+          {
+            "key": "kT6Ln6U7KWzF43C5081VNJg",
+            "text": "Your lists",
+            "type": "text"
+          }
+        ],
+        "component": "heading",
+        "events": {},
+        "key": "kBHSE_HM9Bgt_9zDGleR5Ow",
+        "props": {},
+        "type": "node"
+      },
+      {
+        "children": [
+          {
+            "children": [
+              {
+                "key": "k23khAycWRhvvZJ4uj3lbAg",
+                "text": "Groceries (1 of 2 open)",
+                "type": "text"
+              }
+            ],
+            "component": "button",
+            "events": {
+              "click": "hxc9RN_CUjYQ.Acy9MbvBTcZ3EE-ePZBtrg"
+            },
+            "key": "k91Fc8IJ0KjnZLTEL4LLI7w",
+            "props": {},
+            "type": "node"
+          }
+        ],
+        "component": "row",
+        "events": {},
+        "key": "kHlmYGSgCXygOfCeUtCzaeA",
+        "props": {},
+        "type": "node"
+      },
+      {
+        "children": [
+          {
+            "children": [
+              {
+                "key": "kcUxDI0fjqlut7eetpKT-pw",
+                "text": "Weekend (0 of 0 open)",
+                "type": "text"
+              }
+            ],
+            "component": "button",
+            "events": {
+              "click": "hxc9RN_CUjYQ.u3AnzXQdYlDU_EAAxIABNQ"
+            },
+            "key": "ksoQjtY2JeNkXrLfK8ODAMg",
+            "props": {},
+            "type": "node"
+          }
+        ],
+        "component": "row",
+        "events": {},
+        "key": "kWVHXO45mERmMkmasonl9Rw",
+        "props": {},
+        "type": "node"
+      },
+      {
+        "children": [
+          {
+            "children": [],
+            "component": "textfield",
+            "events": {
+              "change": "hxc9RN_CUjYQ.LkeAcQ0kuMtVi1mQ4Ty-sQ"
+            },
+            "key": "ko0X_PrqaQ8-Pt-1hO5dqZA",
+            "props": {
+              "placeholder": "New list",
+              "value": ""
+            },
+            "type": "node"
+          },
+          {
+            "children": [
+              {
+                "key": "kfHoTczPZqDSiez-LAbiA4A",
+                "text": "Add list",
+                "type": "text"
+              }
+            ],
+            "component": "button",
+            "events": {
+              "click": "hxc9RN_CUjYQ.1eKtYt8E4qSq0yIaF917ig"
+            },
+            "key": "kYCD8t7MzvvNX4gXOf-HV3g",
+            "props": {},
+            "type": "node"
+          }
+        ],
+        "component": "row",
+        "events": {},
+        "key": "keYefLjR1t80zzMknWPwukw",
+        "props": {},
+        "type": "node"
+      }
+    ],
+    "component": "column",
+    "events": {},
+    "key": "kdCH9GS75CCbBaqGV67y_9w",
+    "props": {},
+    "type": "node"
+  },
+  "version": 1
+}

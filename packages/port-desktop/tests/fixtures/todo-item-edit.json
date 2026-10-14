@@ -1,0 +1,130 @@
+{
+  "format": "mesh-render",
+  "root": {
+    "children": [
+      {
+        "children": [
+          {
+            "key": "kj8iKKKkNztw3qrz5DDZiRw",
+            "text": "Edit item",
+            "type": "text"
+          }
+        ],
+        "component": "heading",
+        "events": {},
+        "key": "kh2-AYgbhuXpuhD_6rDVrIw",
+        "props": {},
+        "type": "node"
+      },
+      {
+        "children": [
+          {
+            "key": "kHe7eVxvA6LsYnCwl_7YGaQ",
+            "text": "In Groceries",
+            "type": "text"
+          }
+        ],
+        "component": "text",
+        "events": {},
+        "key": "kVWfFc_ZDH1dDnJpHumU6NQ",
+        "props": {},
+        "type": "node"
+      },
+      {
+        "children": [],
+        "component": "textfield",
+        "events": {
+          "change": "h9sVk8NiHzFo.BrGsUG8tj3-HnO20VjEgiA"
+        },
+        "key": "kmcxn0HTUPi9s8K8y_6I_iQ",
+        "props": {
+          "placeholder": "What needs doing?",
+          "value": "Oat milk"
+        },
+        "type": "node"
+      },
+      {
+        "children": [
+          {
+            "key": "k2opPM_70w5A1c1k-QEDsxg",
+            "text": "Unsaved changes",
+            "type": "text"
+          }
+        ],
+        "component": "text",
+        "events": {},
+        "key": "kiCVCXu3nd8TzvolWHDuUVA",
+        "props": {},
+        "type": "node"
+      },
+      {
+        "children": [
+          {
+            "children": [
+              {
+                "key": "k6y5M9O8Slgr1kBLM-EMvaw",
+                "text": "Save",
+                "type": "text"
+              }
+            ],
+            "component": "button",
+            "events": {
+              "click": "h9sVk8NiHzFo.REoL2rZe5vGmbkKwIKIY-Q"
+            },
+            "key": "kIwsNJPgLlTacebJw2w1EPQ",
+            "props": {},
+            "type": "node"
+          },
+          {
+            "children": [
+              {
+                "key": "kbxxC-twKFzar9xxc_MveSA",
+                "text": "Discard",
+                "type": "text"
+              }
+            ],
+            "component": "button",
+            "events": {
+              "click": "h9sVk8NiHzFo.PDd5GSqnHR4NwDm9VINHag"
+            },
+            "key": "kXTYhTCGcQOyW6pvkK2Tv-w",
+            "propText": {
+              "disabled": "false"
+            },
+            "props": {
+              "disabled": false
+            },
+            "type": "node"
+          },
+          {
+            "children": [
+              {
+                "key": "k2tr6wc1CMs3CtozmDUTtmA",
+                "text": "Back to list",
+                "type": "text"
+              }
+            ],
+            "component": "button",
+            "events": {
+              "click": "h9sVk8NiHzFo.9xT5E4nsPk6qwTg-OcARRA"
+            },
+            "key": "k32r0f-eTT8mNA4Ikne_QFg",
+            "props": {},
+            "type": "node"
+          }
+        ],
+        "component": "row",
+        "events": {},
+        "key": "k9wooj6HNKtExPjO_g7kL2w",
+        "props": {},
+        "type": "node"
+      }
+    ],
+    "component": "column",
+    "events": {},
+    "key": "kK4AOfKexd2G9nbHIQ2RQEQ",
+    "props": {},
+    "type": "node"
+  },
+  "version": 1
+}

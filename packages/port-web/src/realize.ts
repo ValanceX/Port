@@ -34,7 +34,7 @@ const own = <V>(record: Readonly<Record<string, V>> | undefined, name: string): 
   record !== undefined && Object.hasOwn(record, name) ? record[name] : undefined;
 
 // Attributes whose value the browser follows or loads as a URL. A script scheme in one is code a link click (or a load) runs, from data the application may not have written.
-const URL_ATTRIBUTES = new Set(["href", "src", "action", "formaction", "poster", "cite", "background", "ping", "manifest", "codebase", "longdesc", "usemap"]);
+export const URL_ATTRIBUTES: ReadonlySet<string> = new Set(["href", "src", "action", "formaction", "poster", "cite", "background", "ping", "manifest", "codebase", "longdesc", "usemap"]);
 const NAVIGATING_ATTRIBUTES = new Set(["href", "action", "formaction", "cite"]);
 
 /** The scheme the browser would read from `text` as a URL: it ignores leading controls and spaces, drops tab and newlines anywhere, and compares case-insensitively. */
@@ -84,6 +84,7 @@ export const realizeProp = (node: RenderNode, name: string, realization: PropRea
     }
 
     case "boolean-attribute":
+    case "controlled-boolean":
       return typeof value === "boolean"
         ? { native: value }
         : { code: "unrealizable-value", reason: `is ${kindOf(value)}, and a boolean attribute holds only a boolean` };

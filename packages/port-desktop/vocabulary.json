@@ -1,0 +1,115 @@
+{
+  "version": 1,
+  "types": {},
+  "components": {
+    "column": {
+      "props": {},
+      "events": {},
+      "commands": {},
+      "scope": {}
+    },
+    "row": {
+      "props": {},
+      "events": {},
+      "commands": {},
+      "scope": {}
+    },
+    "heading": {
+      "props": {
+        "level": {
+          "type": {
+            "kind": "number"
+          },
+          "required": false
+        }
+      },
+      "events": {},
+      "commands": {},
+      "scope": {}
+    },
+    "text": {
+      "props": {},
+      "events": {},
+      "commands": {},
+      "scope": {}
+    },
+    "button": {
+      "props": {
+        "disabled": {
+          "type": {
+            "kind": "boolean"
+          },
+          "required": false
+        },
+        "label": {
+          "type": {
+            "kind": "string"
+          },
+          "required": false
+        }
+      },
+      "events": {
+        "click": {}
+      },
+      "commands": {},
+      "scope": {}
+    },
+    "checkbox": {
+      "props": {
+        "checked": {
+          "type": {
+            "kind": "boolean"
+          },
+          "required": true
+        },
+        "label": {
+          "type": {
+            "kind": "string"
+          },
+          "required": false
+        }
+      },
+      "events": {
+        "change": {
+          "payload": {
+            "kind": "boolean"
+          }
+        }
+      },
+      "commands": {},
+      "scope": {}
+    },
+    "textfield": {
+      "props": {
+        "value": {
+          "type": {
+            "kind": "string"
+          },
+          "required": true
+        },
+        "placeholder": {
+          "type": {
+            "kind": "string"
+          },
+          "required": false
+        },
+        "label": {
+          "type": {
+            "kind": "string"
+          },
+          "required": false
+        }
+      },
+      "events": {
+        "change": {
+          "payload": {
+            "kind": "string"
+          }
+        },
+        "submit": {}
+      },
+      "commands": {},
+      "scope": {}
+    }
+  }
+}

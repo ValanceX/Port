@@ -15,6 +15,15 @@ import type { BoundaryValue } from "@valancex/mesh-runtime";
 export interface WebPrimitive {
   /** The element's tag name, such as `"button"` or `"img"`. */
   readonly element: string;
+  /**
+   * Attributes the element always has, whatever the tree says: `{ type: "checkbox" }` makes the
+   * element of a checkbox primitive an `<input type="checkbox">`. Constants are part of what the
+   * primitive IS, so they are written on every draw and every server render, and hydration
+   * verifies them like any attribute. A constant cannot share an attribute with a prop, and
+   * cannot be an event handler (`on…`) or a URL slot (`href`, `src`, …): those carry data and
+   * code, and constants carry neither.
+   */
+  readonly attributes?: Readonly<Record<string, string>>;
   /** How each of the primitive's props is realized. A prop in the tree with no entry here is an error. */
   readonly props?: Readonly<Record<string, PropRealization>>;
   /**
@@ -48,6 +57,14 @@ export interface WebPrimitive {
  *   `controlled`.
  *
  * Native slots. The value must be of the slot's kind; any other is refused.
+ * - `controlled-boolean`: a boolean slot that is BOTH a boolean content
+ *   attribute and the same-named DOM property, for a flag the user can
+ *   change (a checkbox's `checked`). It is serialized, verified and
+ *   hydrated as the attribute (present when `true`), so it has an HTML form;
+ *   and after every `draw`, `update` and `hydrate` the DOM property is made
+ *   equal to the rendered boolean, whatever the user did to the control
+ *   since. A plain `property` has no HTML form, so a checkbox using one
+ *   cannot be server-rendered ticked. See `controlledBoolean`.
  * - `boolean-attribute`: an HTML boolean attribute, a boolean by presence.
  *   `true` sets it (empty value); `false` or absent removes it.
  * - `property`: a DOM property that holds a value of the kind `holds`
@@ -63,6 +80,7 @@ export type PropRealization =
   | { readonly kind: "text-property"; readonly name: string }
   | { readonly kind: "controlled"; readonly name: string }
   | { readonly kind: "boolean-attribute"; readonly name: string }
+  | { readonly kind: "controlled-boolean"; readonly name: string }
   | { readonly kind: "property"; readonly name: string; readonly holds: PropertyKind };
 
 /** The kind of value a native DOM property holds exactly. */
@@ -80,6 +98,11 @@ export interface EventRealization {
    * validates the payload when the host dispatches.
    */
   readonly payload?: (event: Event, element: Element) => BoundaryValue;
+  /**
+   * Only the keyboard event for this key constitutes the event: `{ type: "keydown", key: "Enter" }` is the event a person makes by pressing Enter (`KeyboardEvent.key`). Allowed only with a
+   * keyboard event type (`keydown`, `keyup`). Another key is not this event, at this node or for it: the interaction goes on toward the root as any that does not apply.
+   */
+  readonly key?: string;
 }
 
 /** Every primitive the Web PORT can realize, by component name. */
@@ -101,6 +124,13 @@ export const textProperty = (name: string): PropRealization => ({ kind: "text-pr
  * the rendered text, which is the application's.
  */
 export const controlled = (name: string): PropRealization => ({ kind: "controlled", name });
+
+/**
+ * A boolean slot the user can change, realized as the boolean content attribute `name` and as the DOM property `name` (a checkbox's `checked`). `{ kind: "controlled-boolean", name }`.
+ * The contract is `controlled`'s, for a boolean: after each `draw`, `update` and `hydrate` the property holds the rendered boolean (or the element's initial value when the prop is absent),
+ * written only when it differs; the PORT writes nothing between presentations, so an edit the application declines stays until the next presentation reasserts the application's value.
+ */
+export const controlledBoolean = (name: string): PropRealization => ({ kind: "controlled-boolean", name });
 
 /** A boolean attribute, realized natively by presence. `{ kind: "boolean-attribute", name }`. */
 export const booleanAttribute = (name: string): PropRealization => ({ kind: "boolean-attribute", name });

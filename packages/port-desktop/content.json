@@ -1,0 +1,87 @@
+{
+  "version": 1,
+  "types": {},
+  "components": {
+    "paragraph": {
+      "props": {},
+      "events": {},
+      "commands": {},
+      "scope": {}
+    },
+    "list": {
+      "props": {
+        "ordered": {
+          "type": {
+            "kind": "boolean"
+          },
+          "required": false
+        }
+      },
+      "events": {},
+      "commands": {},
+      "scope": {}
+    },
+    "listitem": {
+      "props": {},
+      "events": {},
+      "commands": {},
+      "scope": {}
+    },
+    "code": {
+      "props": {},
+      "events": {},
+      "commands": {},
+      "scope": {}
+    },
+    "blockquote": {
+      "props": {},
+      "events": {},
+      "commands": {},
+      "scope": {}
+    },
+    "image": {
+      "props": {
+        "src": {
+          "type": {
+            "kind": "string"
+          },
+          "required": true
+        },
+        "label": {
+          "type": {
+            "kind": "string"
+          },
+          "required": true
+        }
+      },
+      "events": {},
+      "commands": {},
+      "scope": {}
+    },
+    "strong": {
+      "props": {},
+      "events": {},
+      "commands": {},
+      "scope": {}
+    },
+    "emphasis": {
+      "props": {},
+      "events": {},
+      "commands": {},
+      "scope": {}
+    },
+    "link": {
+      "props": {
+        "href": {
+          "type": {
+            "kind": "string"
+          },
+          "required": true
+        }
+      },
+      "events": {},
+      "commands": {},
+      "scope": {}
+    }
+  }
+}

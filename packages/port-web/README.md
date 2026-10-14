@@ -65,6 +65,7 @@ A DOM attribute and a DOM property are different slots. An attribute holds only 
 | `attribute(name)` | content attribute: **text only** | a string as given (a URL attribute such as `href` or `src` refuses a `javascript:` or `vbscript:` URL, and a `data:` URL in `href`, `action`, `formaction` or `cite`: `unrealizable-value`); a number, boolean or `null` as the node's `propText` (MESH's text); absent removes it |
 | `textProperty(name)` | `DOMString` property, such as `value`: **text only** | as `attribute`; absent leaves the element's own initial value |
 | `controlled(name)` | content attribute **and** the same-named DOM property, for a field the user edits (an input's `value`): **text only** | as `attribute`, serialized and hydrated as the attribute; and after every `draw`, `update` and `hydrate` the property is made equal to the rendered text (absent: the element's own initial value). See [Controlled fields](#controlled-fields) |
+| `controlledBoolean(name)` | boolean attribute **and** the same-named DOM property, for a flag the user changes (a checkbox's `checked`): **native** | a boolean; serialized and hydrated as the attribute (present when `true`), and after every `draw`, `update` and `hydrate` the property is made equal to the rendered boolean. A plain `property` has no HTML form, so a checkbox using one cannot be server-rendered ticked |
 | `booleanAttribute(name)` | boolean attribute: **native**, by presence | `true` sets it, `false` or absent removes it |
 | `property(name, "boolean")` | IDL `boolean` property: **native** | a boolean |
 | `property(name, "number")` | IDL `double` property: **native** | the number itself (never a `long` or `float` property, which would truncate or round) |
@@ -116,6 +117,10 @@ try {
 ```
 
 An unknown render-v1 *property* is different: it is ignored, as MESH's schema requires (see the contract's [What may be ignored](../../docs/CONTRACT.md#what-may-be-ignored-and-what-may-not)).
+
+**Events made by one key.** An event may be realized by one key of a keyboard event: `submit: { type: "keydown", key: "Enter" }` is what a person does by pressing Enter in a field (`KeyboardEvent.key`). Any other key is not that event: at that node it does not apply, and the interaction goes on toward the root like any that does not. `key` is allowed only on `keydown` and `keyup`, non-empty, at most 32 characters.
+
+**Constant attributes.** A primitive may state attributes it always has, whatever the tree says: `checkbox: { element: "input", attributes: { type: "checkbox" }, props: { … } }`. They are written on every draw and every server render, and hydration verifies them like any attribute, so an `<input>` can be a checkbox without a prop for its `type`. A constant can't share an attribute with a prop, can't be an event handler (`on…`), and can't be a URL slot (`href`, `src`, …): constants are what the element is, never data or code. A table that does is refused with `invalid-primitives`, on the client and on the server.
 
 A component with no realization isn't refused. It's drawn as a `<valance-unknown data-component="…">` element with its children inside, so the mistake is visible.
 

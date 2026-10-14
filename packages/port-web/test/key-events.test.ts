@@ -1,0 +1,65 @@
+// An event made by one key: `{ type: "keydown", key: "Enter" }` is what a person does by pressing Enter in a field. Any other key is not that event, at that node, and the interaction goes on toward
+// the root like any that does not apply.
+import type { WebPrimitives } from "../src/index.js";
+
+import { describe, expect, it } from "vitest";
+
+import { createWebPort } from "../src/index.js";
+import { realizeHtml } from "../src/server.js";
+
+import { codeOf } from "./ssr-support.js";
+import { dom, handler, key as keyOf, node, reports, tree } from "./support.js";
+
+const primitives: WebPrimitives = {
+  field: { element: "input", events: { submit: { type: "keydown", key: "Enter" } } },
+  form: { element: "div", events: { anyKey: { type: "keydown" } } },
+};
+
+const press = (container: Element, window: { readonly KeyboardEvent: typeof KeyboardEvent }, target: Element, key: string) =>
+  target.dispatchEvent(new window.KeyboardEvent("keydown", { key, bubbles: true }));
+
+describe("an event realized by one key", () => {
+  it("is reported for that key and for no other", () => {
+    const { window, container } = dom();
+    const { calls, report } = reports();
+
+    createWebPort({ container, primitives, report }).draw(tree(node(1, "field", {}, [], { submit: handler(1) })));
+
+    const input = container.firstElementChild!;
+
+    press(container, window as never, input, "a");
+    press(container, window as never, input, "Tab");
+    expect(calls).toEqual([]);
+    press(container, window as never, input, "Enter");
+    expect(calls).toEqual([[handler(1)]]);
+  });
+
+  it("goes on toward the root when the key is not its own: an ancestor that takes any key gets it", () => {
+    const { window, container } = dom();
+    const { calls, report } = reports();
+
+    createWebPort({ container, primitives, report }).draw(tree(node(1, "form", {}, [node(2, "field", {}, [], { submit: handler(2) })], { anyKey: handler(1) })));
+
+    const input = container.querySelector("input")!;
+
+    press(container, window as never, input, "x");
+    expect(calls).toEqual([[handler(1)]]);
+    press(container, window as never, input, "Enter");
+    expect(calls).toEqual([[handler(1)], [handler(2)]]);
+  });
+
+  it("is refused by a table that gives a key to an event that is not a keyboard event, or an empty or oversized one", () => {
+    const leaf = tree({ type: "node", key: keyOf(1), component: "p", props: {}, events: {}, children: [] });
+    const refused = (events: NonNullable<WebPrimitives[string]["events"]>) => {
+      const table: WebPrimitives = { p: { element: "span", events } };
+
+      return { client: codeOf(() => createWebPort({ container: dom().container, primitives: table, report: () => {} }).draw(leaf)), server: codeOf(() => realizeHtml(leaf, table)) };
+    };
+    const INVALID = { client: "invalid-primitives", server: "invalid-primitives" };
+
+    expect(refused({ go: { type: "click", key: "Enter" } })).toEqual(INVALID);
+    expect(refused({ go: { type: "keydown", key: "" } })).toEqual(INVALID);
+    expect(refused({ go: { type: "keydown", key: "x".repeat(33) } })).toEqual(INVALID);
+    expect(refused({ go: { type: "keyup", key: "Escape" } })).toEqual({ client: "realized", server: "realized" });
+  });
+});
