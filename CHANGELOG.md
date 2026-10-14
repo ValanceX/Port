@@ -6,6 +6,7 @@ All notable changes to PORT are recorded here. The project follows [Semantic Ver
 
 ### Added
 
+- `@valancex/port-web`: an event can be realized by one key (`{ type: "keydown", key: "Enter" }`): any other key is not that event, and the interaction goes on toward the root. Additive.
 - `valancex-port-desktop`: color scheme. The window tells the engine the system's colors (`scheme`, when it opens and when they change), and the engine may ask the window to look `light`, `dark` or `system` (`appearance`); the window follows the system when it asks for nothing.
 - `valancex-port-desktop`: images. An `image` whose `src` is an absolute path to a PNG, JPEG, GIF, BMP, WebP or SVG file is decoded and drawn, with its `label` as its accessible name; anything else is drawn as its description. The PORT fetches nothing.
 - `@valancex/port-web`: **constant attributes** (`attributes` on a primitive: `{ element: "input", attributes: { type: "checkbox" } }`), written on every draw and server render and verified by hydration; and **`controlledBoolean(name)`**, a boolean slot that is both the boolean attribute and the DOM property (a checkbox's `checked`), so a ticked checkbox has an HTML form and is reasserted after every presentation. Both additive; found by building one application for the web and a window.

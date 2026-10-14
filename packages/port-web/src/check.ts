@@ -35,6 +35,8 @@ export const VOID_ELEMENTS: ReadonlySet<string> = new Set(["area", "base", "br",
 // Names both the DOM (createElement, setAttribute in an HTML document) and the
 // HTML parser give back unchanged: lowercase, with no character either treats
 // specially.
+/** The DOM event types a `key` may filter. */
+const KEY_EVENTS: ReadonlySet<string> = new Set(["keydown", "keyup"]);
 const ELEMENT_NAME = /^[a-z][a-z0-9-]*$/;
 const ATTRIBUTE_NAME = /^[a-z_:][a-z0-9_.:-]*$/;
 
@@ -131,6 +133,10 @@ export const validatePrimitives = (primitives: WebPrimitives): Applicable => {
     const byType = new Map<string, string>();
 
     for (const [event, realization] of Object.entries(primitive.events ?? {})) {
+      if (realization.key !== undefined && (typeof realization.key !== "string" || realization.key === "" || realization.key.length > 32 || !KEY_EVENTS.has(realization.type))) {
+        throw invalid(component, `gives its event \`${event}\` a key that isn't a non-empty name of at most 32 characters on a keyboard event (keydown, keyup)`);
+      }
+
       const other = byType.get(realization.type);
 
       if (other !== undefined) {

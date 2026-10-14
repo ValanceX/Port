@@ -375,7 +375,14 @@ export const createWebPort = ({ container, primitives, report }: WebPortOptions)
       const handler = name === undefined ? undefined : node.handlers.get(name);
 
       if (name !== undefined && handler !== undefined) {
-        const build = own(node.primitive!.events, name)!.payload;
+        const realization = own(node.primitive!.events, name)!;
+
+        // Only the one key makes this event: any other is not an interaction for it, and the walk goes on toward the root.
+        if (realization.key !== undefined && (event as KeyboardEvent).key !== realization.key) {
+          continue;
+        }
+
+        const build = realization.payload;
 
         if (build === undefined) {
           report(handler);

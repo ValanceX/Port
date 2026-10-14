@@ -98,6 +98,11 @@ export interface EventRealization {
    * validates the payload when the host dispatches.
    */
   readonly payload?: (event: Event, element: Element) => BoundaryValue;
+  /**
+   * Only the keyboard event for this key constitutes the event: `{ type: "keydown", key: "Enter" }` is the event a person makes by pressing Enter (`KeyboardEvent.key`). Allowed only with a
+   * keyboard event type (`keydown`, `keyup`). Another key is not this event, at this node or for it: the interaction goes on toward the root as any that does not apply.
+   */
+  readonly key?: string;
 }
 
 /** Every primitive the Web PORT can realize, by component name. */

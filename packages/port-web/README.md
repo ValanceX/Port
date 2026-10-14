@@ -118,6 +118,8 @@ try {
 
 An unknown render-v1 *property* is different: it is ignored, as MESH's schema requires (see the contract's [What may be ignored](../../docs/CONTRACT.md#what-may-be-ignored-and-what-may-not)).
 
+**Events made by one key.** An event may be realized by one key of a keyboard event: `submit: { type: "keydown", key: "Enter" }` is what a person does by pressing Enter in a field (`KeyboardEvent.key`). Any other key is not that event: at that node it does not apply, and the interaction goes on toward the root like any that does not. `key` is allowed only on `keydown` and `keyup`, non-empty, at most 32 characters.
+
 **Constant attributes.** A primitive may state attributes it always has, whatever the tree says: `checkbox: { element: "input", attributes: { type: "checkbox" }, props: { … } }`. They are written on every draw and every server render, and hydration verifies them like any attribute, so an `<input>` can be a checkbox without a prop for its `type`. A constant can't share an attribute with a prop, can't be an event handler (`on…`), and can't be a URL slot (`href`, `src`, …): constants are what the element is, never data or code. A table that does is refused with `invalid-primitives`, on the client and on the server.
 
 A component with no realization isn't refused. It's drawn as a `<valance-unknown data-component="…">` element with its children inside, so the mistake is visible.
