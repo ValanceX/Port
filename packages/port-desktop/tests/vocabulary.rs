@@ -23,14 +23,15 @@ fn is_a_mesh_manifest_of_the_seven_components_a_newcomer_needs() {
 }
 
 #[test]
-fn names_are_one_lowercase_word_each_and_events_are_two_verbs_click_and_change() {
+fn names_are_one_lowercase_word_each_and_events_are_three_verbs_click_change_and_submit() {
     let manifest: Value = serde_json::from_str(vocabulary::JSON).unwrap();
 
     for (name, each) in manifest["components"].as_object().unwrap() {
         assert!(name.chars().all(|c| c.is_ascii_lowercase()), "{name}");
         for event in each["events"].as_object().unwrap().keys() {
+            // `click` (a press), `change` (a value changed, carrying it) and `submit` (a text field's Enter: done typing). A fourth is a decision, not an addition.
             assert!(
-                ["click", "change"].contains(&event.as_str()),
+                ["click", "change", "submit"].contains(&event.as_str()),
                 "{name}.{event}"
             );
         }
