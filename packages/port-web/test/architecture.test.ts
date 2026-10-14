@@ -49,8 +49,8 @@ describe("port-web's boundaries", () => {
       return Number(alternative.split(".")[1]);
     });
 
-    // 0.6 is the minimum supported; each later line PORT was run against is listed, with no gap (0.6 through 0.11).
-    expect(minors).toEqual([6, 7, 8, 9, 10, 11]);
+    // 0.6 is the minimum supported; each later line PORT was run against is listed, with no gap (0.6 through 0.12).
+    expect(minors).toEqual([6, 7, 8, 9, 10, 11, 12]);
   });
 
   it("uses no browser globals: every DOM object comes from the container's document", () => {

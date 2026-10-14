@@ -4,9 +4,13 @@ All notable changes to PORT are recorded here. The project follows [Semantic Ver
 
 ## [Unreleased]
 
+## [0.4.2] - 2026-10-13
+
+A patch release: the MESH runtime peer range accepts 0.11 and 0.12. See the [v0.4 release notes](./docs/releases/v0.4.md#v042).
+
 ### Changed
 
-- `@valancex/port-web` accepts MESH runtime 0.11 (`^0.11.0` joins the peer range). MESH 0.11 writes conditional and repeated content as blocks (`{#if}`, `{#each}`) and retires the `mesh-if`, `mesh-each` and `mesh-switch` elements; PORT is unaffected, because it only ever saw the keyed tree a runtime renders. The MESH integration test now uses blocks.
+- `@valancex/port-web` accepts MESH runtime 0.11 and 0.12 (`^0.11.0 || ^0.12.0` join the peer range). MESH 0.11 writes conditional and repeated content as blocks (`{#if}`, `{#each}`) and retires the `mesh-if`, `mesh-each` and `mesh-switch` elements; PORT is unaffected, because it only ever saw the keyed tree a runtime renders. The MESH integration test now uses blocks.
 
 ## [0.4.1] - 2026-10-10
 
