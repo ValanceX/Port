@@ -1,0 +1,289 @@
+{
+  "format": "mesh-render",
+  "root": {
+    "children": [
+      {
+        "children": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "key": "kKHSaQYCEZIOOVIIgQ4oQ-w",
+                    "text": "Back to lists",
+                    "type": "text"
+                  }
+                ],
+                "component": "button",
+                "events": {
+                  "press": "hZWrE3OGiKX8.osawextiBvYWzNm0kJMyLQ"
+                },
+                "key": "k_lg7iNVu7xgqUhVDNPBQPw",
+                "props": {},
+                "type": "node"
+              },
+              {
+                "children": [
+                  {
+                    "key": "k_a8hDGcM2BbMDfN1cPOFsg",
+                    "text": "Rename",
+                    "type": "text"
+                  }
+                ],
+                "component": "button",
+                "events": {
+                  "press": "hZWrE3OGiKX8.3vC5y10tHUZVr7_wzorDGw"
+                },
+                "key": "kB-hOpkWvgMIow_zCqIIHFQ",
+                "props": {},
+                "type": "node"
+              }
+            ],
+            "component": "row",
+            "events": {},
+            "key": "kIF9o_K1YS0rNjwx1WG8Byg",
+            "props": {},
+            "type": "node"
+          },
+          {
+            "children": [
+              {
+                "key": "k-XC-6xakXI9i5Yn29UYLKg",
+                "text": "Groceries",
+                "type": "text"
+              }
+            ],
+            "component": "heading",
+            "events": {},
+            "key": "k8wiJoEx1tlE5BpPTGYNedg",
+            "props": {},
+            "type": "node"
+          },
+          {
+            "children": [
+              {
+                "key": "kCjfnEj4VUS5l49kRyAyRiQ",
+                "text": "1 of 2 open",
+                "type": "text"
+              }
+            ],
+            "component": "text",
+            "events": {},
+            "key": "kw8oE94A60r340xtxiArg8A",
+            "props": {},
+            "type": "node"
+          },
+          {
+            "children": [
+              {
+                "children": [],
+                "component": "checkbox",
+                "events": {
+                  "toggle": "hZWrE3OGiKX8.tBa-hKz3m-ENVXD1hUTRwA"
+                },
+                "key": "kWhYhMZBBKgtiyQ5NbPmQug",
+                "propText": {
+                  "checked": "false"
+                },
+                "props": {
+                  "checked": false
+                },
+                "type": "node"
+              },
+              {
+                "children": [
+                  {
+                    "key": "kmLwQ4LSt0ZjKtRIYHy_zug",
+                    "text": "Milk",
+                    "type": "text"
+                  }
+                ],
+                "component": "button",
+                "events": {
+                  "press": "hZWrE3OGiKX8.SYALqLo6ckBfvXsRBXTdGg"
+                },
+                "key": "kRgsL8fBbWlqbssFn-6Tv-g",
+                "props": {},
+                "type": "node"
+              },
+              {
+                "children": [
+                  {
+                    "key": "kMpZKXLzdjiaXeyVoQj3R7Q",
+                    "text": "Delete",
+                    "type": "text"
+                  }
+                ],
+                "component": "button",
+                "events": {
+                  "press": "hZWrE3OGiKX8.06-6l2MDzVQbLEGy3wIarw"
+                },
+                "key": "k8YboVj5-Np_hnoc5uPZaZw",
+                "props": {},
+                "type": "node"
+              }
+            ],
+            "component": "row",
+            "events": {},
+            "key": "kGxivOluimt6bgnzTz9f6bQ",
+            "props": {},
+            "type": "node"
+          },
+          {
+            "children": [
+              {
+                "children": [],
+                "component": "checkbox",
+                "events": {
+                  "toggle": "hZWrE3OGiKX8.4LEnwOo0VociHKMZaX7o8A"
+                },
+                "key": "kJv6nJ_PT2qEmp6sFMCZ90A",
+                "propText": {
+                  "checked": "true"
+                },
+                "props": {
+                  "checked": true
+                },
+                "type": "node"
+              },
+              {
+                "children": [
+                  {
+                    "key": "kn8EOBoFtEQs9T5ZNR6e7oQ",
+                    "text": "Bread",
+                    "type": "text"
+                  }
+                ],
+                "component": "button",
+                "events": {
+                  "press": "hZWrE3OGiKX8.zA-XvTxcygXkFq-n3OwDoQ"
+                },
+                "key": "kKsK7ilyiyPmxJvav7wJZPQ",
+                "props": {},
+                "type": "node"
+              },
+              {
+                "children": [
+                  {
+                    "key": "kqwxx3LMBdvlWfNedvXDsVQ",
+                    "text": "Delete",
+                    "type": "text"
+                  }
+                ],
+                "component": "button",
+                "events": {
+                  "press": "hZWrE3OGiKX8.jqnD18W2XuD1UZf2vBuRqw"
+                },
+                "key": "ku3RabNnQ7g5PnQOrtVjuzQ",
+                "props": {},
+                "type": "node"
+              }
+            ],
+            "component": "row",
+            "events": {},
+            "key": "kKamKGRTI9VrNLiGShkb75g",
+            "props": {},
+            "type": "node"
+          },
+          {
+            "children": [
+              {
+                "children": [],
+                "component": "textfield",
+                "events": {
+                  "change": "hZWrE3OGiKX8.WUY5fT3CCulJK0kh4iOyvQ"
+                },
+                "key": "k-JNaTGsRmFGvSaFKACEBJA",
+                "props": {
+                  "placeholder": "New item",
+                  "value": ""
+                },
+                "type": "node"
+              },
+              {
+                "children": [
+                  {
+                    "key": "kRESSsGJ6VP03PpIcRizO0w",
+                    "text": "Add item",
+                    "type": "text"
+                  }
+                ],
+                "component": "button",
+                "events": {
+                  "press": "hZWrE3OGiKX8.I-mDthvrLLXsGL9OCHYLrw"
+                },
+                "key": "kpjWuhXz_myvhFGtltqLiSw",
+                "props": {},
+                "type": "node"
+              }
+            ],
+            "component": "row",
+            "events": {},
+            "key": "kRfRWUBbKQPf6hIaNGkWzug",
+            "props": {},
+            "type": "node"
+          },
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "key": "kSHrQKruFwMMvUAQCrtaEUw",
+                    "text": "Clear done",
+                    "type": "text"
+                  }
+                ],
+                "component": "button",
+                "events": {
+                  "press": "hZWrE3OGiKX8.h3OeqKoA1Ma3JhbuGdQqkA"
+                },
+                "key": "kU1-GPlwWQpeKV4QELBGnXA",
+                "propText": {
+                  "disabled": "false"
+                },
+                "props": {
+                  "disabled": false
+                },
+                "type": "node"
+              },
+              {
+                "children": [
+                  {
+                    "key": "kZyroZzReFgWIOV2nLuDdpg",
+                    "text": "Delete list",
+                    "type": "text"
+                  }
+                ],
+                "component": "button",
+                "events": {
+                  "press": "hZWrE3OGiKX8.77S5fTRDqqOxbT-tDu8wDQ"
+                },
+                "key": "kDUCLhPRs6l9v8UWVYKdopw",
+                "props": {},
+                "type": "node"
+              }
+            ],
+            "component": "row",
+            "events": {},
+            "key": "kc3oNpHNylauc5kDk0E61NA",
+            "props": {},
+            "type": "node"
+          }
+        ],
+        "component": "column",
+        "events": {},
+        "key": "kzcMD1IT7NKNhJ4eRvcWfqA",
+        "props": {},
+        "type": "node"
+      }
+    ],
+    "component": "window",
+    "events": {},
+    "key": "k4BateP3lP4g8_JpDIoK50A",
+    "props": {
+      "title": "Groceries"
+    },
+    "type": "node"
+  },
+  "version": 1
+}

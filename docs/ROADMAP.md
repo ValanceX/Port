@@ -272,7 +272,7 @@ Establish the repository and package boundaries without prematurely designing a 
 
 ### Package direction
 
-Settled by the audit (Gates 3 and 4): the namespace is `@valancex`, matching MESH and NEXUS. The only package is `@valancex/port-web`. A shared `@valancex/port` isn't created, because the shared contract is language-neutral data and prose ([CONTRACT.md](./CONTRACT.md)), and the Canvas placeholder was removed. Either may return when a second target produces evidence for it.
+Settled by the audit (Gates 3 and 4): the namespace is `@valancex`, matching MESH and NEXUS. The first package was `@valancex/port-web`; the second, `valancex-port-desktop` (Rust), follows the same rules ([architecture note](./architecture/2026-10-14-port-desktop.md)). A shared `@valancex/port` isn't created, because the shared contract is language-neutral data and prose ([CONTRACT.md](./CONTRACT.md)), and the Canvas placeholder was removed. Either may return when a second target produces evidence for it.
 
 ### Explicitly deferred
 

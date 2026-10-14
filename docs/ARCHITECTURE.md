@@ -125,6 +125,7 @@ The PORT contract is language-neutral: render-v1 is a JSON Schema (MESH implemen
 | Package | Role |
 |---|---|
 | `@valancex/port-web` | Web PORT (DOM): the first target |
+| `valancex-port-desktop` | Desktop PORT (a native window; Rust): the second target, unreleased. See the [architecture note](./architecture/2026-10-14-port-desktop.md) |
 
 There is no shared `@valancex/port` package: the only thing PORTs share is the contract, which is data and prose. The earlier scaffold's `@valence/port` and `@valence/port-canvas` were removed because they implied a shared TypeScript layer with nothing in it (audit, Gate 3). A second target is added only when the first raises a question it would answer; it may be in any language and gets its own package, and PORTs never depend on each other.
 

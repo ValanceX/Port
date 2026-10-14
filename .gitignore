@@ -3,3 +3,4 @@ dist/
 *.log
 .DS_Store
 integration/browser/__screenshots__/
+target/

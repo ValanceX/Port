@@ -30,3 +30,29 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build
+
+  # The Desktop PORT (packages/port-desktop): a Rust crate. Its logic and the contract tests run without a display; the window feature is built too. Linux and Windows.
+  desktop:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    defaults:
+      run:
+        shell: bash
+        working-directory: packages/port-desktop
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            packages/port-desktop/target
+          key: port-desktop-${{ matrix.os }}-${{ hashFiles('packages/port-desktop/Cargo.lock') }}
+      - run: cargo fmt --check
+      - run: cargo clippy --all-targets --locked -- -D warnings
+      - run: cargo test --locked
+      - name: Without the window (no graphics dependency)
+        run: cargo test --locked --no-default-features
