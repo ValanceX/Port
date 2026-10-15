@@ -13,4 +13,6 @@ pub mod vocabulary;
 #[cfg(feature = "window")]
 pub mod app;
 #[cfg(feature = "window")]
+pub mod keys;
+#[cfg(feature = "window")]
 pub mod view;

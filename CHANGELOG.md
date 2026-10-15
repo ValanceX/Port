@@ -6,6 +6,7 @@ All notable changes to PORT are recorded here. The project follows [Semantic Ver
 
 ### Added
 
+- `valancex-port-desktop`: **keys, only the ones a platform has a convention for.** Escape in a text field is a new event, `cancel` (beside `click`, `change` and `submit`). Alt+Left and Alt+Right, and the mouse's back and forward buttons, are a new host message, `navigate` (`back` or `forward`), for an engine that keeps a list of pages; on macOS the keys are unmapped (the mouse buttons stay). See "Keys" in the [architecture note](./docs/architecture/2026-10-14-port-desktop.md).
 - `valancex-port-desktop`: the window can start its engine again in place (`Engine::restart`), triggered by a change to the file `VLX_RELOAD` names, so a development server can rebuild without closing and reopening the window.
 - `valancex-port-desktop`: `submit`, an event of `textfield` (the person pressed Enter in it). A headless test clicks into the field and presses keys.
 - `valancex-port-desktop`: color scheme. The window tells the engine the system's colors (`scheme`, when it opens and when they change), and the engine may ask the window to look `light`, `dark` or `system` (`appearance`); the window follows the system when it asks for nothing.
@@ -14,6 +15,18 @@ All notable changes to PORT are recorded here. The project follows [Semantic Ver
 - `vlx-window` (a binary of `valancex-port-desktop`): a window for any engine, for `vlx dev`.
 - The content layer of `valancex-port-desktop` (`content.json`: `paragraph`, `list`, `listitem`, `code`, `blockquote`, `image`, `strong`, `emphasis`, `link`, and `heading` with a `level`), named as WAI-ARIA names them, drawn from real MESH output, with links reported as addresses (`link` in the host protocol).
 - `valancex-port-desktop` 0.1.0 (unreleased): the Desktop PORT. A Rust crate that realizes `render-v1` as a native window (egui) and reports interactions as handler identifiers and payloads. A vocabulary of seven components (`column`, `row`, `heading`, `text`, `button`, `checkbox`, `textfield`) in `vocabulary.json`, with two events (`click`, `change`); the host protocol for an engine in another process; contract tests on real MESH output. See the [architecture note](./docs/architecture/2026-10-14-port-desktop.md).
+
+## [0.6.0] - 2026-10-15
+
+A minor release. **The Desktop PORT's vocabulary is published as data**, so the tools that check a template (`vlx check`, editors) read it from a package instead of carrying a copy that can drift. `@valancex/port-web` changes nothing: the two packages share one version and are published together. See the [v0.6 release notes](./docs/releases/v0.6.md).
+
+### Added
+
+- `@valancex/port-desktop-vocabulary` 0.6.0: `vocabulary.json` (the components a template may write for a native window, with props and events, including the new `cancel`) and `content.json` (the content layer), copied from the Rust crate's files before every pack and test, with a test that they are byte for byte the crate's. The release workflow packs and publishes both packages and checks they share one version.
+
+### Changed
+
+- `@valancex/port-web` 0.6.0: no change to its API or behavior (the version moves with the package above).
 
 ## [0.5.0] - 2026-10-14
 

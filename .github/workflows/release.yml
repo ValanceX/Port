@@ -1,12 +1,13 @@
 name: Release
 
 # Builds a PORT release from its tag and publishes it, as MESH's release.yml
-# does: all of CI on the tagged commit, then @valancex/port-web packed,
-# published to npm with provenance, and a GitHub release with the tarball
+# does: all of CI on the tagged commit, then @valancex/port-web and
+# @valancex/port-desktop-vocabulary (one version, published together) packed,
+# published to npm with provenance, and a GitHub release with the tarballs
 # and the version's release notes (docs/releases/vX.Y.md).
 #
-# - A pushed `v*` tag publishes. Its tag must be `v` + @valancex/port-web's
-#   version. Tagging the release commit is the maintainer's step.
+# - A pushed `v*` tag publishes. Its tag must be `v` + the version both
+#   packages share. Tagging the release commit is the maintainer's step.
 # - A manual run publishes only with `publish` set, and only from a tag;
 #   otherwise it's a dry run: everything but the publishing.
 # - A pull request that changes this workflow runs the dry run.
@@ -58,6 +59,7 @@ jobs:
           pnpm build
           mkdir -p out
           pnpm --filter @valancex/port-web pack --pack-destination "$PWD/out"
+          pnpm --filter @valancex/port-desktop-vocabulary pack --pack-destination "$PWD/out"
       - uses: actions/upload-artifact@v4
         with:
           name: release-package
@@ -88,12 +90,16 @@ jobs:
           version="$(node -p 'require("./packages/port-web/package.json").version')"
           tag="v${version}"
           echo "TAG=${tag}" >> "$GITHUB_ENV"
-          if [ "$(ls out/*.tgz | wc -l)" != "1" ] || [ ! -f "out/valancex-port-web-${version}.tgz" ]; then
-            echo "::error::Expected exactly one tarball, valancex-port-web-${version}.tgz"
+          if [ "$(node -p 'require("./packages/port-desktop-vocabulary/package.json").version')" != "${version}" ]; then
+            echo "::error::@valancex/port-web and @valancex/port-desktop-vocabulary must share one version"
+            exit 1
+          fi
+          if [ "$(ls out/*.tgz | wc -l)" != "2" ] || [ ! -f "out/valancex-port-web-${version}.tgz" ] || [ ! -f "out/valancex-port-desktop-vocabulary-${version}.tgz" ]; then
+            echo "::error::Expected exactly the tarballs valancex-port-web-${version}.tgz and valancex-port-desktop-vocabulary-${version}.tgz"
             exit 1
           fi
           if [ "$GITHUB_REF_TYPE" = "tag" ] && [ "$GITHUB_REF_NAME" != "$tag" ]; then
-            echo "::error::The tag is ${GITHUB_REF_NAME}, but @valancex/port-web is ${version}: tag ${tag}"
+            echo "::error::The tag is ${GITHUB_REF_NAME}, but the packages are ${version}: tag ${tag}"
             exit 1
           fi
           if [ "$PUBLISH" = "true" ] && [ "$GITHUB_REF_TYPE" != "tag" ]; then
@@ -106,24 +112,27 @@ jobs:
             exit 1
           fi
           echo "NOTES=${notes}" >> "$GITHUB_ENV"
-          if npm view "@valancex/port-web@${version}" version > /dev/null 2>&1; then
-            if [ "$PUBLISH" = "true" ]; then
-              echo "::error::@valancex/port-web@${version} is already on npm"
-              exit 1
+          for name in @valancex/port-web @valancex/port-desktop-vocabulary; do
+            if npm view "${name}@${version}" version > /dev/null 2>&1; then
+              if [ "$PUBLISH" = "true" ]; then
+                echo "::error::${name}@${version} is already on npm"
+                exit 1
+              fi
+              echo "::warning::${name}@${version} is already on npm; a release needs a version bump"
             fi
-            echo "::warning::@valancex/port-web@${version} is already on npm; a release needs a version bump"
-          fi
+          done
       - name: Publish to npm
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_ACCESS_TOKEN }}
         run: |
-          # Absolute, so npm reads the tarball as a file, not a GitHub spec.
-          tarball="$PWD/out/valancex-port-web-${TAG#v}.tgz"
-          if [ "$PUBLISH" = "true" ]; then
-            npm publish "$tarball" --access public --provenance
-          else
-            npm publish "$tarball" --access public --provenance=false --dry-run
-          fi
+          # Absolute, so npm reads each tarball as a file, not a GitHub spec.
+          for tarball in "$PWD"/out/valancex-port-web-"${TAG#v}".tgz "$PWD"/out/valancex-port-desktop-vocabulary-"${TAG#v}".tgz; do
+            if [ "$PUBLISH" = "true" ]; then
+              npm publish "$tarball" --access public --provenance
+            else
+              npm publish "$tarball" --access public --provenance=false --dry-run
+            fi
+          done
       - name: GitHub release
         if: env.PUBLISH == 'true'
         env:

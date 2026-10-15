@@ -61,6 +61,11 @@ pub enum ToEngine {
     Scheme {
         scheme: String,
     },
+    /// The person asked to move along the pages they visited (`"back"` or `"forward"`): Alt+Left and Alt+Right, or the mouse's back and forward buttons. The engine owns the list of pages and
+    /// may refuse; the window only says what was asked. Never sent for a key the platform has no convention for.
+    Navigate {
+        direction: String,
+    },
     /// The person asked to close the window; the engine answers with `closeAnswer`.
     #[serde(rename = "closeRequested")]
     CloseRequested,

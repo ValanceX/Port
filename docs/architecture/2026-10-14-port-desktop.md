@@ -59,6 +59,7 @@ An engine in another process (the application, in JavaScript or anything else) d
 |---|---|
 | `{"op":"event","handler":"…","payload":JSON}` | A report. `handler` is copied from the tree; `payload` is optional plain data. |
 | `{"op":"scheme","scheme":"light"\|"dark"}` | The system's colors, as the window sees them: sent when the window opens and whenever they change. The application learns them as state. |
+| `{"op":"navigate","direction":"back"\|"forward"}` | The person asked to move along the pages they visited: Alt+Left or Alt+Right, or the mouse's back or forward button. The engine owns the list of pages and may refuse; the window says only what was asked. Never sent for a key the platform has no convention for (below). |
 | `{"op":"closeRequested"}` | The person asked to close the window. The PORT cancels the close and waits for `closeAnswer`. |
 | `{"op":"link","href":"…"}` | The person activated a link. A link is an address, not an event: the tree carries its `href` and no handler. The PORT never opens an address itself; the engine decides what it means (the application owns navigation). |
 | `{"op":"close"}` | The window has closed; the engine ends. A closed stream means the same. |
@@ -72,3 +73,17 @@ The engine treats the PORT as a separate program and bounds what it reads (lines
 ## Not yet
 
 Patches, images, links, styling, keyboard events, accessibility, macOS in CI, and any mobile PORT (an engine in Node cannot ship in an iOS or Android app; see Valance's native parity note). The vocabulary investigation orders them.
+
+## Keys
+
+The window gives meaning only to keys a platform has a convention for, and leaves the rest unmapped rather than inventing one.
+
+| Key | Where | Becomes | Basis |
+|---|---|---|---|
+| Enter | in a text field | the field's `submit` | SwiftUI documents Return as the standard default-button shortcut ([KeyboardShortcut](https://developer.apple.com/documentation/swiftui/keyboardshortcut)); Windows and Linux dialogs follow the same convention |
+| Escape | in a text field | the field's `cancel` | SwiftUI documents Escape as the standard cancel shortcut (same page); Apple's guidance lists Escape as a rare shortcut for cancelling |
+| Alt+Left, Alt+Right | anywhere, except macOS | the `navigate` message, `back` or `forward` | Microsoft's back-navigation guidance names Alt+Left, the Back key and the mouse's back button (from a search summary of the UWP-era page; the page itself could not be fetched here) |
+| Mouse back / forward button | anywhere | the `navigate` message | the same guidance names the mouse's back button |
+| Back / forward keys | macOS | **nothing**: unmapped | no current Apple guidance naming Back and Forward keys could be read; a 1998 guideline gives Option-Left and Option-Right, which is not current evidence |
+
+Copy, paste, select all and the arrow keys inside a text field are the toolkit's own and are not the PORT's to name.
