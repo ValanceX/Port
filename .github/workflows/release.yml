@@ -135,6 +135,9 @@ jobs:
           for tarball in "$PWD"/out/valancex-port-web-"${TAG#v}".tgz "$PWD"/out/valancex-port-desktop-vocabulary-"${TAG#v}".tgz; do
             if [ "$PUBLISH" = "true" ]; then
               npm publish "$tarball" --access public --provenance
+            elif npm view "$(tar -xzOf "$tarball" package/package.json | node -p 'const m = JSON.parse(require("fs").readFileSync(0, "utf8")); m.name + "@" + m.version')" version > /dev/null 2>&1; then
+              # npm refuses even a dry run over a published version (already warned above).
+              echo "Skipping the dry run of $(basename "$tarball"): already on npm"
             else
               npm publish "$tarball" --access public --provenance=false --dry-run
             fi
