@@ -1,0 +1,136 @@
+name: Release the Desktop PORT
+
+# Builds the Desktop PORT (packages/port-desktop, the crate `valancex-port-desktop`, with the
+# `vlx-window` program) from its tag and publishes it. The crate is versioned on its own, not with
+# the npm packages, so it has its own tag: `desktop-v<version>`, where <version> is `version` in
+# packages/port-desktop/Cargo.toml.
+#
+# - A pushed `desktop-v*` tag publishes. Tagging the release commit is the maintainer's step.
+# - A manual run publishes only with `publish` set, and only from a tag; otherwise it is a dry run:
+#   everything but the publishing (`cargo publish --dry-run`).
+# - A pull request that changes this workflow or the crate's version runs the dry run.
+#
+# What a release makes:
+#   - the crate on crates.io (`cargo install valancex-port-desktop --bin vlx-window`). Needs the
+#     `CARGO_REGISTRY_TOKEN` secret (a crates.io API token with publish rights for the crate); the step
+#     is skipped with a warning when it is absent.
+#   - `vlx-window` built for Linux (x64) and Windows (x64), attached to the GitHub release with its
+#     SHA-256, so `vlx package --window <path>` does not need a Rust toolchain. Unsigned.
+#   - a GitHub release with the changelog entry of the version.
+
+on:
+  push:
+    tags: ["desktop-v*"]
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: "Publish and make the GitHub release (only from a tag)"
+        type: boolean
+        default: false
+  pull_request:
+    paths:
+      - .github/workflows/release-desktop.yml
+      - packages/port-desktop/Cargo.toml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-desktop-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  # All of CI, on the commit being released (it includes the crate's tests on Linux and Windows).
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  build:
+    needs: ci
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux-x64
+            exe: vlx-window
+          - os: windows-latest
+            platform: win32-x64
+            exe: vlx-window.exe
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+        working-directory: packages/port-desktop
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check the version
+        run: |
+          version="$(sed -n 's/^version = "\(.*\)"$/\1/p' Cargo.toml | head -1)"
+          echo "VERSION=${version}" >> "$GITHUB_ENV"
+          if [ "$GITHUB_REF_TYPE" = "tag" ] && [ "$GITHUB_REF_NAME" != "desktop-v${version}" ]; then
+            echo "::error::The tag is ${GITHUB_REF_NAME}, but the crate is ${version}: tag desktop-v${version}"
+            exit 1
+          fi
+          if ! grep -q "^## \[${version}\]" ../../CHANGELOG.md; then
+            echo "::error::CHANGELOG.md has no entry for ${version}"
+            exit 1
+          fi
+      - name: Build the window
+        run: cargo build --release --locked --bin vlx-window
+      - name: Name it for its platform
+        run: |
+          mkdir -p ../../out
+          cp "target/release/${{ matrix.exe }}" "../../out/vlx-window-${{ matrix.platform }}${{ matrix.os == 'windows-latest' && '.exe' || '' }}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vlx-window-${{ matrix.platform }}
+          path: out/
+          if-no-files-found: error
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # the GitHub release
+    env:
+      PUBLISH: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.publish) }}
+      CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: vlx-window-*
+          path: out
+          merge-multiple: true
+      - name: Check what is being released
+        run: |
+          version="$(sed -n 's/^version = "\(.*\)"$/\1/p' packages/port-desktop/Cargo.toml | head -1)"
+          echo "VERSION=${version}" >> "$GITHUB_ENV"
+          echo "TAG=desktop-v${version}" >> "$GITHUB_ENV"
+          ls -l out
+          if [ "$(ls out | wc -l)" != "2" ]; then
+            echo "::error::Expected the window for linux-x64 and win32-x64"
+            exit 1
+          fi
+          if [ "$PUBLISH" = "true" ] && [ "$GITHUB_REF_TYPE" != "tag" ]; then
+            echo "::error::Publishing needs a tag: push desktop-v${version}"
+            exit 1
+          fi
+          (cd out && sha256sum * > SHA256SUMS && cat SHA256SUMS)
+          awk -v v="${version}" '$0 ~ "^## \\[" v "\\]" { on = 1; next } /^## \[/ { on = 0 } on' CHANGELOG.md > notes.md
+          test -s notes.md
+      - name: crates.io
+        working-directory: packages/port-desktop
+        run: |
+          if [ "$PUBLISH" != "true" ]; then
+            cargo publish --locked --dry-run --allow-dirty
+          elif [ -z "$CARGO_REGISTRY_TOKEN" ]; then
+            echo "::warning::CARGO_REGISTRY_TOKEN is not set: not published to crates.io"
+          else
+            cargo publish --locked
+          fi
+      - name: GitHub release
+        if: env.PUBLISH == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$TAG" --title "Desktop PORT ${VERSION}" --notes-file notes.md --verify-tag out/*

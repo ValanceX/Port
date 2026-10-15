@@ -4,6 +4,10 @@ All notable changes to PORT are recorded here. The project follows [Semantic Ver
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-10-15 (`valancex-port-desktop`, tag `desktop-v0.1.0`)
+
+The first release of the Desktop PORT, the Rust crate (and the `vlx-window` program) that draws a Valance application in a native window. It is versioned and released on its own tag, apart from the npm packages. Built and tested on Linux and Windows; macOS is not built or tested. Unsigned. See the [architecture note](./docs/architecture/2026-10-14-port-desktop.md) and [API stability](./docs/stability.md).
+
 ### Added
 
 - `valancex-port-desktop`: **keys, only the ones a platform has a convention for.** Escape in a text field is a new event, `cancel` (beside `click`, `change` and `submit`). Alt+Left and Alt+Right, and the mouse's back and forward buttons, are a new host message, `navigate` (`back` or `forward`), for an engine that keeps a list of pages; on macOS the keys are unmapped (the mouse buttons stay). See "Keys" in the [architecture note](./docs/architecture/2026-10-14-port-desktop.md).

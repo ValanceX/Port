@@ -1,6 +1,6 @@
 # The Desktop PORT
 
-2026-10-14. The second PORT. It realizes `render-v1` as a native window on Linux, Windows and macOS. This note says why it is its own package, what it promises, what its vocabulary is and why, and how an engine in another process drives it. The reasons for the vocabulary, with the evidence and the alternatives, are in Valance's [native vocabulary investigation](https://github.com/ValanceX/Valance/blob/main/docs/application-model/NATIVE-VOCABULARY.md).
+2026-10-14. The second PORT. It realizes `render-v1` as a native window, built and tested on Linux and Windows (macOS is not yet built or tested). This note says why it is its own package, what it promises, what its vocabulary is and why, and how an engine in another process drives it. The reasons for the vocabulary, with the evidence and the alternatives, are in Valance's [native vocabulary investigation](https://github.com/ValanceX/Valance/blob/main/docs/application-model/NATIVE-VOCABULARY.md).
 
 ## Why a package of its own
 
