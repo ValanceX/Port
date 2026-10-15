@@ -44,7 +44,7 @@ const ATTRIBUTE_NAME = /^[a-z_:][a-z0-9_.:-]*$/;
 // The table.
 
 /** For each primitive, which of its events each DOM event type constitutes. */
-export type Applicable = ReadonlyMap<string, ReadonlyMap<string, string>>;
+export type Applicable = ReadonlyMap<string, ReadonlyMap<string, ReadonlyArray<string>>>;
 
 const invalid = (component: string, reason: string): WebRealizationError =>
   new WebRealizationError("invalid-primitives", `<${component}> ${reason}`);
@@ -65,7 +65,7 @@ const isRealization = (entry: unknown): entry is PropRealization => {
  * `invalid-primitives`, and returns its events by DOM event type.
  */
 export const validatePrimitives = (primitives: WebPrimitives): Applicable => {
-  const applicable = new Map<string, Map<string, string>>();
+  const applicable = new Map<string, Map<string, ReadonlyArray<string>>>();
 
   for (const [component, primitive] of Object.entries(primitives)) {
     if (!ELEMENT_NAME.test(primitive.element)) {
@@ -130,20 +130,27 @@ export const validatePrimitives = (primitives: WebPrimitives): Applicable => {
       attributes.set(name, "one of its constant attributes");
     }
 
-    const byType = new Map<string, string>();
+    // A DOM event type may realize several events only if no interaction can be two of them: each is made by a key, and no two are made by the same one (Enter and Escape on a field, both
+    // `keydown`). An event with no key is made by every interaction of its type, so it shares the type with none.
+    const byType = new Map<string, Array<string>>();
 
     for (const [event, realization] of Object.entries(primitive.events ?? {})) {
       if (realization.key !== undefined && (typeof realization.key !== "string" || realization.key === "" || realization.key.length > 32 || !KEY_EVENTS.has(realization.type))) {
         throw invalid(component, `gives its event \`${event}\` a key that isn't a non-empty name of at most 32 characters on a keyboard event (keydown, keyup)`);
       }
 
-      const other = byType.get(realization.type);
+      const sharing = byType.get(realization.type) ?? [];
+      const other = sharing.find((name) => {
+        const key = primitive.events![name]!.key;
+
+        return key === undefined || realization.key === undefined || key === realization.key;
+      });
 
       if (other !== undefined) {
         throw invalid(component, `realizes both \`${other}\` and \`${event}\` as the DOM event "${realization.type}", so one interaction would have two applicable events`);
       }
 
-      byType.set(realization.type, event);
+      byType.set(realization.type, [...sharing, event]);
     }
 
     applicable.set(component, byType);

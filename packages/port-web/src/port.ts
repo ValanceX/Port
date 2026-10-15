@@ -371,17 +371,20 @@ export const createWebPort = ({ container, primitives, report }: WebPortOptions)
     }
 
     for (let node = interacted; node !== undefined; node = node.parent) {
-      const name = applicable.get(node.component)?.get(event.type);
+      // The events of this primitive that this interaction can be: of its DOM type, bound to a handler here, and (when the event is made by a key) made by the key pressed. At most one,
+      // since the table was checked to give no two events the same interaction. Any other key is not an interaction for them, and the walk goes on toward the root.
+      const name = applicable
+        .get(node.component)
+        ?.get(event.type)
+        ?.find((candidate) => {
+          const key = own(node.primitive!.events, candidate)!.key;
+
+          return node.handlers.has(candidate) && (key === undefined || (event as KeyboardEvent).key === key);
+        });
       const handler = name === undefined ? undefined : node.handlers.get(name);
 
       if (name !== undefined && handler !== undefined) {
         const realization = own(node.primitive!.events, name)!;
-
-        // Only the one key makes this event: any other is not an interaction for it, and the walk goes on toward the root.
-        if (realization.key !== undefined && (event as KeyboardEvent).key !== realization.key) {
-          continue;
-        }
-
         const build = realization.payload;
 
         if (build === undefined) {
