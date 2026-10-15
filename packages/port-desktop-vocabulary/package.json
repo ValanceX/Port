@@ -1,0 +1,32 @@
+{
+  "name": "@valancex/port-desktop-vocabulary",
+  "version": "0.6.0",
+  "description": "The Desktop PORT's vocabulary as data: the components, props and events a template may use for a native window, and the content layer. Read by the tools that check templates; the PORT itself is the Rust crate valancex-port-desktop.",
+  "type": "module",
+  "license": "MIT",
+  "author": "Jack Miller <jackmiller0899@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ValanceX/Port.git",
+    "directory": "packages/port-desktop-vocabulary"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "sideEffects": false,
+  "exports": {
+    "./vocabulary.json": "./vocabulary.json",
+    "./content.json": "./content.json",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "vocabulary.json",
+    "content.json"
+  ],
+  "scripts": {
+    "sync": "node scripts/sync.mjs",
+    "prepack": "node scripts/sync.mjs",
+    "pretest": "node scripts/sync.mjs",
+    "test": "node --test test/vocabulary.test.mjs"
+  }
+}

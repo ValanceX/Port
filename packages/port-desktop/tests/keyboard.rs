@@ -1,4 +1,5 @@
-//! Enter in a text field is the event `submit`: the person is done with what they typed. Clicking into the field and pressing Enter, with no window, reports it once; any other key reports nothing.
+//! Enter in a text field is the event `submit` (the person is done with what they typed) and Escape is `cancel` (they back out). Clicking into the field and pressing the key, with no window,
+//! reports it once; any other key reports nothing. Alt+Left and Alt+Right (and the mouse's back and forward buttons) ask to move along the pages visited; on macOS the keys are unmapped.
 #![cfg(feature = "window")]
 
 use port_desktop::tree::Tree;
@@ -8,7 +9,7 @@ fn tree() -> Tree {
     serde_json::from_value(serde_json::json!({
         "format": "mesh-render", "version": 1,
         "root": { "type": "node", "key": "c", "component": "column", "props": {}, "events": {}, "children": [
-            { "type": "node", "key": "f", "component": "textfield", "props": { "value": "", "label": "New item" }, "events": { "submit": "h-submit", "change": "h-change" }, "children": [] }
+            { "type": "node", "key": "f", "component": "textfield", "props": { "value": "", "label": "New item" }, "events": { "submit": "h-submit", "cancel": "h-cancel", "change": "h-change" }, "children": [] }
         ] }
     }))
     .expect("a render-v1 tree")
@@ -124,4 +125,100 @@ fn another_key_reports_no_submit() {
     let (up, _) = window.frame(vec![key(egui::Key::A, false)]);
 
     assert_eq!(submits(&down) + submits(&up), 0);
+}
+
+fn cancels(out: &[Output]) -> usize {
+    out.iter()
+        .filter(|output| matches!(output, Output::Report(report) if report.handler == "h-cancel"))
+        .count()
+}
+
+#[test]
+fn escape_in_a_focused_field_reports_cancel_once_and_not_submit() {
+    let mut window = focused();
+    let (down, _) = window.frame(vec![key(egui::Key::Escape, true)]);
+    let (up, _) = window.frame(vec![key(egui::Key::Escape, false)]);
+
+    assert_eq!(cancels(&down) + cancels(&up), 1, "{down:?} {up:?}");
+    assert_eq!(submits(&down) + submits(&up), 0);
+}
+
+#[test]
+fn enter_reports_no_cancel() {
+    let mut window = focused();
+    let (down, _) = window.frame(vec![key(egui::Key::Enter, true)]);
+
+    assert_eq!(cancels(&down), 0);
+}
+
+fn asked(events: Vec<egui::Event>, mac: bool) -> Option<port_desktop::keys::Direction> {
+    let ctx = egui::Context::default();
+    let mut found = None;
+    let modifiers = events
+        .iter()
+        .find_map(|event| match event {
+            egui::Event::Key { modifiers, .. } => Some(*modifiers),
+            _ => None,
+        })
+        .unwrap_or(egui::Modifiers::NONE);
+
+    let _ = ctx.run(
+        egui::RawInput {
+            events,
+            modifiers,
+            ..Default::default()
+        },
+        |ctx| found = ctx.input(|input| port_desktop::keys::navigation(input, mac)),
+    );
+
+    found
+}
+
+fn alt(key: egui::Key) -> Vec<egui::Event> {
+    vec![egui::Event::Key {
+        key,
+        physical_key: Some(key),
+        pressed: true,
+        repeat: false,
+        modifiers: egui::Modifiers::ALT,
+    }]
+}
+
+#[test]
+fn alt_left_and_alt_right_ask_for_back_and_forward_where_the_platform_has_them() {
+    use port_desktop::keys::Direction::{Back, Forward};
+
+    assert_eq!(asked(alt(egui::Key::ArrowLeft), false), Some(Back));
+    assert_eq!(asked(alt(egui::Key::ArrowRight), false), Some(Forward));
+    assert_eq!(asked(alt(egui::Key::ArrowUp), false), None);
+}
+
+#[test]
+fn the_arrow_keys_alone_or_with_other_modifiers_are_not_navigation() {
+    let plain = vec![key(egui::Key::ArrowLeft, true)];
+
+    assert_eq!(asked(plain, false), None);
+
+    for modifiers in [
+        egui::Modifiers::CTRL,
+        egui::Modifiers::SHIFT,
+        egui::Modifiers::ALT | egui::Modifiers::SHIFT,
+        egui::Modifiers::ALT | egui::Modifiers::CTRL,
+    ] {
+        let event = vec![egui::Event::Key {
+            key: egui::Key::ArrowLeft,
+            physical_key: Some(egui::Key::ArrowLeft),
+            pressed: true,
+            repeat: false,
+            modifiers,
+        }];
+
+        assert_eq!(asked(event, false), None, "{modifiers:?}");
+    }
+}
+
+#[test]
+fn on_macos_the_keys_are_left_unmapped() {
+    assert_eq!(asked(alt(egui::Key::ArrowLeft), true), None);
+    assert_eq!(asked(alt(egui::Key::ArrowRight), true), None);
 }

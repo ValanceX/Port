@@ -51,6 +51,8 @@ importers:
         specifier: ^3.2.0
         version: 3.2.7(@types/node@22.20.4)(@vitest/browser@3.2.7)(jsdom@26.1.0)
 
+  packages/port-desktop-vocabulary: {}
+
   packages/port-web:
     devDependencies:
       '@types/jsdom':

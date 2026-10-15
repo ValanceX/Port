@@ -46,7 +46,7 @@ Seven components, in [`vocabulary.json`](./vocabulary.json) (a MESH manifest, so
 | `text` | | | A run of text. Text is text: nothing in it is markup. |
 | `button` | `disabled`, `label` (optional) | `click` | Something to press. Its content is its label. A disabled button reports nothing. |
 | `checkbox` | `checked`, `label` (optional) | `change` (the new value, true or false) | A box that is ticked or not. The application decides whether it is. |
-| `textfield` | `value`, `placeholder`, `label` (optional) | `change` (the text), `submit` | A line of text the person edits. `submit` is Enter: the person is done with what they typed. |
+| `textfield` | `value`, `placeholder`, `label` (optional) | `change` (the text), `submit`, `cancel` | A line of text the person edits. `submit` is Enter: the person is done with what they typed. `cancel` is Escape: they back out of it. |
 
 **`label`** is a control's accessible name, the one a screen reader says: a checkbox has no text of its own and a field's `placeholder` is a hint, not a name, so a template gives them a `label` (the window passes it to the platform's accessibility tree through AccessKit). A button's name is its content unless a `label` says otherwise.
 
@@ -66,7 +66,7 @@ Two events: **click** (a button) and **change** (the value of a checkbox or a te
 
 ### Driving it from an engine
 
-An engine in another process (the application, in JavaScript) drives the PORT with one JSON object per line: `hello`, `title`, `appearance`, `draw`, `update`, `unmount` and `closeAnswer` in; `event`, `link`, `scheme`, `closeRequested` and `close` out. The module `host` is that conversation, and [the architecture note](../../docs/architecture/2026-10-14-port-desktop.md) specifies it.
+An engine in another process (the application, in JavaScript) drives the PORT with one JSON object per line: `hello`, `title`, `appearance`, `draw`, `update`, `unmount` and `closeAnswer` in; `event`, `link`, `scheme`, `navigate`, `closeRequested` and `close` out. The module `host` is that conversation, and [the architecture note](../../docs/architecture/2026-10-14-port-desktop.md) specifies it.
 
 ## `vlx-window`
 

@@ -238,6 +238,13 @@ impl View {
                         report(events, "submit", None, out);
                     }
 
+                    // Escape in the field is the person backing out of what they typed: the application decides what that undoes.
+                    if response.lost_focus()
+                        && ui.input(|input| input.key_pressed(egui::Key::Escape))
+                    {
+                        report(events, "cancel", None, out);
+                    }
+
                     if response.changed() {
                         let text = field.typed();
 

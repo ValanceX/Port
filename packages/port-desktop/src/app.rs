@@ -152,6 +152,13 @@ impl eframe::App for App {
         if closing {
             self.engine.send(&ToEngine::CloseRequested);
         }
+        if let Some(direction) =
+            ctx.input(|input| crate::keys::navigation(input, cfg!(target_os = "macos")))
+        {
+            self.engine.send(&ToEngine::Navigate {
+                direction: direction.word().into(),
+            });
+        }
         for output in reports {
             match output {
                 Output::Report(report) => self.engine.send(&report.into()),

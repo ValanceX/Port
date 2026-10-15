@@ -27,3 +27,18 @@ fn the_window_tells_the_engine_the_systems_colors() {
 
     assert_eq!(line, r#"{"op":"scheme","scheme":"dark"}"#);
 }
+
+#[test]
+fn the_window_tells_the_engine_which_way_the_person_asked_to_move_along_the_pages() {
+    for (direction, line) in [
+        ("back", r#"{"op":"navigate","direction":"back"}"#),
+        ("forward", r#"{"op":"navigate","direction":"forward"}"#),
+    ] {
+        let sent = serde_json::to_string(&ToEngine::Navigate {
+            direction: direction.into(),
+        })
+        .unwrap();
+
+        assert_eq!(sent, line);
+    }
+}
