@@ -1,6 +1,6 @@
 // An event made by one key: `{ type: "keydown", key: "Enter" }` is what a person does by pressing Enter in a field. Any other key is not that event, at that node, and the interaction goes on toward
 // the root like any that does not apply.
-import type { WebPrimitives } from "../src/index.js";
+import type { EventRealization, WebPrimitives } from "../src/index.js";
 
 import { describe, expect, it } from "vitest";
 
@@ -97,7 +97,7 @@ describe("events made by different keys on one DOM event type", () => {
 
   it("are refused when the same key would make both, or when one of them takes any key", () => {
     const { container } = dom();
-    const make = (events: WebPrimitives[string]["events"]) => () => createWebPort({ container, primitives: { field: { element: "input", events } }, report: () => undefined });
+    const make = (events: Readonly<Record<string, EventRealization>>) => () => createWebPort({ container, primitives: { field: { element: "input", events } }, report: () => undefined });
 
     expect(make({ a: { type: "keydown", key: "Enter" }, b: { type: "keydown", key: "Enter" } })).toThrow(/two applicable events/);
     expect(make({ a: { type: "keydown", key: "Enter" }, b: { type: "keydown" } })).toThrow(/two applicable events/);
