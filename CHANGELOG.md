@@ -16,6 +16,14 @@ All notable changes to PORT are recorded here. The project follows [Semantic Ver
 - The content layer of `valancex-port-desktop` (`content.json`: `paragraph`, `list`, `listitem`, `code`, `blockquote`, `image`, `strong`, `emphasis`, `link`, and `heading` with a `level`), named as WAI-ARIA names them, drawn from real MESH output, with links reported as addresses (`link` in the host protocol).
 - `valancex-port-desktop` 0.1.0 (unreleased): the Desktop PORT. A Rust crate that realizes `render-v1` as a native window (egui) and reports interactions as handler identifiers and payloads. A vocabulary of seven components (`column`, `row`, `heading`, `text`, `button`, `checkbox`, `textfield`) in `vocabulary.json`, with two events (`click`, `change`); the host protocol for an engine in another process; contract tests on real MESH output. See the [architecture note](./docs/architecture/2026-10-14-port-desktop.md).
 
+## [0.6.1] - 2026-10-15
+
+A patch release of `@valancex/port-web` (and `@valancex/port-desktop-vocabulary`, which moves with it). See the [v0.6 release notes](./docs/releases/v0.6.md#v061).
+
+### Fixed
+
+- `@valancex/port-web`: **two events of one primitive may share a DOM event type when they are made by different keys.** A text field can now realize `submit` (`{ type: "keydown", key: "Enter" }`) and `cancel` (`{ type: "keydown", key: "Escape" }`) together. Before, the table was refused as "one interaction would have two applicable events" although no key press can be both. A table is still refused when two events share a type and the same key, or when either of them takes any key (an event with no `key`). Resolution is unchanged for every table that was accepted before.
+
 ## [0.6.0] - 2026-10-15
 
 A minor release. **The Desktop PORT's vocabulary is published as data**, so the tools that check a template (`vlx check`, editors) read it from a package instead of carrying a copy that can drift. `@valancex/port-web` changes nothing: the two packages share one version and are published together. See the [v0.6 release notes](./docs/releases/v0.6.md).
