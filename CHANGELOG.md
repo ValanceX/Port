@@ -4,18 +4,15 @@ All notable changes to PORT are recorded here. The project follows [Semantic Ver
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-10-16
+
+A minor release of the two packages that share one version, `@valancex/port-web` and `@valancex/port-desktop-vocabulary`. **`@valancex/port-web` changes nothing** (it moves so the workspace has one version, as at 0.6.0). **The Desktop PORT's vocabulary grows**, additively: nothing an application wrote before changes. See the [v0.7 release notes](./docs/releases/v0.7.md). The crate `valancex-port-desktop` is released on its own tag; its first release, 0.1.0, carries the same additions.
+
 ### Added
 
-- `valancex-port-desktop` and `@valancex/port-desktop-vocabulary` (vocabulary and content data): **form primitives**, the same names and types the Web PORT's tag table carries for a Valance application (`docs/application-model/FORM-PRIMITIVES.md` in the Valance repository). All are optional and additive.
-  - `textfield` takes `kind`: `password` masks what is shown; every other kind (`text`, `email`, `number`, `search`, `tel`, `url`, or a value this window does not know) is plain text.
-  - `textfield` and `checkbox` take `invalid` (outlined, and invalid in the accessibility tree) and `describedby` (the `id` of the text that explains the control, which becomes the control's accessible description). `text` and `paragraph` take `id`.
-  - `textfield` raises `focus` (the person came into the field) and `blur` (they left it; also after `submit` or `cancel`, which take the focus out). Events are the sixth and fifth verbs of the vocabulary: `click`, `change`, `submit`, `cancel`, `focus`, `blur`.
-  - Headless tests: a password is drawn masked and no other kind is; an invalid control is invalid in the AccessKit tree and is described by the text it names; focus and blur are reported once, and not at all where no handler is bound.
-
-### Added (choice group and window width)
-
-- `valancex-port-desktop` and `@valancex/port-desktop-vocabulary`: a **choice group**, two components of the vocabulary (`docs/application-model/CHOICE-GROUP.md` in the Valance repository). `radiogroup` holds the options and names the group (`label`, `invalid`, `describedby`, all optional, no events); `radio` is one option (`checked`, `value`, `label`, `disabled`) and raises `select` with its `value` when the person chooses it. Choosing the selected option, or a disabled one, reports nothing. The accessibility tree has a `RadioGroup` named by its label and `RadioButton`s with their name and selected state. Arrow-key movement inside a group is not provided in this version (Tab reaches each option).
-- `valancex-port-desktop`: the host message `resize` (`{ "op": "resize", "width": 812 }`), the width of the window's content in whole points, sent when the window opens and whenever it changes. The engine turns it into the class of room the application has (`viewport`), as the web does from the page's width. An engine that does not know the message ignores it.
+- `@valancex/port-desktop-vocabulary` 0.7.0, `vocabulary.json`: **form primitives**, the same names and types the Web PORT's tag table carries for a Valance application (`docs/application-model/FORM-PRIMITIVES.md` in the Valance repository), all optional. `textfield` takes `kind` (`password` masks what is shown); `textfield` and `checkbox` take `invalid` and `describedby`; `text` takes `id`; `textfield` raises `focus` and `blur`.
+- `@valancex/port-desktop-vocabulary` 0.7.0, `vocabulary.json`: a **choice group**, two components (`docs/application-model/CHOICE-GROUP.md`). `radiogroup` (`label`, `invalid`, `describedby`, no events) holds the options; `radio` (`checked`, `value` required; `label`, `disabled`) raises `select` with its `value`. The vocabulary is nine components and seven event verbs (`click`, `change`, `submit`, `cancel`, `focus`, `blur`, `select`).
+- `@valancex/port-desktop-vocabulary` 0.7.0, `content.json`: `paragraph` takes an optional `id`.
 
 ## [0.1.0] - 2026-10-15 (`valancex-port-desktop`, tag `desktop-v0.1.0`)
 
@@ -23,6 +20,9 @@ The first release of the Desktop PORT, the Rust crate (and the `vlx-window` prog
 
 ### Added
 
+- `valancex-port-desktop`: **form primitives**. `textfield` takes `kind` (`password` masks what is shown; every other kind, known or not, is plain text), `invalid` (outlined, and invalid in the accessibility tree) and `describedby` (the `id` of the text that explains the control, its accessible description); `checkbox` takes `invalid` and `describedby`; `text` and `paragraph` take `id`; `textfield` raises `focus` (the person came into the field) and `blur` (they left it, also after `submit` or `cancel`). Headless tests read the accessibility tree back.
+- `valancex-port-desktop`: a **choice group**, `radiogroup` and `radio`. The group is named for assistive technology by its `label` and is a radio group in the accessibility tree; a radio raises `select` with its `value` when chosen, and reports nothing for the selected one or a disabled one. Movement among the options is the platform's: Tab reaches each, and the window adds no arrow-key handling.
+- `valancex-port-desktop`: the host message `resize` (`{ "op": "resize", "width": 812 }`), the width of the window's content in whole points, sent when the window opens and whenever it changes, so the application learns how much room it has (`viewport`) as it does on the web. An engine that does not know the message ignores it.
 - `valancex-port-desktop`: **keys, only the ones a platform has a convention for.** Escape in a text field is a new event, `cancel` (beside `click`, `change` and `submit`). Alt+Left and Alt+Right, and the mouse's back and forward buttons, are a new host message, `navigate` (`back` or `forward`), for an engine that keeps a list of pages; on macOS the keys are unmapped (the mouse buttons stay). See "Keys" in the [architecture note](./docs/architecture/2026-10-14-port-desktop.md).
 - `valancex-port-desktop`: the window can start its engine again in place (`Engine::restart`), triggered by a change to the file `VLX_RELOAD` names, so a development server can rebuild without closing and reopening the window.
 - `valancex-port-desktop`: `submit`, an event of `textfield` (the person pressed Enter in it). A headless test clicks into the field and presses keys.
@@ -31,7 +31,7 @@ The first release of the Desktop PORT, the Rust crate (and the `vlx-window` prog
 - `valancex-port-desktop`: an optional `label` on `button`, `checkbox` and `textfield`, the control's accessible name, passed to the platform's accessibility tree (AccessKit, now enabled in the window). A test draws a tree with no window and reads the names back.
 - `vlx-window` (a binary of `valancex-port-desktop`): a window for any engine, for `vlx dev`.
 - The content layer of `valancex-port-desktop` (`content.json`: `paragraph`, `list`, `listitem`, `code`, `blockquote`, `image`, `strong`, `emphasis`, `link`, and `heading` with a `level`), named as WAI-ARIA names them, drawn from real MESH output, with links reported as addresses (`link` in the host protocol).
-- `valancex-port-desktop` 0.1.0 (unreleased): the Desktop PORT. A Rust crate that realizes `render-v1` as a native window (egui) and reports interactions as handler identifiers and payloads. A vocabulary of seven components (`column`, `row`, `heading`, `text`, `button`, `checkbox`, `textfield`) in `vocabulary.json`, with two events (`click`, `change`); the host protocol for an engine in another process; contract tests on real MESH output. See the [architecture note](./docs/architecture/2026-10-14-port-desktop.md).
+- `valancex-port-desktop` 0.1.0 (unreleased): the Desktop PORT. A Rust crate that realizes `render-v1` as a native window (egui) and reports interactions as handler identifiers and payloads. A vocabulary of nine components (`column`, `row`, `heading`, `text`, `button`, `checkbox`, `textfield`, `radiogroup`, `radio`) in `vocabulary.json`, with two events (`click`, `change`); the host protocol for an engine in another process; contract tests on real MESH output. See the [architecture note](./docs/architecture/2026-10-14-port-desktop.md).
 
 ## [0.6.1] - 2026-10-15
 
