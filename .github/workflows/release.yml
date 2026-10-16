@@ -12,9 +12,13 @@ name: Release
 #   otherwise it's a dry run: everything but the publishing.
 # - A pull request that changes this workflow runs the dry run.
 #
-# Publishing needs the `NPM_ACCESS_TOKEN` secret: an npm granular access
-# token that can publish to the @valancex organisation. It expires; a
-# release needs a current one.
+# Publishing uses npm TRUSTED PUBLISHING (OIDC): no token is stored. Each package
+# (@valancex/port-web, @valancex/port-desktop-vocabulary) has a trusted publisher on npmjs.com
+# (package > Settings > Trusted Publisher > GitHub Actions) naming this repository
+# (ValanceX/Port) and this workflow file (`release.yml`, exactly). The publish job gets a
+# short-lived credential from GitHub (`id-token: write`) and npm >= 11.5.1 exchanges it;
+# provenance is attached automatically. A package that does not exist yet cannot have a
+# trusted publisher, so its first version is published by hand.
 
 on:
   push:
@@ -71,15 +75,19 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write # the GitHub release
-      id-token: write # npm provenance
+      id-token: write # npm trusted publishing (and provenance)
     env:
       PUBLISH: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.publish) }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
           registry-url: https://registry.npmjs.org
+      - name: npm with trusted publishing (11.5.1 or later)
+        run: |
+          npm install -g npm@^11.5.1
+          npm --version
       - uses: actions/download-artifact@v4
         with:
           name: release-package
@@ -121,14 +129,15 @@ jobs:
               echo "::warning::${name}@${version} is already on npm; a release needs a version bump"
             fi
           done
-      - name: Publish to npm
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_ACCESS_TOKEN }}
+      - name: Publish to npm (trusted publishing, no token)
         run: |
           # Absolute, so npm reads each tarball as a file, not a GitHub spec.
           for tarball in "$PWD"/out/valancex-port-web-"${TAG#v}".tgz "$PWD"/out/valancex-port-desktop-vocabulary-"${TAG#v}".tgz; do
             if [ "$PUBLISH" = "true" ]; then
               npm publish "$tarball" --access public --provenance
+            elif npm view "$(tar -xzOf "$tarball" package/package.json | node -p 'const m = JSON.parse(require("fs").readFileSync(0, "utf8")); m.name + "@" + m.version')" version > /dev/null 2>&1; then
+              # npm refuses even a dry run over a published version (already warned above).
+              echo "Skipping the dry run of $(basename "$tarball"): already on npm"
             else
               npm publish "$tarball" --access public --provenance=false --dry-run
             fi
