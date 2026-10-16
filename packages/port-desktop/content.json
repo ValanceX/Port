@@ -3,7 +3,14 @@
   "types": {},
   "components": {
     "paragraph": {
-      "props": {},
+      "props": {
+        "id": {
+          "type": {
+            "kind": "string"
+          },
+          "required": false
+        }
+      },
       "events": {},
       "commands": {},
       "scope": {}

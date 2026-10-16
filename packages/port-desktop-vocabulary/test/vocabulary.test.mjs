@@ -20,8 +20,36 @@ for (const file of ["vocabulary.json", "content.json"]) {
   });
 }
 
-test("the text field's events are submit and cancel beside change", () => {
-  assert.deepEqual(Object.keys(JSON.parse(read("../vocabulary.json")).components.textfield.events).sort(), ["cancel", "change", "submit"]);
+test("the text field's events are submit and cancel beside change, and focus and blur for coming and going", () => {
+  assert.deepEqual(Object.keys(JSON.parse(read("../vocabulary.json")).components.textfield.events).sort(), ["blur", "cancel", "change", "focus", "submit"]);
+});
+
+test("the form primitives are optional and typed as the Web PORT's table has them", () => {
+  const { components } = JSON.parse(read("../vocabulary.json"));
+  const optional = (component, name, kind) => {
+    const prop = components[component].props[name];
+
+    assert.deepEqual(prop, { type: { kind }, required: false }, `${component}.${name}`);
+  };
+
+  optional("textfield", "kind", "string");
+  optional("textfield", "invalid", "boolean");
+  optional("textfield", "describedby", "string");
+  optional("checkbox", "invalid", "boolean");
+  optional("checkbox", "describedby", "string");
+  optional("text", "id", "string");
+  assert.deepEqual(JSON.parse(read("../content.json")).components.paragraph.props.id, { type: { kind: "string" }, required: false });
+});
+
+test("a choice group is a radiogroup and its radios, and a radio reports select with its value", () => {
+  const { components } = JSON.parse(read("../vocabulary.json"));
+
+  assert.deepEqual(Object.keys(components.radio.events), ["select"]);
+  assert.deepEqual(components.radio.events.select.payload, { kind: "string" });
+  assert.deepEqual(components.radio.props.checked, { type: { kind: "boolean" }, required: true });
+  assert.deepEqual(components.radio.props.value, { type: { kind: "string" }, required: true });
+  assert.deepEqual(components.radiogroup.props.label, { type: { kind: "string" }, required: false });
+  assert.deepEqual(components.radiogroup.events, {});
 });
 
 test("the package publishes the two files and nothing else", () => {

@@ -35,6 +35,45 @@ fn named(
     }
 }
 
+/// What a control says about itself beyond its name: that its value is not acceptable (`invalid`: outlined, and invalid to the accessibility tree) and what explains it (`describedby`: the text
+/// of the node with that `id`, as the control's accessible description). `described` is the frame's `id` → text.
+fn marked(
+    described: &HashMap<String, String>,
+    ui: &Ui,
+    response: &Response,
+    props: &BTreeMap<String, Value>,
+) {
+    let invalid = props
+        .get("invalid")
+        .and_then(Value::as_bool)
+        .unwrap_or(false);
+    let description = props
+        .get("describedby")
+        .and_then(Value::as_str)
+        .and_then(|id| described.get(id))
+        .cloned();
+
+    if invalid {
+        ui.painter().rect_stroke(
+            response.rect.expand(2.0),
+            3.0,
+            egui::Stroke::new(1.5_f32, egui::Color32::from_rgb(200, 40, 30)),
+            egui::StrokeKind::Outside,
+        );
+    }
+
+    if invalid || description.is_some() {
+        ui.ctx().accesskit_node_builder(response.id, |node| {
+            if invalid {
+                node.set_invalid(egui::accesskit::Invalid::True);
+            }
+            if let Some(text) = description {
+                node.set_description(text);
+            }
+        });
+    }
+}
+
 /// The kinds of image file the window decodes.
 const IMAGE_KINDS: [&str; 7] = ["png", "jpg", "jpeg", "gif", "bmp", "webp", "svg"];
 
@@ -54,10 +93,14 @@ fn local_image(src: &str) -> Option<String> {
 #[derive(Default)]
 pub struct View {
     fields: HashMap<String, Field>,
+    /// The text of every node that has an `id`, for the controls that name it as `describedby`. Gathered at the start of each frame from the tree being drawn.
+    described: HashMap<String, String>,
 }
 
 impl View {
     pub fn show(&mut self, ui: &mut Ui, node: &Node, out: &mut Vec<Output>) {
+        self.described.clear();
+        gather(node, &mut self.described);
         self.block(ui, node, out);
     }
 
@@ -194,6 +237,50 @@ impl View {
                         report(events, "click", None, out);
                     }
                 }
+                // A group of radios: the options in a column, the group named for assistive technology by its `label`. It has no events; its radios raise them.
+                "radiogroup" => {
+                    let response = ui.vertical(|ui| self.each(ui, children, out)).response;
+                    let name = props
+                        .get("label")
+                        .and_then(Value::as_str)
+                        .map(str::to_owned);
+
+                    ui.ctx().accesskit_node_builder(response.id, |builder| {
+                        builder.set_role(egui::accesskit::Role::RadioGroup);
+
+                        if let Some(name) = name {
+                            builder.set_label(name);
+                        }
+                    });
+                    marked(&self.described, ui, &response, props);
+                }
+                // One option: the engine owns the selection. Choosing an option that is not the selected one reports `select` with its `value`; the radio then shows whatever comes back.
+                "radio" => {
+                    let checked = props
+                        .get("checked")
+                        .and_then(Value::as_bool)
+                        .unwrap_or(false);
+                    let enabled = !props
+                        .get("disabled")
+                        .and_then(Value::as_bool)
+                        .unwrap_or(false);
+                    let text = props.get("label").and_then(Value::as_str).unwrap_or("");
+                    let response = ui.add_enabled(enabled, egui::RadioButton::new(checked, text));
+
+                    named(
+                        &response,
+                        WidgetType::RadioButton,
+                        props,
+                        enabled,
+                        Some(checked),
+                    );
+
+                    if response.clicked() && !checked {
+                        let value = props.get("value").and_then(Value::as_str).unwrap_or("");
+
+                        report(events, "select", Some(Value::String(value.to_owned())), out);
+                    }
+                }
                 "checkbox" => {
                     let mut checked = props
                         .get("checked")
@@ -204,6 +291,7 @@ impl View {
                     let response = ui.checkbox(&mut checked, "");
 
                     named(&response, WidgetType::Checkbox, props, true, Some(checked));
+                    marked(&self.described, ui, &response, props);
 
                     if response.changed() {
                         report(events, "change", Some(Value::Bool(checked)), out);
@@ -223,13 +311,22 @@ impl View {
 
                     field.incoming(shown);
 
+                    // `kind="password"` masks what is shown; every other kind is plain text here.
+                    let masked = props.get("kind").and_then(Value::as_str) == Some("password");
                     let response = ui.add(
                         TextEdit::singleline(&mut field.buffer)
                             .hint_text(hint)
+                            .password(masked)
                             .desired_width(240.0),
                     );
 
                     named(&response, WidgetType::TextEdit, props, true, None);
+                    marked(&self.described, ui, &response, props);
+
+                    // The person came into the field.
+                    if response.gained_focus() {
+                        report(events, "focus", None, out);
+                    }
 
                     // Enter in a single-line field takes it out of focus: that is the person submitting what they typed.
                     if response.lost_focus()
@@ -243,6 +340,11 @@ impl View {
                         && ui.input(|input| input.key_pressed(egui::Key::Escape))
                     {
                         report(events, "cancel", None, out);
+                    }
+
+                    // The person left the field (after `submit` or `cancel`, when it was Enter or Escape that took the focus).
+                    if response.lost_focus() {
+                        report(events, "blur", None, out);
                     }
 
                     if response.changed() {
@@ -379,6 +481,22 @@ fn no_gap(ui: &mut Ui) {
     ui.spacing_mut().item_spacing.x = 0.0;
 }
 
+/// Every node that has an `id` prop, with its text.
+fn gather(node: &Node, into: &mut HashMap<String, String>) {
+    if let Node::Node {
+        props, children, ..
+    } = node
+    {
+        if let Some(id) = props.get("id").and_then(Value::as_str) {
+            into.insert(id.to_owned(), node.text());
+        }
+
+        for child in children {
+            gather(child, into);
+        }
+    }
+}
+
 fn report(
     events: &BTreeMap<String, String>,
     name: &str,
@@ -402,6 +520,8 @@ pub const REALIZED: &[&str] = &[
     "button",
     "checkbox",
     "textfield",
+    "radiogroup",
+    "radio",
 ];
 
 /// The content-layer components this window draws: exactly the ones `content.json` declares.
