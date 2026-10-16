@@ -292,7 +292,7 @@ fn a_field_with_no_handler_for_them_reports_nothing_for_focus_or_blur() {
     ctx.enable_accesskit();
 
     for _ in 0..3 {
-        ctx.run(egui::RawInput::default(), |ctx| {
+        let _ = ctx.run(egui::RawInput::default(), |ctx| {
             egui::CentralPanel::default().show(ctx, |ui| view.show(ui, &tree.root, &mut out));
         });
     }
