@@ -3,11 +3,11 @@ use port_desktop::vocabulary;
 use serde_json::Value;
 
 #[test]
-fn is_a_mesh_manifest_of_the_seven_components_a_newcomer_needs() {
+fn is_a_mesh_manifest_of_the_nine_components_a_newcomer_needs() {
     let manifest: Value = serde_json::from_str(vocabulary::JSON).expect("JSON");
 
     assert_eq!(manifest["version"], 1);
-    assert_eq!(vocabulary::components().len(), 7);
+    assert_eq!(vocabulary::components().len(), 9);
 
     for (name, each) in manifest["components"].as_object().unwrap() {
         for part in ["props", "events", "commands", "scope"] {
@@ -23,16 +23,17 @@ fn is_a_mesh_manifest_of_the_seven_components_a_newcomer_needs() {
 }
 
 #[test]
-fn names_are_one_lowercase_word_each_and_events_are_six_verbs_click_change_submit_cancel_focus_and_blur(
+fn names_are_one_lowercase_word_each_and_events_are_seven_verbs_click_change_submit_cancel_focus_blur_and_select(
 ) {
     let manifest: Value = serde_json::from_str(vocabulary::JSON).unwrap();
 
     for (name, each) in manifest["components"].as_object().unwrap() {
         assert!(name.chars().all(|c| c.is_ascii_lowercase()), "{name}");
         for event in each["events"].as_object().unwrap().keys() {
-            // `click` (a press), `change` (a value changed, carrying it) `submit` (a text field's Enter: done typing) and `cancel` (its Escape: backing out). `focus` and `blur` (a text field gained or lost the keyboard focus: the person came in, or left). A seventh is a decision, not an addition.
+            // `click` (a press), `change` (a value changed, carrying it) `submit` (a text field's Enter: done typing) and `cancel` (its Escape: backing out). `focus` and `blur` (a text field gained or lost the keyboard focus: the person came in, or left) and `select` (a radio chosen, carrying its value). An eighth is a decision, not an addition.
             assert!(
-                ["click", "change", "submit", "cancel", "focus", "blur"].contains(&event.as_str()),
+                ["click", "change", "submit", "cancel", "focus", "blur", "select"]
+                    .contains(&event.as_str()),
                 "{name}.{event}"
             );
         }
