@@ -35,7 +35,7 @@ That's the whole [PORT contract](./docs/CONTRACT.md). What each public surface p
 
 | Package | What it is |
 |---|---|
-| [`valancex-port-desktop`](./packages/port-desktop) | The Desktop PORT (0.1.0 prepared; its own tag): render-v1 → a native window, built and tested on Linux and Windows, with a vocabulary of its own (columns, rows, text, a button, a checkbox, a text field). Rust, because a native window is Rust's to draw. See the [architecture note](./docs/architecture/2026-10-14-port-desktop.md). |
+| [`valancex-port-desktop`](./packages/port-desktop) | The Desktop PORT (0.2.0 prepared; 0.1.0 released; its own tag): render-v1 → a native window, built and tested on Linux and Windows, with a vocabulary of its own (columns, rows, text, a button, a checkbox, a text field). Rust, because a native window is Rust's to draw. See the [architecture note](./docs/architecture/2026-10-14-port-desktop.md). |
 | [`@valancex/port-web`](./packages/port-web) | The Web PORT: render-v1 → DOM, in-place updates by key, events → reports, and hydration of server HTML. Its `@valancex/port-web/server` entry realizes render-v1 as HTML with no DOM. TypeScript, because the DOM is JavaScript-native. |
 
 There is deliberately **no shared `@valancex/port` package** (a second PORT now exists, and still shares nothing with the first but the contract) and no Canvas placeholder. The shared contract is data and prose, not code, and a TypeScript package every PORT depends on would force a TypeScript shape on a future Rust or native PORT. A shared package can come when a second PORT shows code worth sharing. The [integration audit](./docs/architecture/2026-09-27-port-integration-audit.md) records the evidence.

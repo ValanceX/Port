@@ -212,6 +212,12 @@
       },
       "commands": {},
       "scope": {}
+    },
+    "label": {
+      "props": {},
+      "events": {},
+      "commands": {},
+      "scope": {}
     }
   }
 }

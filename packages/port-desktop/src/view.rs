@@ -24,8 +24,10 @@ fn named(
     props: &BTreeMap<String, Value>,
     enabled: bool,
     selected: Option<bool>,
+    caption: Option<&str>,
 ) {
-    if let Some(name) = props.get("label").and_then(Value::as_str) {
+    // The `label` the template gives, else the caption of the `label` the control is inside.
+    if let Some(name) = props.get("label").and_then(Value::as_str).or(caption) {
         let name = name.to_owned();
 
         response.widget_info(move || match selected {
@@ -95,6 +97,8 @@ pub struct View {
     fields: HashMap<String, Field>,
     /// The text of every node that has an `id`, for the controls that name it as `describedby`. Gathered at the start of each frame from the tree being drawn.
     described: HashMap<String, String>,
+    /// The caption of the `label` being drawn: the one control inside it takes it as its visible text and its accessible name.
+    caption: Option<String>,
 }
 
 impl View {
@@ -231,7 +235,7 @@ impl View {
 
                     let response = ui.add_enabled(enabled, Button::new(node.text()));
 
-                    named(&response, WidgetType::Button, props, enabled, None);
+                    named(&response, WidgetType::Button, props, enabled, None, None);
 
                     if response.clicked() {
                         report(events, "click", None, out);
@@ -264,7 +268,12 @@ impl View {
                         .get("disabled")
                         .and_then(Value::as_bool)
                         .unwrap_or(false);
-                    let text = props.get("label").and_then(Value::as_str).unwrap_or("");
+                    let caption = self.caption.take();
+                    let text = props
+                        .get("label")
+                        .and_then(Value::as_str)
+                        .or(caption.as_deref())
+                        .unwrap_or("");
                     let response = ui.add_enabled(enabled, egui::RadioButton::new(checked, text));
 
                     named(
@@ -273,6 +282,7 @@ impl View {
                         props,
                         enabled,
                         Some(checked),
+                        caption.as_deref(),
                     );
 
                     if response.clicked() && !checked {
@@ -281,6 +291,29 @@ impl View {
                         report(events, "select", Some(Value::String(value.to_owned())), out);
                     }
                 }
+                // A caption and the control it names: the text is the control's visible text and accessible name, and a click on it does what a click on the control does. The caption is the text
+                // written directly inside; the control is whatever else is written there.
+                "label" => {
+                    let caption: String = children
+                        .iter()
+                        .filter(|child| matches!(child, Node::Text { .. }))
+                        .map(Node::text)
+                        .collect::<String>()
+                        .trim()
+                        .to_owned();
+
+                    ui.horizontal(|ui| {
+                        for child in children {
+                            if matches!(child, Node::Text { .. }) {
+                                continue;
+                            }
+
+                            self.caption = Some(caption.clone()).filter(|text| !text.is_empty());
+                            self.block(ui, child, out);
+                            self.caption = None;
+                        }
+                    });
+                }
                 "checkbox" => {
                     let mut checked = props
                         .get("checked")
@@ -288,9 +321,17 @@ impl View {
                         .unwrap_or(false);
 
                     // The engine owns the value: the new value is reported, and the box shows what comes back. A value, not a flip: the same report twice is the same state.
-                    let response = ui.checkbox(&mut checked, "");
+                    let caption = self.caption.take();
+                    let response = ui.checkbox(&mut checked, caption.as_deref().unwrap_or(""));
 
-                    named(&response, WidgetType::Checkbox, props, true, Some(checked));
+                    named(
+                        &response,
+                        WidgetType::Checkbox,
+                        props,
+                        true,
+                        Some(checked),
+                        caption.as_deref(),
+                    );
                     marked(&self.described, ui, &response, props);
 
                     if response.changed() {
@@ -311,6 +352,12 @@ impl View {
 
                     field.incoming(shown);
 
+                    // Inside a `label`, the caption is drawn before the field, and a click on it puts the cursor in the field.
+                    let caption = self.caption.take();
+                    let captioned = caption.as_ref().map(|text| {
+                        ui.add(egui::Label::new(text.as_str()).sense(egui::Sense::click()))
+                    });
+
                     // `kind="password"` masks what is shown; every other kind is plain text here.
                     let masked = props.get("kind").and_then(Value::as_str) == Some("password");
                     let response = ui.add(
@@ -320,8 +367,21 @@ impl View {
                             .desired_width(240.0),
                     );
 
-                    named(&response, WidgetType::TextEdit, props, true, None);
+                    named(
+                        &response,
+                        WidgetType::TextEdit,
+                        props,
+                        true,
+                        None,
+                        caption.as_deref(),
+                    );
                     marked(&self.described, ui, &response, props);
+
+                    if let Some(caption) = captioned {
+                        if caption.clicked() {
+                            response.request_focus();
+                        }
+                    }
 
                     // The person came into the field.
                     if response.gained_focus() {
@@ -522,6 +582,7 @@ pub const REALIZED: &[&str] = &[
     "textfield",
     "radiogroup",
     "radio",
+    "label",
 ];
 
 /// The content-layer components this window draws: exactly the ones `content.json` declares.
