@@ -9,7 +9,7 @@ fn tree() -> Tree {
     serde_json::from_value(serde_json::json!({
         "format": "mesh-render", "version": 1,
         "root": { "type": "node", "key": "c", "component": "column", "props": {}, "events": {}, "children": [
-            { "type": "node", "key": "f", "component": "textfield", "props": { "value": "", "label": "New item" }, "events": { "submit": "h-submit", "cancel": "h-cancel", "change": "h-change" }, "children": [] }
+            { "type": "node", "key": "f", "component": "textfield", "props": { "value": "", "label": "New item" }, "events": { "submit": "h-submit", "cancel": "h-cancel", "change": "h-change", "focus": "h-focus", "blur": "h-blur" }, "children": [] }
         ] }
     }))
     .expect("a render-v1 tree")
@@ -221,4 +221,81 @@ fn the_arrow_keys_alone_or_with_other_modifiers_are_not_navigation() {
 fn on_macos_the_keys_are_left_unmapped() {
     assert_eq!(asked(alt(egui::Key::ArrowLeft), true), None);
     assert_eq!(asked(alt(egui::Key::ArrowRight), true), None);
+}
+
+fn handled(out: &[Output], handler: &str) -> usize {
+    out.iter()
+        .filter(|output| matches!(output, Output::Report(report) if report.handler == handler))
+        .count()
+}
+
+#[test]
+fn coming_into_a_field_reports_focus_once_and_leaving_it_reports_blur_once() {
+    let mut window = Window::new();
+    let (_, at) = window.frame(vec![]);
+    let at = at.expect("the text field is on screen");
+    let click = |pressed| egui::Event::PointerButton {
+        pos: at,
+        button: egui::PointerButton::Primary,
+        pressed,
+        modifiers: egui::Modifiers::NONE,
+    };
+    let mut focuses = 0;
+    let mut blurs = 0;
+
+    for events in [
+        vec![egui::Event::PointerMoved(at), click(true)],
+        vec![click(false)],
+        vec![],
+    ] {
+        let (out, _) = window.frame(events);
+
+        focuses += handled(&out, "h-focus");
+        blurs += handled(&out, "h-blur");
+    }
+
+    assert_eq!((focuses, blurs), (1, 0), "in the field");
+
+    // Enter takes the focus out of a single-line field: the person is done, so it is `submit` and then they have left.
+    let (down, _) = window.frame(vec![key(egui::Key::Enter, true)]);
+    let (up, _) = window.frame(vec![key(egui::Key::Enter, false)]);
+
+    assert_eq!(handled(&down, "h-submit") + handled(&up, "h-submit"), 1);
+    assert_eq!(
+        handled(&down, "h-blur") + handled(&up, "h-blur"),
+        1,
+        "{down:?} {up:?}"
+    );
+}
+
+#[test]
+fn escape_also_leaves_the_field() {
+    let mut window = focused();
+    let (down, _) = window.frame(vec![key(egui::Key::Escape, true)]);
+    let (up, _) = window.frame(vec![key(egui::Key::Escape, false)]);
+
+    assert_eq!(handled(&down, "h-cancel") + handled(&up, "h-cancel"), 1);
+    assert_eq!(handled(&down, "h-blur") + handled(&up, "h-blur"), 1);
+}
+
+#[test]
+fn a_field_with_no_handler_for_them_reports_nothing_for_focus_or_blur() {
+    let tree: Tree = serde_json::from_value(serde_json::json!({
+        "format": "mesh-render", "version": 1,
+        "root": { "type": "node", "key": "f", "component": "textfield", "props": { "value": "", "label": "New item" }, "events": { "change": "h-change" }, "children": [] }
+    }))
+    .expect("a render-v1 tree");
+    let ctx = egui::Context::default();
+    let mut view = View::default();
+    let mut out: Vec<Output> = Vec::new();
+
+    ctx.enable_accesskit();
+
+    for _ in 0..3 {
+        ctx.run(egui::RawInput::default(), |ctx| {
+            egui::CentralPanel::default().show(ctx, |ui| view.show(ui, &tree.root, &mut out));
+        });
+    }
+
+    assert!(out.is_empty(), "{out:?}");
 }

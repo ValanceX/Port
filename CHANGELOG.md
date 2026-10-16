@@ -4,6 +4,14 @@ All notable changes to PORT are recorded here. The project follows [Semantic Ver
 
 ## [Unreleased]
 
+### Added
+
+- `valancex-port-desktop` and `@valancex/port-desktop-vocabulary` (vocabulary and content data): **form primitives**, the same names and types the Web PORT's tag table carries for a Valance application (`docs/application-model/FORM-PRIMITIVES.md` in the Valance repository). All are optional and additive.
+  - `textfield` takes `kind`: `password` masks what is shown; every other kind (`text`, `email`, `number`, `search`, `tel`, `url`, or a value this window does not know) is plain text.
+  - `textfield` and `checkbox` take `invalid` (outlined, and invalid in the accessibility tree) and `describedby` (the `id` of the text that explains the control, which becomes the control's accessible description). `text` and `paragraph` take `id`.
+  - `textfield` raises `focus` (the person came into the field) and `blur` (they left it; also after `submit` or `cancel`, which take the focus out). Events are the sixth and fifth verbs of the vocabulary: `click`, `change`, `submit`, `cancel`, `focus`, `blur`.
+  - Headless tests: a password is drawn masked and no other kind is; an invalid control is invalid in the AccessKit tree and is described by the text it names; focus and blur are reported once, and not at all where no handler is bound.
+
 ## [0.1.0] - 2026-10-15 (`valancex-port-desktop`, tag `desktop-v0.1.0`)
 
 The first release of the Desktop PORT, the Rust crate (and the `vlx-window` program) that draws a Valance application in a native window. It is versioned and released on its own tag, apart from the npm packages. Built and tested on Linux and Windows; macOS is not built or tested. Unsigned. See the [architecture note](./docs/architecture/2026-10-14-port-desktop.md) and [API stability](./docs/stability.md).

@@ -28,7 +28,14 @@
       "scope": {}
     },
     "text": {
-      "props": {},
+      "props": {
+        "id": {
+          "type": {
+            "kind": "string"
+          },
+          "required": false
+        }
+      },
       "events": {},
       "commands": {},
       "scope": {}
@@ -67,6 +74,18 @@
             "kind": "string"
           },
           "required": false
+        },
+        "invalid": {
+          "type": {
+            "kind": "boolean"
+          },
+          "required": false
+        },
+        "describedby": {
+          "type": {
+            "kind": "string"
+          },
+          "required": false
         }
       },
       "events": {
@@ -98,6 +117,24 @@
             "kind": "string"
           },
           "required": false
+        },
+        "kind": {
+          "type": {
+            "kind": "string"
+          },
+          "required": false
+        },
+        "invalid": {
+          "type": {
+            "kind": "boolean"
+          },
+          "required": false
+        },
+        "describedby": {
+          "type": {
+            "kind": "string"
+          },
+          "required": false
         }
       },
       "events": {
@@ -107,7 +144,9 @@
           }
         },
         "submit": {},
-        "cancel": {}
+        "cancel": {},
+        "blur": {},
+        "focus": {}
       },
       "commands": {},
       "scope": {}

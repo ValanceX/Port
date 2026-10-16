@@ -43,10 +43,10 @@ Seven components, in [`vocabulary.json`](./vocabulary.json) (a MESH manifest, so
 | `column` | | | Its children, one under the next. |
 | `row` | | | Its children side by side, wrapping when the window is narrow. |
 | `heading` | | | A title for what follows. |
-| `text` | | | A run of text. Text is text: nothing in it is markup. |
+| `text` | `id` (optional) | | A run of text. Text is text: nothing in it is markup. An `id` lets a control name it as what `describedby` points to. |
 | `button` | `disabled`, `label` (optional) | `click` | Something to press. Its content is its label. A disabled button reports nothing. |
-| `checkbox` | `checked`, `label` (optional) | `change` (the new value, true or false) | A box that is ticked or not. The application decides whether it is. |
-| `textfield` | `value`, `placeholder`, `label` (optional) | `change` (the text), `submit`, `cancel` | A line of text the person edits. `submit` is Enter: the person is done with what they typed. `cancel` is Escape: they back out of it. |
+| `checkbox` | `checked`, `label`, `invalid`, `describedby` (optional) | `change` (the new value, true or false) | A box that is ticked or not. The application decides whether it is. `invalid` and `describedby` as for `textfield`. |
+| `textfield` | `value`, `placeholder`, `label`, `kind`, `invalid`, `describedby` (optional) | `change` (the text), `submit`, `cancel`, `focus`, `blur` | A line of text the person edits. `submit` is Enter: the person is done with what they typed. `cancel` is Escape: they back out of it. `focus` and `blur`: they came into the field, they left it. `kind="password"` masks what is shown; any other kind is plain text. `invalid` outlines it and marks it invalid for assistive technology; `describedby` names the `id` of the text that explains it. |
 
 **`label`** is a control's accessible name, the one a screen reader says: a checkbox has no text of its own and a field's `placeholder` is a hint, not a name, so a template gives them a `label` (the window passes it to the platform's accessibility tree through AccessKit). A button's name is its content unless a `label` says otherwise.
 
