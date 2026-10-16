@@ -150,6 +150,68 @@
       },
       "commands": {},
       "scope": {}
+    },
+    "radiogroup": {
+      "props": {
+        "label": {
+          "type": {
+            "kind": "string"
+          },
+          "required": false
+        },
+        "invalid": {
+          "type": {
+            "kind": "boolean"
+          },
+          "required": false
+        },
+        "describedby": {
+          "type": {
+            "kind": "string"
+          },
+          "required": false
+        }
+      },
+      "events": {},
+      "commands": {},
+      "scope": {}
+    },
+    "radio": {
+      "props": {
+        "checked": {
+          "type": {
+            "kind": "boolean"
+          },
+          "required": true
+        },
+        "value": {
+          "type": {
+            "kind": "string"
+          },
+          "required": true
+        },
+        "label": {
+          "type": {
+            "kind": "string"
+          },
+          "required": false
+        },
+        "disabled": {
+          "type": {
+            "kind": "boolean"
+          },
+          "required": false
+        }
+      },
+      "events": {
+        "select": {
+          "payload": {
+            "kind": "string"
+          }
+        }
+      },
+      "commands": {},
+      "scope": {}
     }
   }
 }

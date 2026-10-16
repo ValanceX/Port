@@ -41,6 +41,17 @@ test("the form primitives are optional and typed as the Web PORT's table has the
   assert.deepEqual(JSON.parse(read("../content.json")).components.paragraph.props.id, { type: { kind: "string" }, required: false });
 });
 
+test("a choice group is a radiogroup and its radios, and a radio reports select with its value", () => {
+  const { components } = JSON.parse(read("../vocabulary.json"));
+
+  assert.deepEqual(Object.keys(components.radio.events), ["select"]);
+  assert.deepEqual(components.radio.events.select.payload, { kind: "string" });
+  assert.deepEqual(components.radio.props.checked, { type: { kind: "boolean" }, required: true });
+  assert.deepEqual(components.radio.props.value, { type: { kind: "string" }, required: true });
+  assert.deepEqual(components.radiogroup.props.label, { type: { kind: "string" }, required: false });
+  assert.deepEqual(components.radiogroup.events, {});
+});
+
 test("the package publishes the two files and nothing else", () => {
   const manifest = JSON.parse(read("../package.json"));
 

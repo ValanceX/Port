@@ -42,3 +42,10 @@ fn the_window_tells_the_engine_which_way_the_person_asked_to_move_along_the_page
         assert_eq!(sent, line);
     }
 }
+
+#[test]
+fn the_window_tells_the_engine_how_wide_it_is() {
+    let line = serde_json::to_string(&ToEngine::Resize { width: 812 }).unwrap();
+
+    assert_eq!(line, r#"{"op":"resize","width":812}"#);
+}

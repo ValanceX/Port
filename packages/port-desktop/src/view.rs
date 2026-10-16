@@ -237,6 +237,50 @@ impl View {
                         report(events, "click", None, out);
                     }
                 }
+                // A group of radios: the options in a column, the group named for assistive technology by its `label`. It has no events; its radios raise them.
+                "radiogroup" => {
+                    let response = ui.vertical(|ui| self.each(ui, children, out)).response;
+                    let name = props
+                        .get("label")
+                        .and_then(Value::as_str)
+                        .map(str::to_owned);
+
+                    ui.ctx().accesskit_node_builder(response.id, |builder| {
+                        builder.set_role(egui::accesskit::Role::RadioGroup);
+
+                        if let Some(name) = name {
+                            builder.set_label(name);
+                        }
+                    });
+                    marked(&self.described, ui, &response, props);
+                }
+                // One option: the engine owns the selection. Choosing an option that is not the selected one reports `select` with its `value`; the radio then shows whatever comes back.
+                "radio" => {
+                    let checked = props
+                        .get("checked")
+                        .and_then(Value::as_bool)
+                        .unwrap_or(false);
+                    let enabled = !props
+                        .get("disabled")
+                        .and_then(Value::as_bool)
+                        .unwrap_or(false);
+                    let text = props.get("label").and_then(Value::as_str).unwrap_or("");
+                    let response = ui.add_enabled(enabled, egui::RadioButton::new(checked, text));
+
+                    named(
+                        &response,
+                        WidgetType::RadioButton,
+                        props,
+                        enabled,
+                        Some(checked),
+                    );
+
+                    if response.clicked() && !checked {
+                        let value = props.get("value").and_then(Value::as_str).unwrap_or("");
+
+                        report(events, "select", Some(Value::String(value.to_owned())), out);
+                    }
+                }
                 "checkbox" => {
                     let mut checked = props
                         .get("checked")
@@ -476,6 +520,8 @@ pub const REALIZED: &[&str] = &[
     "button",
     "checkbox",
     "textfield",
+    "radiogroup",
+    "radio",
 ];
 
 /// The content-layer components this window draws: exactly the ones `content.json` declares.

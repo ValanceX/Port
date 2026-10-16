@@ -12,6 +12,11 @@ All notable changes to PORT are recorded here. The project follows [Semantic Ver
   - `textfield` raises `focus` (the person came into the field) and `blur` (they left it; also after `submit` or `cancel`, which take the focus out). Events are the sixth and fifth verbs of the vocabulary: `click`, `change`, `submit`, `cancel`, `focus`, `blur`.
   - Headless tests: a password is drawn masked and no other kind is; an invalid control is invalid in the AccessKit tree and is described by the text it names; focus and blur are reported once, and not at all where no handler is bound.
 
+### Added (choice group and window width)
+
+- `valancex-port-desktop` and `@valancex/port-desktop-vocabulary`: a **choice group**, two components of the vocabulary (`docs/application-model/CHOICE-GROUP.md` in the Valance repository). `radiogroup` holds the options and names the group (`label`, `invalid`, `describedby`, all optional, no events); `radio` is one option (`checked`, `value`, `label`, `disabled`) and raises `select` with its `value` when the person chooses it. Choosing the selected option, or a disabled one, reports nothing. The accessibility tree has a `RadioGroup` named by its label and `RadioButton`s with their name and selected state. Arrow-key movement inside a group is not provided in this version (Tab reaches each option).
+- `valancex-port-desktop`: the host message `resize` (`{ "op": "resize", "width": 812 }`), the width of the window's content in whole points, sent when the window opens and whenever it changes. The engine turns it into the class of room the application has (`viewport`), as the web does from the page's width. An engine that does not know the message ignores it.
+
 ## [0.1.0] - 2026-10-15 (`valancex-port-desktop`, tag `desktop-v0.1.0`)
 
 The first release of the Desktop PORT, the Rust crate (and the `vlx-window` program) that draws a Valance application in a native window. It is versioned and released on its own tag, apart from the npm packages. Built and tested on Linux and Windows; macOS is not built or tested. Unsigned. See the [architecture note](./docs/architecture/2026-10-14-port-desktop.md) and [API stability](./docs/stability.md).

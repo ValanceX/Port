@@ -66,6 +66,11 @@ pub enum ToEngine {
     Navigate {
         direction: String,
     },
+    /// How wide the window's content is, in points (logical pixels): sent when the window opens and whenever the width changes by a whole point. The application learns how much room it has
+    /// (`viewport`) from it, as the web learns it from the page's width.
+    Resize {
+        width: u32,
+    },
     /// The person asked to close the window; the engine answers with `closeAnswer`.
     #[serde(rename = "closeRequested")]
     CloseRequested,

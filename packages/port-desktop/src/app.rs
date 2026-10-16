@@ -43,6 +43,8 @@ struct App {
     reload: Reload,
     /// The system's colors as last told to the engine.
     told_scheme: Option<egui::Theme>,
+    /// The width of the window's content as last told to the engine, in whole points.
+    told_width: Option<u32>,
     engine: Engine,
     session: Session,
     view: View,
@@ -63,6 +65,7 @@ impl eframe::App for App {
                         self.view.reset();
                         self.problem = None;
                         self.told_scheme = None;
+                        self.told_width = None;
                     }
                     Err(error) => {
                         self.problem = Some(format!("could not restart the engine: {error}"))
@@ -113,6 +116,14 @@ impl eframe::App for App {
                 }
                 .into(),
             });
+        }
+
+        // How much room there is, told to the engine when the window learns it and when it changes by a point.
+        let width = ctx.screen_rect().width().round().max(0.0) as u32;
+
+        if width > 0 && Some(width) != self.told_width {
+            self.told_width = Some(width);
+            self.engine.send(&ToEngine::Resize { width });
         }
 
         if let Some(title) = self.session.title.clone() {
@@ -209,6 +220,7 @@ pub fn run(options: Options) -> eframe::Result {
             Ok(Box::new(App {
                 reload: Reload::from_env("VLX_RELOAD"),
                 told_scheme: None,
+                told_width: None,
                 engine,
                 session: Session::default(),
                 view: View::default(),
