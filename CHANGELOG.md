@@ -4,6 +4,11 @@ All notable changes to PORT are recorded here. The project follows [Semantic Ver
 
 ## [Unreleased]
 
+### Added
+
+- `@valancex/port-desktop-vocabulary`, `vocabulary.json`: **`label`**, a component that holds a control and the text that names it (`docs/application-model/CHOICE-GROUP.md` in the Valance repository, WA-14). It has no props and no events: the text written directly inside it is the control's visible text and accessible name, and the first control inside it is the one it names. The vocabulary is ten components.
+- `valancex-port-desktop`: draws `label`. A `checkbox` or `radio` inside takes the text as the text beside the box; a `textfield` has it drawn before the field, and a click on the text puts the cursor in the field. A control that has its own `label` keeps it. The text is the control's name in the accessibility tree. Headless tests click the text and read the tree back.
+
 ## [0.7.1] - 2026-10-16
 
 A patch release that **completes v0.7.0**. The v0.7.0 tag published `@valancex/port-web` 0.7.0, and the publish of `@valancex/port-desktop-vocabulary` 0.7.0 was refused because its npm trusted publisher was not yet set; the release did not finish, and npm does not reuse a version. The two packages move together to 0.7.1 so that both are published by the workflow. **No code changes**: `@valancex/port-web` 0.7.1 is 0.7.0, and `@valancex/port-desktop-vocabulary` 0.7.1 carries everything v0.7.0 described below. There is no `@valancex/port-desktop-vocabulary` 0.7.0. See the [v0.7 release notes](./docs/releases/v0.7.md#v071).
