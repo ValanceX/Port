@@ -4,6 +4,10 @@ All notable changes to PORT are recorded here. The project follows [Semantic Ver
 
 ## [Unreleased]
 
+## [0.7.1] - 2026-10-16
+
+A patch release that **completes v0.7.0**. The v0.7.0 tag published `@valancex/port-web` 0.7.0, and the publish of `@valancex/port-desktop-vocabulary` 0.7.0 was refused because its npm trusted publisher was not yet set; the release did not finish, and npm does not reuse a version. The two packages move together to 0.7.1 so that both are published by the workflow. **No code changes**: `@valancex/port-web` 0.7.1 is 0.7.0, and `@valancex/port-desktop-vocabulary` 0.7.1 carries everything v0.7.0 described below. There is no `@valancex/port-desktop-vocabulary` 0.7.0. See the [v0.7 release notes](./docs/releases/v0.7.md#v071).
+
 ## [0.7.0] - 2026-10-16
 
 A minor release of the two packages that share one version, `@valancex/port-web` and `@valancex/port-desktop-vocabulary`. **`@valancex/port-web` changes nothing** (it moves so the workspace has one version, as at 0.6.0). **The Desktop PORT's vocabulary grows**, additively: nothing an application wrote before changes. See the [v0.7 release notes](./docs/releases/v0.7.md). The crate `valancex-port-desktop` is released on its own tag; its first release, 0.1.0, carries the same additions.
