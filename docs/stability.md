@@ -18,5 +18,5 @@ What each public surface of PORT promises. The tiers have one meaning each, shar
 | `WebPort[Symbol.dispose]` (where the platform has it) and the `unmount` guarantees: safe to call twice, usable again by `draw` | Stable |
 | `WebPort.inspect`, and the touched keys `patch` returns | Not part of the contract (devtools hooks) |
 | `@valancex/port-desktop-vocabulary` (`vocabulary.json`, `content.json`): the Desktop PORT's vocabulary, published as data | **Unreleased** in content: the package is published, but the vocabulary may change before the crate's 0.1 |
-| `valancex-port-desktop` (0.1.0, prepared): `Port` (`draw`, `update`, `unmount`), `Report`, `PortError` codes, `vocabulary.json`, the content layer (`content.json`) and the host protocol (version 1) | **Unreleased**: may change before 0.1 is published |
+| `valancex-port-desktop` (0.1.0 released, 0.2.0 prepared): `Port` (`draw`, `update`, `unmount`), `Report`, `PortError` codes, `vocabulary.json`, the content layer (`content.json`) and the host protocol (version 1) | **Unreleased**: may change before 0.1 is published |
 | Anything the package's `exports` doesn't list | Internal |

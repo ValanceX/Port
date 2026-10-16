@@ -4,9 +4,20 @@ All notable changes to PORT are recorded here. The project follows [Semantic Ver
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-10-16
+
+A minor release of the two npm packages that share one version. **`@valancex/port-web` changes nothing** (it moves so the workspace has one version). **The Desktop PORT's vocabulary grows by one component**, additively: nothing an application wrote before changes. See the [v0.8 release notes](./docs/releases/v0.8.md).
+
 ### Added
 
-- `@valancex/port-desktop-vocabulary`, `vocabulary.json`: **`label`**, a component that holds a control and the text that names it (`docs/application-model/CHOICE-GROUP.md` in the Valance repository, WA-14). It has no props and no events: the text written directly inside it is the control's visible text and accessible name, and the first control inside it is the one it names. The vocabulary is ten components.
+- `@valancex/port-desktop-vocabulary` 0.8.0, `vocabulary.json`: **`label`**, a component that holds a control and the text that names it (`docs/application-model/CHOICE-GROUP.md` in the Valance repository, WA-14). It has no props and no events: the text written directly inside it is the control's visible text and accessible name, and the first control inside it is the one it names. The vocabulary is ten components.
+
+## [0.2.0] - 2026-10-16 (`valancex-port-desktop`, tag `desktop-v0.2.0`)
+
+A minor release of the Desktop PORT crate, on its own tag. Additive: a tree that drew in 0.1.0 draws the same.
+
+### Added
+
 - `valancex-port-desktop`: draws `label`. A `checkbox` or `radio` inside takes the text as the text beside the box; a `textfield` has it drawn before the field, and a click on the text puts the cursor in the field. A control that has its own `label` keeps it. The text is the control's name in the accessibility tree. Headless tests click the text and read the tree back.
 
 ## [0.7.1] - 2026-10-16

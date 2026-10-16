@@ -1,6 +1,6 @@
 # @valancex/port-desktop (crate `valancex-port-desktop`)
 
-The Desktop PORT: it realizes MESH render trees as a native window and reports what the person does as handler identifiers and payloads. **Version 0.1.0 (prepared; release tag `desktop-v0.1.0`).** Built and tested on Linux and Windows; macOS is not built or tested.
+The Desktop PORT: it realizes MESH render trees as a native window and reports what the person does as handler identifiers and payloads. **Version 0.2.0 (prepared; release tag `desktop-v0.2.0`; 0.1.0 is released).** Built and tested on Linux and Windows; macOS is not built or tested.
 
 It is a Rust crate, because a native window is Rust's to draw (PORT's rule: an implementation's language follows its target; see the [architecture note](../../docs/architecture/2026-10-14-port-desktop.md)). It takes the same input as [`@valancex/port-web`](../port-web) and keeps the same [PORT contract](../../docs/CONTRACT.md); what differs is the **vocabulary**: columns and rows, text, a heading, a button, a checkbox and a text field, not HTML. The window itself (its title, its size, whether it may close) is the host's, not a template's.
 
