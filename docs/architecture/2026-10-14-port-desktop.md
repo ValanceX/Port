@@ -1,6 +1,6 @@
 # The Desktop PORT
 
-2026-10-14. The second PORT. It realizes `render-v1` as a native window, built and tested on Linux and Windows (macOS is not yet built or tested). This note says why it is its own package, what it promises, what its vocabulary is and why, and how an engine in another process drives it. The reasons for the vocabulary, with the evidence and the alternatives, are in Valance's [native vocabulary investigation](https://github.com/ValanceX/Valance/blob/main/docs/application-model/NATIVE-VOCABULARY.md).
+2026-10-14 (updated 2026-10-17: the vocabulary is seventeen components, and the sections below say what was added, in the order it was; the first release, 0.1.0, is out, and 0.2.0 after it). The second PORT. It realizes `render-v1` as a native window, built and tested on Linux and Windows (macOS is not yet built or tested). This note says why it is its own package, what it promises, what its vocabulary is and why, and how an engine in another process drives it. The reasons for the vocabulary, with the evidence and the alternatives, are in Valance's [native vocabulary investigation](https://github.com/ValanceX/Valance/blob/main/docs/application-model/NATIVE-VOCABULARY.md).
 
 ## Why a package of its own
 
@@ -31,11 +31,11 @@ The Web PORT's `controlled` field makes the DOM property equal to the rendered t
 
 ## The vocabulary
 
-Seven components: `column`, `row`, `heading`, `text`, `button`, `checkbox`, `textfield`. There is no `window` component: the window is the host's (its title comes from the application, its size from the host, and whether it may close from the application's guards), the way it is in SwiftUI (`Window` is a scene, and `navigationTitle` follows where you are) and GTK (the title is set on the window, not in its content). Their props and events are in the [README](../../packages/port-desktop/README.md#the-vocabulary) and in `vocabulary.json` (a MESH manifest, so a build derives what a template may use from the same file the window draws).
+Seventeen components. The first seven, which this note was written for: `column`, `row`, `heading`, `text`, `button`, `checkbox`, `textfield`. Added since, each with its design in the Valance repository: a **choice group** (`radiogroup`, `radio`; `docs/application-model/CHOICE-GROUP.md`), a **caption** (`label`, which holds a control and the text that names it), and a **static table** (`table`, `tablehead`, `tablebody`, `tablerow`, `columnheader`, `rowheader`, `cell`; `docs/application-model/TABLE.md`). The controls also gained `kind`, `invalid`, `describedby`, `focus` and `blur` (`docs/application-model/FORM-PRIMITIVES.md`). There is no `window` component: the window is the host's (its title comes from the application, its size from the host, and whether it may close from the application's guards), the way it is in SwiftUI (`Window` is a scene, and `navigationTitle` follows where you are) and GTK (the title is set on the window, not in its content). Their props and events are in the [README](../../packages/port-desktop/README.md#the-vocabulary) and in `vocabulary.json` (a MESH manifest, so a build derives what a template may use from the same file the window draws).
 
 Design rules, from the ecosystem's [API design principles](https://github.com/ValanceX/Mesh/blob/main/docs/standards/api-design-principles.md) (the investigation applies them one by one):
 
-1. **Few concepts.** A newcomer's first application needs seven, and no fixed attribute, style or class.
+1. **Few concepts.** A newcomer's first application needs seven, and no fixed attribute, style or class; the rest are there when an application needs them.
 2. **Names a developer from any platform already knows.** A window, rows and columns, text, a button, a checkbox, a text field.
 3. **Two verbs.** `click` for a button, and `change` for a control whose value the application owns: it carries the new value, so the same report twice is the same state. `click` is device-independent where it is defined (a DOM `click` is also raised by the keyboard and by assistive technology).
 4. **No markup, no web hooks.** Text is text. There is no `class`, `id` or `tabindex`.
@@ -63,6 +63,7 @@ An engine in another process (the application, in JavaScript or anything else) d
 | `{"op":"closeRequested"}` | The person asked to close the window. The PORT cancels the close and waits for `closeAnswer`. |
 | `{"op":"link","href":"…"}` | The person activated a link. A link is an address, not an event: the tree carries its `href` and no handler. The PORT never opens an address itself; the engine decides what it means (the application owns navigation). |
 | `{"op":"close"}` | The window has closed; the engine ends. A closed stream means the same. |
+| `{"op":"resize","width":812}` | The width of the window's content in whole points: sent when the window opens and whenever it changes, so the application learns how much room it has (`viewport`) as it does on the web. An engine that does not know the message ignores it. |
 
 The engine treats the PORT as a separate program and bounds what it reads (lines of at most 64 KiB, handlers of at most 256 characters, payloads of plain data to a depth of 8); the PORT ignores a line that is not a message and says so on its error output.
 
@@ -72,7 +73,7 @@ The engine treats the PORT as a separate program and bounds what it reads (lines
 
 ## Not yet
 
-Patches, images, links, styling, keyboard events, accessibility, macOS in CI, and any mobile PORT (an engine in Node cannot ship in an iOS or Android app; see Valance's native parity note). The vocabulary investigation orders them.
+Built since this note was first written: images (decoded from local files), links (a link is an address, reported to the engine), events by one key (Enter, Escape), `focus` and `blur`, the platform's keys (Alt+Left and Alt+Right as `navigate`), and accessibility through AccessKit (names, roles, states, and for a radio group and a table their structure). **Still not**: patches (`update` of the whole tree is always valid), styling, a grid (a table of controls), macOS in CI, any mobile PORT (an engine in Node cannot ship in an iOS or Android app; see Valance's native parity note) and a screen reader run against the window: the accessibility tree is tested headless. The vocabulary investigation orders them.
 
 ## Keys
 

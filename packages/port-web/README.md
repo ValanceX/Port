@@ -1,6 +1,6 @@
 # @valancex/port-web
 
-The Web PORT: realizes MESH render trees as DOM, keeps each node's DOM identity across updates, and reports what the user does as handler identifiers and payloads. It is the Web binding of the [PORT contract](../../docs/CONTRACT.md).
+The Web PORT: realizes MESH render trees as DOM, keeps each node's DOM identity across updates, and reports what the user does as handler identifiers and payloads. It is the Web binding of the [PORT contract](../../docs/CONTRACT.md). **Version 0.8.0 is released; 0.9.0 is prepared and changes nothing here** (the package moves with `@valancex/port-desktop-vocabulary`, so one tag publishes both). See the [release notes](../../docs/releases) and [API stability](../../docs/stability.md).
 
 ```ts
 import { attribute, booleanAttribute, createWebPort } from "@valancex/port-web";
@@ -170,7 +170,7 @@ The design is the [PORT Web SSR design](../../docs/superpowers/specs/2026-09-28-
 These are the documented semantics of v0.2 and v0.3, not defects. Each is a different case:
 
 - **Structural mismatch.** Server HTML that differs from the client's tree in any verified way (element, component, child count, text, attribute, boolean attribute, container) is never adopted: `hydrate` draws the whole tree afresh and reports the first mismatch. The page is correct, and the server-rendered DOM isn't reused.
-- **Parser restructuring.** Some element nestings are rewritten by the browser's HTML parser (a `button` inside a `button`, a `div` inside a `p`, table content). The server doesn't model the parser, so these are caught only at hydration, as a structural mismatch, and drawn afresh.
+- **Parser restructuring.** Some element nestings are rewritten by the browser's HTML parser (a `button` inside a `button`, a `div` inside a `p`, table content: rows put straight in a `<table>` gain a `<tbody>`, so a realization table that draws a table should use `thead` and `tbody` itself, as Valance's does). The server doesn't model the parser, so these are caught only at hydration, as a structural mismatch, and drawn afresh.
 - **Adoption setter failure.** A tree is fully verified before adoption begins; structural verification is mutation-free. Adoption is not transactionally rollbackable across arbitrary DOM property setters. If one throws during adoption, `hydrate` throws `adoption-failed`: writes already made stay, nothing is drawn, and there is no retry or fallback draw. The composer decides what to do next.
 - **Pre-hydration input loss.** Input made before hydration isn't preserved. A slot the client's tree realizes as a present property is written over it. (An absent prop's slot is never written, as for any absent prop.)
 - **Pre-hydration interaction loss.** Before `hydrate`, PORT reports nothing, and interactions made then are not replayed.

@@ -1,8 +1,8 @@
 # @valancex/port-desktop (crate `valancex-port-desktop`)
 
-The Desktop PORT: it realizes MESH render trees as a native window and reports what the person does as handler identifiers and payloads. **Version 0.2.0 (prepared; release tag `desktop-v0.2.0`; 0.1.0 is released).** Built and tested on Linux and Windows; macOS is not built or tested.
+The Desktop PORT: it realizes MESH render trees as a native window and reports what the person does as handler identifiers and payloads. **Version 0.3.0 (prepared; release tag `desktop-v0.3.0`; 0.2.0 is released).** Built and tested on Linux and Windows; macOS is not built or tested.
 
-It is a Rust crate, because a native window is Rust's to draw (PORT's rule: an implementation's language follows its target; see the [architecture note](../../docs/architecture/2026-10-14-port-desktop.md)). It takes the same input as [`@valancex/port-web`](../port-web) and keeps the same [PORT contract](../../docs/CONTRACT.md); what differs is the **vocabulary**: columns and rows, text, a heading, a button, a checkbox and a text field, not HTML. The window itself (its title, its size, whether it may close) is the host's, not a template's.
+It is a Rust crate, because a native window is Rust's to draw (PORT's rule: an implementation's language follows its target; see the [architecture note](../../docs/architecture/2026-10-14-port-desktop.md)). It takes the same input as [`@valancex/port-web`](../port-web) and keeps the same [PORT contract](../../docs/CONTRACT.md); what differs is the **vocabulary**: columns and rows, text, a heading, a button, a checkbox, a text field, a choice group, a caption and a static table, not HTML. The window itself (its title, its size, whether it may close) is the host's, not a template's.
 
 ## Five minutes
 
@@ -36,7 +36,7 @@ The worked application is [`examples/todo`](https://github.com/ValanceX/Valance/
 
 ## The vocabulary
 
-Seven components, in [`vocabulary.json`](./vocabulary.json) (a MESH manifest, so a build can derive what a template may use from it).
+Seventeen components, in [`vocabulary.json`](./vocabulary.json) (a MESH manifest, so a build can derive what a template may use from it).
 
 | Component | Props (required unless marked) | Events | What it is |
 |---|---|---|---|
@@ -49,10 +49,16 @@ Seven components, in [`vocabulary.json`](./vocabulary.json) (a MESH manifest, so
 | `radiogroup` | `label`, `invalid`, `describedby` (optional) | | A group of radios: choose one of a few. Its children are the options; `label` names the group for assistive technology (the accessibility tree has a radio group). It has no events: its radios raise them. |
 | `radio` | `checked`, `value`, `label`, `disabled` (optional) | `select` (the option's `value`) | One option of a `radiogroup`. The application decides which one is selected (`checked`). Choosing an option that is not selected reports `select`; choosing the selected one, or a disabled one, reports nothing. Tab reaches each option; arrow keys are left to the platform. |
 | `textfield` | `value`, `placeholder`, `label`, `kind`, `invalid`, `describedby` (optional) | `change` (the text), `submit`, `cancel`, `focus`, `blur` | A line of text the person edits. `submit` is Enter: the person is done with what they typed. `cancel` is Escape: they back out of it. `focus` and `blur`: they came into the field, they left it. `kind="password"` masks what is shown; any other kind is plain text. `invalid` outlines it and marks it invalid for assistive technology; `describedby` names the `id` of the text that explains it. |
+| `label` | | | A caption and the control it names: the text written directly inside it is the control's visible text and accessible name, and a click on the text does what a click on the control does (a checkbox changes, a radio is chosen, a text field takes the cursor). The first control inside it is the one named; a control with a `label` of its own keeps it. |
+| `table` | `label` (optional) | | A static table: rows and columns with header meaning, not a grid (no selection, editing or arrow-key navigation). Its children are `tablehead` and `tablebody`, which hold `tablerow`s. `label` names the table. Drawn as one grid; the accessibility tree has the table with its row and column counts, its rows and its cells. |
+| `tablehead`, `tablebody` | | | The header rows and the data rows of a `table`. |
+| `tablerow` | | | A row of cells. (Not `row`, which is the layout component.) |
+| `columnheader` | `sort` (optional: `ascending`, `descending`, `none` or `other`) | | A header for a column, drawn strong; `sort` says which way the column is sorted, for assistive technology. The table does not sort: the application does. |
+| `rowheader`, `cell` | | | A header for a row, and a cell. Their content is inline: text, `strong`, `emphasis`, `code`, `link` and a `button` (a sortable header holds one). |
 
 **`label`** is a control's accessible name, the one a screen reader says: a checkbox has no text of its own and a field's `placeholder` is a hint, not a name, so a template gives them a `label` (the window passes it to the platform's accessibility tree through AccessKit). A button's name is its content unless a `label` says otherwise.
 
-Events: **click** (a button), **change** (the value of a checkbox or a text field changed; it carries the new value) and **select** (a radio was chosen; it carries its value). The names are the ones most toolkits already use; [the investigation](https://github.com/ValanceX/Valance/blob/main/docs/application-model/NATIVE-VOCABULARY.md) has the sources. The **content layer** (`content.json`) is what Markdown produces, named as WAI-ARIA names the same things: `paragraph`, `list` (`ordered`), `listitem`, `code`, `blockquote`, `image` (`src`, `label`), `strong`, `emphasis`, `link` (`href`), and `heading` with its `level`. Its names are WAI-ARIA's (the maintainer's decision, after checking them against the toolkits' sources). An **image** (`src`, `label`) is drawn from a file on the machine when `src` is an absolute path to a PNG, JPEG, GIF, BMP, WebP or SVG file (the engine names the file; the PORT fetches nothing), named for assistive technology by its `label`; anything else (an address on the network, a relative path, a file that is not there) is drawn as its description, `[image: label]`. A link is an address and has no event: activating it reports the address (`link` in the host protocol), and the application decides what it means. Repeating and conditional parts are not components: they are MESH's blocks (`{#each}`, `{#if}`) in the template.
+Events: **click** (a button), **change** (the value of a checkbox or a text field changed; it carries the new value), **select** (a radio was chosen; it carries its value), **submit** and **cancel** (Enter and Escape in a text field) and **focus** and **blur** (the person came into a text field, or left it). The names are the ones most toolkits already use; [the investigation](https://github.com/ValanceX/Valance/blob/main/docs/application-model/NATIVE-VOCABULARY.md) has the sources. The **content layer** (`content.json`) is what Markdown produces, named as WAI-ARIA names the same things: `paragraph`, `list` (`ordered`), `listitem`, `code`, `blockquote`, `image` (`src`, `label`), `strong`, `emphasis`, `link` (`href`), and `heading` with its `level`. Its names are WAI-ARIA's (the maintainer's decision, after checking them against the toolkits' sources). An **image** (`src`, `label`) is drawn from a file on the machine when `src` is an absolute path to a PNG, JPEG, GIF, BMP, WebP or SVG file (the engine names the file; the PORT fetches nothing), named for assistive technology by its `label`; anything else (an address on the network, a relative path, a file that is not there) is drawn as its description, `[image: label]`. A link is an address and has no event: activating it reports the address (`link` in the host protocol), and the application decides what it means. Repeating and conditional parts are not components: they are MESH's blocks (`{#each}`, `{#if}`) in the template.
 
 ## The contract
 
@@ -68,7 +74,7 @@ Events: **click** (a button), **change** (the value of a checkbox or a text fiel
 
 ### Driving it from an engine
 
-An engine in another process (the application, in JavaScript) drives the PORT with one JSON object per line: `hello`, `title`, `appearance`, `draw`, `update`, `unmount` and `closeAnswer` in; `event`, `link`, `scheme`, `navigate`, `closeRequested` and `close` out. The module `host` is that conversation, and [the architecture note](../../docs/architecture/2026-10-14-port-desktop.md) specifies it.
+An engine in another process (the application, in JavaScript) drives the PORT with one JSON object per line: `hello`, `title`, `appearance`, `draw`, `update`, `unmount` and `closeAnswer` in; `event`, `link`, `scheme`, `navigate`, `resize`, `closeRequested` and `close` out. The module `host` is that conversation, and [the architecture note](../../docs/architecture/2026-10-14-port-desktop.md) specifies it.
 
 ## `vlx-window`
 
@@ -80,4 +86,4 @@ A window for any engine, used by `vlx dev` on a desktop project: `cargo install 
 
 ## Stability
 
-Unreleased. The vocabulary, the host protocol and the crate API may change before 0.1 is published.
+Released as 0.1.0 and 0.2.0; 0.3.0 is prepared (see the [changelog](../../CHANGELOG.md) and [API stability](../../docs/stability.md)). Before 1.0 a minor version may change the vocabulary, the host protocol or the crate API, only with the change named in its release notes. So far every release has only added.

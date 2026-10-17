@@ -291,6 +291,22 @@ impl View {
                         report(events, "select", Some(Value::String(value.to_owned())), out);
                     }
                 }
+                // A static table: rows and columns with header meaning (docs/application-model/TABLE.md in the Valance repository). One grid for the whole table; the accessibility tree has
+                // the table, its rows and cells, with counts and indices, which the toolkit's grid does not provide.
+                "table" => self.table(ui, key, props, children, out),
+                // Outside a table, its parts still draw: rows as a line of cells, a cell as its content.
+                "tablehead" | "tablebody" => self.each(ui, children, out),
+                "tablerow" => {
+                    ui.horizontal_wrapped(|ui| self.each(ui, children, out));
+                }
+                "columnheader" | "rowheader" | "cell" => {
+                    let style = Style {
+                        strong: component != "cell",
+                        ..Style::default()
+                    };
+
+                    ui.horizontal_wrapped(|ui| self.inline_children(ui, children, out, style));
+                }
                 // A caption and the control it names: the text is the control's visible text and accessible name, and a click on it does what a click on the control does. The caption is the text
                 // written directly inside; the control is whatever else is written there.
                 "label" => {
@@ -499,6 +515,145 @@ impl View {
         }
     }
 
+    /// A table: its rows (the header rows of `tablehead` first, as written) in one grid, each cell's content beside its header's style.
+    fn table(
+        &mut self,
+        ui: &mut Ui,
+        key: &str,
+        props: &BTreeMap<String, Value>,
+        children: &[Node],
+        out: &mut Vec<Output>,
+    ) {
+        let mut rows: Vec<(bool, &Node)> = Vec::new();
+
+        for child in children {
+            if let Node::Node {
+                component,
+                children: inside,
+                ..
+            } = child
+            {
+                match component.as_str() {
+                    "tablehead" | "tablebody" => {
+                        rows.extend(inside.iter().map(|row| (component == "tablehead", row)))
+                    }
+                    "tablerow" => rows.push((false, child)),
+                    _ => {}
+                }
+            }
+        }
+
+        let cells_of = |row: &Node| -> Vec<Node> {
+            match row {
+                Node::Node { children, .. } => children
+                    .iter()
+                    .filter(|cell| {
+                        matches!(cell, Node::Node { component, .. }
+                            if matches!(component.as_str(), "cell" | "columnheader" | "rowheader"))
+                    })
+                    .cloned()
+                    .collect(),
+                Node::Text { .. } => Vec::new(),
+            }
+        };
+        let columns = rows
+            .iter()
+            .map(|(_, row)| cells_of(row).len())
+            .max()
+            .unwrap_or(0);
+        let table_id = ui.make_persistent_id(("table", key));
+        let name = props
+            .get("label")
+            .and_then(Value::as_str)
+            .map(str::to_owned);
+        let count = rows.len();
+
+        ui.ctx().accesskit_node_builder(table_id, |builder| {
+            builder.set_role(egui::accesskit::Role::Table);
+            builder.set_row_count(count);
+            builder.set_column_count(columns);
+
+            if let Some(name) = name {
+                builder.set_label(name);
+            }
+        });
+
+        let ctx = ui.ctx().clone();
+
+        ctx.with_accessibility_parent(table_id, || {
+            egui::Grid::new(table_id).striped(true).show(ui, |ui| {
+                for (at, (_, row)) in rows.iter().enumerate() {
+                    let row_id = table_id.with(("row", at));
+
+                    ui.ctx().accesskit_node_builder(row_id, |builder| {
+                        builder.set_role(egui::accesskit::Role::Row);
+                        builder.set_row_index(at);
+                    });
+                    ctx.with_accessibility_parent(row_id, || {
+                        for (column, cell) in cells_of(row).iter().enumerate() {
+                            self.cell(ui, row_id, at, column, cell, out);
+                        }
+                    });
+                    ui.end_row();
+                }
+            });
+        });
+    }
+
+    /// One cell of a table: its content inline (strong in a header), and its place and kind in the accessibility tree.
+    fn cell(
+        &mut self,
+        ui: &mut Ui,
+        row_id: egui::Id,
+        row: usize,
+        column: usize,
+        cell: &Node,
+        out: &mut Vec<Output>,
+    ) {
+        let Node::Node {
+            component,
+            props,
+            children,
+            ..
+        } = cell
+        else {
+            return;
+        };
+        let cell_id = row_id.with(("cell", column));
+        let role = match component.as_str() {
+            "columnheader" => egui::accesskit::Role::ColumnHeader,
+            "rowheader" => egui::accesskit::Role::RowHeader,
+            _ => egui::accesskit::Role::Cell,
+        };
+        let sort = match props.get("sort").and_then(Value::as_str) {
+            Some("ascending") => Some(egui::accesskit::SortDirection::Ascending),
+            Some("descending") => Some(egui::accesskit::SortDirection::Descending),
+            Some("other") => Some(egui::accesskit::SortDirection::Other),
+            _ => None,
+        };
+
+        ui.ctx().accesskit_node_builder(cell_id, |builder| {
+            builder.set_role(role);
+            builder.set_row_index(row);
+            builder.set_column_index(column);
+
+            if let Some(direction) = sort {
+                builder.set_sort_direction(direction);
+            }
+        });
+
+        let style = Style {
+            strong: component != "cell",
+            ..Style::default()
+        };
+
+        let ctx = ui.ctx().clone();
+
+        ctx.with_accessibility_parent(cell_id, || {
+            ui.horizontal_wrapped(|ui| self.inline_children(ui, children, out, style));
+        });
+    }
+
     /// Forgets the fields of a screen that was replaced (a `draw`: nothing is reused).
     pub fn reset(&mut self) {
         self.fields.clear();
@@ -583,6 +738,13 @@ pub const REALIZED: &[&str] = &[
     "radiogroup",
     "radio",
     "label",
+    "table",
+    "tablehead",
+    "tablebody",
+    "tablerow",
+    "columnheader",
+    "rowheader",
+    "cell",
 ];
 
 /// The content-layer components this window draws: exactly the ones `content.json` declares.
