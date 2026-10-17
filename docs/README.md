@@ -1,6 +1,6 @@
 # PORT documentation
 
-Documentation for **PORT** (v0.9 prepared; v0.8 is the latest release). New here? Start with the [PORT contract](./CONTRACT.md), then the [architecture](./ARCHITECTURE.md).
+Documentation for **PORT** (v0.9 is the latest release; the Desktop PORT crate 0.3.1 is prepared). New here? Start with the [PORT contract](./CONTRACT.md), then the [architecture](./ARCHITECTURE.md).
 
 ## The contract and the architecture
 

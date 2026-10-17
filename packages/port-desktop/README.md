@@ -1,6 +1,6 @@
 # @valancex/port-desktop (crate `valancex-port-desktop`)
 
-The Desktop PORT: it realizes MESH render trees as a native window and reports what the person does as handler identifiers and payloads. **Version 0.3.0 (prepared; release tag `desktop-v0.3.0`; 0.2.0 is released).** Built and tested on Linux and Windows; macOS is not built or tested.
+The Desktop PORT: it realizes MESH render trees as a native window and reports what the person does as handler identifiers and payloads. **Version 0.3.1 (prepared; release tag `desktop-v0.3.1`; 0.3.0 is released).** Built and tested on Linux and Windows; macOS is not built or tested.
 
 It is a Rust crate, because a native window is Rust's to draw (PORT's rule: an implementation's language follows its target; see the [architecture note](../../docs/architecture/2026-10-14-port-desktop.md)). It takes the same input as [`@valancex/port-web`](../port-web) and keeps the same [PORT contract](../../docs/CONTRACT.md); what differs is the **vocabulary**: columns and rows, text, a heading, a button, a checkbox, a text field, a choice group, a caption and a static table, not HTML. The window itself (its title, its size, whether it may close) is the host's, not a template's.
 
@@ -86,4 +86,4 @@ A window for any engine, used by `vlx dev` on a desktop project: `cargo install 
 
 ## Stability
 
-Released as 0.1.0 and 0.2.0; 0.3.0 is prepared (see the [changelog](../../CHANGELOG.md) and [API stability](../../docs/stability.md)). Before 1.0 a minor version may change the vocabulary, the host protocol or the crate API, only with the change named in its release notes. So far every release has only added.
+Released as 0.1.0, 0.2.0 and 0.3.0; 0.3.1 is prepared (see the [changelog](../../CHANGELOG.md) and [API stability](../../docs/stability.md)). Before 1.0 a minor version may change the vocabulary, the host protocol or the crate API, only with the change named in its release notes. So far every release has only added.
