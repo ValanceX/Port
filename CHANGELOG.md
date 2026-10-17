@@ -4,6 +4,11 @@ All notable changes to PORT are recorded here. The project follows [Semantic Ver
 
 ## [Unreleased]
 
+### Added
+
+- `@valancex/port-desktop-vocabulary`, `vocabulary.json`: a **static table**, seven components (`docs/application-model/TABLE.md` in the Valance repository, RF-12). `table` (`label`) holds `tablehead` and `tablebody`, which hold `tablerow`s of `columnheader` (`sort`: `ascending`, `descending`, `none` or `other`), `rowheader` and `cell`. No events. The vocabulary is seventeen components.
+- `valancex-port-desktop`: draws the table as one grid, the header rows strong and each cell's content inline, and sets what the toolkit's grid does not: in the accessibility tree a `Table` (with its name and row and column counts), `Row`s (with their index), and `Cell`, `ColumnHeader` and `RowHeader` (with their row and column indices; `sort` becomes the sort direction). Headless tests read the tree back.
+
 ## [0.8.0] - 2026-10-16
 
 A minor release of the two npm packages that share one version. **`@valancex/port-web` changes nothing** (it moves so the workspace has one version). **The Desktop PORT's vocabulary grows by one component**, additively: nothing an application wrote before changes. See the [v0.8 release notes](./docs/releases/v0.8.md).

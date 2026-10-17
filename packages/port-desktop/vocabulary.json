@@ -218,6 +218,62 @@
       "events": {},
       "commands": {},
       "scope": {}
+    },
+    "table": {
+      "props": {
+        "label": {
+          "type": {
+            "kind": "string"
+          },
+          "required": false
+        }
+      },
+      "events": {},
+      "commands": {},
+      "scope": {}
+    },
+    "tablehead": {
+      "props": {},
+      "events": {},
+      "commands": {},
+      "scope": {}
+    },
+    "tablebody": {
+      "props": {},
+      "events": {},
+      "commands": {},
+      "scope": {}
+    },
+    "tablerow": {
+      "props": {},
+      "events": {},
+      "commands": {},
+      "scope": {}
+    },
+    "rowheader": {
+      "props": {},
+      "events": {},
+      "commands": {},
+      "scope": {}
+    },
+    "cell": {
+      "props": {},
+      "events": {},
+      "commands": {},
+      "scope": {}
+    },
+    "columnheader": {
+      "props": {
+        "sort": {
+          "type": {
+            "kind": "string"
+          },
+          "required": false
+        }
+      },
+      "events": {},
+      "commands": {},
+      "scope": {}
     }
   }
 }
