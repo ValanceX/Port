@@ -4,6 +4,10 @@ All notable changes to PORT are recorded here. The project follows [Semantic Ver
 
 ## [Unreleased]
 
+### Fixed
+
+- `valancex-port-desktop`: a table's cells no longer wrap their text. Inside the grid a wrapping layout was given the column's width from before the cell was drawn, so a header word broke in two ("Orde" / "r") in a real window. Found by driving 0.3.0's table in a window; the headless tests could not see it.
+
 ## [0.9.0] - 2026-10-17
 
 A minor release of the two npm packages that share one version. **`@valancex/port-web` changes nothing** (it moves so the workspace has one version). **The Desktop PORT's vocabulary grows by seven components**, additively: nothing an application wrote before changes. See the [v0.9 release notes](./docs/releases/v0.9.md).
