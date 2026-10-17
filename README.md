@@ -72,7 +72,7 @@ The two npm packages share one version and are released together (one `v*` tag);
 
 The two semantic questions PORT handed MESH ([handoff](./docs/architecture/2026-09-27-mesh-semantic-handoff.md)) are settled by MESH v0.6: prop text and realization (spec §9.7.7, §9.8.7; the Web PORT's [value realization](./docs/architecture/2026-09-28-web-value-realization.md)) and event resolution (spec §9.9). The Web PORT also renders on a server, for a first, deliberately narrow subset: `@valancex/port-web/server` realizes a tree as HTML with no DOM, and the Web PORT's own `hydrate` takes it over in the browser, verified in full before anything is adopted. Neither is a PORT contract operation ([design](./docs/superpowers/specs/2026-09-28-port-web-ssr.md)).
 
-Not yet: styling (PORT adds no style mechanism: an application's styles are its own, and VALANCE scopes CSS to components for the web), a grid (a table of controls), macOS in the Desktop PORT's CI, and any mobile or canvas PORT. See the [roadmap](./docs/ROADMAP.md).
+Not yet: styling (PORT adds no style mechanism: an application's styles are its own, loaded per target by VALANCE as plain stylesheets; see Valance's [style contract](https://github.com/ValanceX/Valance/blob/main/docs/direction/bets/style-contract.md)), a grid (a table of controls), macOS in the Desktop PORT's CI, and any mobile or canvas PORT. See the [roadmap](./docs/ROADMAP.md).
 
 ```console
 $ pnpm install
