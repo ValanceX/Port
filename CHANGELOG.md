@@ -4,6 +4,10 @@ All notable changes to PORT are recorded here. The project follows [Semantic Ver
 
 ## [Unreleased]
 
+### Fixed
+
+- `valancex-port-desktop`: the accessibility tree now says what a heading, a paragraph and a list are. egui draws these as labels and never emits their roles, so a screen reader was told "label" for a `heading` (with no level) and nothing for `list` and `listitem`. The PORT now sets `Heading` with its `level` (its text, drawn inside it, is its name), `Paragraph`, `List` and `ListItem` (with its position in the list and the list's size), and the items are children of the list. `blockquote` is unchanged: it is not in the version-1 role set. Pinned by `tests/spec_invariants.rs`, a checker of the update against AccessKit's invariants and the role and name rules (decision A11).
+
 ## [0.3.1] - 2026-10-17 (`valancex-port-desktop`, tag `desktop-v0.3.1`)
 
 A patch release of the Desktop PORT crate, on its own tag: a fix, and no change to the vocabulary, the host protocol or the crate's API. The npm packages are unchanged (they stay at 0.9.0). See the [v0.9 release notes](./docs/releases/v0.9.md#desktop-031).
