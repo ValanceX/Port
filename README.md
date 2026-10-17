@@ -35,7 +35,7 @@ That's the whole [PORT contract](./docs/CONTRACT.md). What each public surface p
 
 | Package | What it is |
 |---|---|
-| [`valancex-port-desktop`](./packages/port-desktop) | The Desktop PORT (0.2.0 released, 0.3.0 prepared; its own tag): render-v1 → a native window, built and tested on Linux and Windows, with a vocabulary of its own (seventeen components: layout, text, a button, a checkbox, a text field, a choice group, a caption, a static table). Rust, because a native window is Rust's to draw. See the [architecture note](./docs/architecture/2026-10-14-port-desktop.md). |
+| [`valancex-port-desktop`](./packages/port-desktop) | The Desktop PORT (0.3.0 released, 0.3.1 prepared; its own tag): render-v1 → a native window, built and tested on Linux and Windows, with a vocabulary of its own (seventeen components: layout, text, a button, a checkbox, a text field, a choice group, a caption, a static table). Rust, because a native window is Rust's to draw. See the [architecture note](./docs/architecture/2026-10-14-port-desktop.md). |
 | [`@valancex/port-desktop-vocabulary`](./packages/port-desktop-vocabulary) | The Desktop PORT's vocabulary as data (`vocabulary.json`, `content.json`), for the tools that check a template against it. Versioned with `@valancex/port-web`. |
 | [`@valancex/port-web`](./packages/port-web) | The Web PORT: render-v1 → DOM, in-place updates by key, events → reports, and hydration of server HTML. Its `@valancex/port-web/server` entry realizes render-v1 as HTML with no DOM. TypeScript, because the DOM is JavaScript-native. |
 
@@ -56,7 +56,7 @@ There is deliberately **no shared `@valancex/port` package** (a second PORT now 
 
 The two npm packages share one version and are released together (one `v*` tag); the Desktop PORT crate has its own tag (`desktop-v*`). Newest first; the [changelog](./CHANGELOG.md) and the [release notes](./docs/releases) have the detail.
 
-**v0.9.0 (prepared 2026-10-17; not yet released: v0.8.0 is the latest release; crate 0.3.0):** a static table in the Desktop PORT's vocabulary (`table`, `tablehead`, `tablebody`, `tablerow`, `columnheader`, `rowheader`, `cell`), drawn as one grid with the table, rows and cells in the accessibility tree. `@valancex/port-web` is unchanged. See the [release notes](./docs/releases/v0.9.md).
+**v0.9.0 (released 2026-10-17; crate 0.3.0 released the same day, 0.3.1 prepared: a table's cells no longer wrap their text):** a static table in the Desktop PORT's vocabulary (`table`, `tablehead`, `tablebody`, `tablerow`, `columnheader`, `rowheader`, `cell`), drawn as one grid with the table, rows and cells in the accessibility tree. `@valancex/port-web` is unchanged. See the [release notes](./docs/releases/v0.9.md).
 
 **v0.8 (released 2026-10-16; crate 0.2.0 released 2026-10-17):** `label` in the Desktop PORT's vocabulary, a caption that names the control inside it and activates it. `@valancex/port-web` is unchanged. See the [release notes](./docs/releases/v0.8.md).
 

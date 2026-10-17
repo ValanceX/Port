@@ -649,8 +649,9 @@ impl View {
 
         let ctx = ui.ctx().clone();
 
+        // Not wrapped: inside a grid a wrapping layout is given the column's width from before this cell was drawn, which breaks a header word in two ("Orde" "r").
         ctx.with_accessibility_parent(cell_id, || {
-            ui.horizontal_wrapped(|ui| self.inline_children(ui, children, out, style));
+            ui.horizontal(|ui| self.inline_children(ui, children, out, style));
         });
     }
 

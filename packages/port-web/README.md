@@ -1,6 +1,6 @@
 # @valancex/port-web
 
-The Web PORT: realizes MESH render trees as DOM, keeps each node's DOM identity across updates, and reports what the user does as handler identifiers and payloads. It is the Web binding of the [PORT contract](../../docs/CONTRACT.md). **Version 0.8.0 is released; 0.9.0 is prepared and changes nothing here** (the package moves with `@valancex/port-desktop-vocabulary`, so one tag publishes both). See the [release notes](../../docs/releases) and [API stability](../../docs/stability.md).
+The Web PORT: realizes MESH render trees as DOM, keeps each node's DOM identity across updates, and reports what the user does as handler identifiers and payloads. It is the Web binding of the [PORT contract](../../docs/CONTRACT.md). **Version 0.9.0 is released and changes nothing here** (the package moves with `@valancex/port-desktop-vocabulary`, so one tag publishes both). See the [release notes](../../docs/releases) and [API stability](../../docs/stability.md).
 
 ```ts
 import { attribute, booleanAttribute, createWebPort } from "@valancex/port-web";
