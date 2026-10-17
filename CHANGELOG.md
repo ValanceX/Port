@@ -28,7 +28,7 @@ A minor release of the two npm packages that share one version. **`@valancex/por
 
 - `@valancex/port-desktop-vocabulary` 0.8.0, `vocabulary.json`: **`label`**, a component that holds a control and the text that names it (`docs/application-model/CHOICE-GROUP.md` in the Valance repository, WA-14). It has no props and no events: the text written directly inside it is the control's visible text and accessible name, and the first control inside it is the one it names. The vocabulary is ten components.
 
-## [0.2.0] - 2026-10-16 (`valancex-port-desktop`, tag `desktop-v0.2.0`)
+## [0.2.0] - 2026-10-17 (`valancex-port-desktop`, tag `desktop-v0.2.0`)
 
 A minor release of the Desktop PORT crate, on its own tag. Additive: a tree that drew in 0.1.0 draws the same.
 

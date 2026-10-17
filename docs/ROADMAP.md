@@ -32,6 +32,8 @@ PORT Web
 
 The roadmap deliberately generalizes from evidence gathered from the Web implementation rather than speculative abstractions for native, Canvas, GPU, or other targets.
 
+> **Update 2026-10-17.** A second target now exists, the Desktop PORT (`valancex-port-desktop`, released as 0.2.0; [architecture note](./architecture/2026-10-14-port-desktop.md)). It shares the contract and no code with the Web PORT, as section 2.8 says it should, and it is what the evidence rule asked for: the vocabulary is the target's own (seventeen components, as data), the contract did not change, and each addition (form primitives, a choice group, `label`, a static table) came from what an application needed, with the design written first, in the Valance repository. A shared `@valancex/port` package is still not warranted: there is no code worth sharing. Mobile and Canvas PORTs are not started.
+
 ---
 
 # 1. Architectural Position
@@ -437,6 +439,8 @@ Real Web interactions can reach NEXUS without exposing raw browser event objects
 
 # V0.4 — Styles and Accessibility
 
+**Status:** Partly met, by choice. Accessibility: an application's primitives declare the roles, names and states they realize (`aria-*`, `role`, `scope`, constant attributes), and the Web PORT writes them; the Desktop PORT passes names, roles, states, counts and indices to the platform through AccessKit (checkbox, radio group, text field, table). Styles: PORT adds no style mechanism (do not invent one, below): an application's styles are its own, and VALANCE scopes component CSS for the web. Not done: focus management beyond what the platform gives, and any styling vocabulary for a second target. *(Update 2026-10-17.)*
+
 ## Objective
 
 Prove that Web-native styling and accessibility mechanisms can realize Valance semantics.
@@ -659,6 +663,8 @@ A server-rendered route becomes a functioning interactive Valance application wi
 ---
 
 # V0.9 — Application and Build Pipeline
+
+**Status:** Met outside this repository, as for V0.10. VALANCE's `vlx build` writes a Web application (static or client rendering, hydrated in the browser), `vlx dev` serves it, and `vlx package --desktop` packages the Desktop PORT with an engine. PORT owns no build tool. *(Update 2026-10-17.)*
 
 ## Objective
 
