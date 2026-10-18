@@ -1,6 +1,6 @@
 {
   "name": "@valancex/port-desktop-vocabulary",
-  "version": "0.9.0",
+  "version": "0.10.0",
   "description": "The Desktop PORT's vocabulary as data: the components, props and events a template may use for a native window, and the content layer. Read by the tools that check templates; the PORT itself is the Rust crate valancex-port-desktop.",
   "type": "module",
   "license": "MIT",

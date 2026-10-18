@@ -1,6 +1,6 @@
 # PORT documentation
 
-Documentation for **PORT** (v0.9 is the latest release; the Desktop PORT crate 0.3.1 is prepared). New here? Start with the [PORT contract](./CONTRACT.md), then the [architecture](./ARCHITECTURE.md).
+Documentation for **PORT** (v0.9 is the latest release and v0.10 is prepared; the Desktop PORT crate 0.3.1 is the latest release and 0.4.0 is prepared). New here? Start with the [PORT contract](./CONTRACT.md), then the [architecture](./ARCHITECTURE.md).
 
 ## The contract and the architecture
 
@@ -19,7 +19,7 @@ Documentation for **PORT** (v0.9 is the latest release; the Desktop PORT crate 0
 - [**Integration audit**](./architecture/2026-09-27-port-integration-audit.md): the evidence behind the boundary, with open questions and contradictions.
 - [**MESH semantic handoff**](./architecture/2026-09-27-mesh-semantic-handoff.md), with the [event propagation audit](./architecture/2026-09-27-event-propagation-audit.md) and the [value realization audit](./architecture/2026-09-27-value-realization-audit.md): the questions MESH v0.6 answered.
 - [**API review baseline**](./superpowers/specs/2026-10-09-api-review-freeze.md).
-- Release notes for [**v0.9**](./releases/v0.9.md), [**v0.8**](./releases/v0.8.md), [**v0.7**](./releases/v0.7.md), [**v0.6**](./releases/v0.6.md), [**v0.5**](./releases/v0.5.md), [**v0.4**](./releases/v0.4.md), [**v0.3**](./releases/v0.3.md) and [**v0.2**](./releases/v0.2.md), and the [**changelog**](../CHANGELOG.md).
+- Release notes for [**v0.10**](./releases/v0.10.md) (prepared), [**v0.9**](./releases/v0.9.md), [**v0.8**](./releases/v0.8.md), [**v0.7**](./releases/v0.7.md), [**v0.6**](./releases/v0.6.md), [**v0.5**](./releases/v0.5.md), [**v0.4**](./releases/v0.4.md), [**v0.3**](./releases/v0.3.md) and [**v0.2**](./releases/v0.2.md), and the [**changelog**](../CHANGELOG.md).
 
 ## For contributors
 

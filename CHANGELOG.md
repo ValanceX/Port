@@ -4,23 +4,28 @@ All notable changes to PORT are recorded here. The project follows [Semantic Ver
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-10-18 (prepared, not yet released; the crate is 0.4.0, tag `desktop-v0.4.0`)
+
+A minor release of the two npm packages that share one version, and of the Desktop PORT crate. **`@valancex/port-desktop-vocabulary` grows to twenty components**, additively: nothing an application wrote before changes. **`@valancex/port-web`'s peer range now admits MESH 0.13 and 0.14.** See the [v0.10 release notes](./docs/releases/v0.10.md).
+
+### Added
+
+- `@valancex/port-desktop-vocabulary` 0.10.0, `vocabulary.json`: **`status` and `alert`**, the live regions (decision A13), and **`toggle`**, a button that stays pressed (`pressed`, `label`, `disabled`; the event `change` carries the value it is going to have). Twenty components.
+- `valancex-port-desktop` 0.4.0 draws them. `status` is a Status node (polite, atomic) and `alert` an Alert node (assertive, atomic), each present before it has text (the APG alert pattern); `toggle` is a Button whose pressed state is the tree's toggled state, and a click, or Enter or Space, reports `change` with the new value. Checked in `tests/spec_invariants.rs` and `tests/toggle.rs`.
+- The Web PORT runs MESH's 22 node-identity vectors (C1 to C22) in `identity-conformance.test.ts`: all pass.
+- The Desktop PORT reads the vectors where it can (`tests/conformance.rs`): every tree is accepted, the text-run case is readable, and the identity vectors run against a keyed update that the Desktop does not have yet: 14 of 19 change a kept identity's accessibility node (egui's widget ids follow position). Listed exactly in the test.
+- `scripts/check-mesh-range.mjs` runs the Web PORT's suite against each MESH minor its peer range lists (0.6 to 0.14: all pass), and CI runs it (`mesh-range`).
+
 ### Changed
 
-- **The program vectors of MESH 0.14 are run** (`enums/`, `snippets/`, `forwarder/`, `passing/`). The Web PORT draws every step's committed tree and updates between them (kept keys are the same DOM node, gone keys are disposed, the order is the tree's, handler identifiers are reported) and checks the key cases: 23 tests, all pass. The Desktop PORT takes every tree and is held to the same law: four step transitions (reorders and removals in a repeat) change a widget's accessibility node, listed exactly in `tests/conformance.rs`. `conformance.json` now supports 0.14.0; the git pin moves to the MESH commit that has the vectors. Not renderer vectors, and so not run: the `enums/` cases `rejects` (MESH refuses the snapshot, there is no tree) and `dispatches` (MESH resolves an intent).
+- **`@valancex/port-web`'s peer range admits `@valancex/mesh-runtime` 0.13 and 0.14** (`^0.6.0 || ... || ^0.14.0`). Each line was run, not only listed: the suite passes against 0.6 through 0.14 with the vectors of the newest conformance package; the program vectors, which use constructs MESH 0.14 introduced, run from 0.14. The 0.12 lines before this were listed without being run.
+- **The program vectors of MESH 0.14 are run** (`enums/`, `snippets/`, `forwarder/`, `passing/`). The Web PORT draws every step's committed tree and updates between them (kept keys are the same DOM node, gone keys are disposed, the order is the tree's, handler identifiers are reported) and checks the key cases: 23 tests, all pass. The Desktop PORT takes every tree and is held to the same law: four step transitions (reorders and removals in a repeat) change a widget's accessibility node, listed exactly in `tests/conformance.rs`. `conformance.json` supports 0.14.0. Not renderer vectors, and so not run: the `enums/` cases `rejects` (MESH refuses the snapshot, there is no tree) and `dispatches` (MESH resolves an intent).
 - **MESH's conformance vectors are consumed from `@valancex/mesh-conformance`, not copied.** `fixtures/mesh-conformance/` (a verbatim copy at MESH v0.6 that lacked the identity vectors) is deleted. `scripts/check-conformance.mjs` fails on a copy anywhere in the tree or an installed package older than `conformance.json`'s `supports`.
 
 ### Fixed
 
 - `valancex-port-desktop`: `blockquote` is exposed as `Role::Blockquote` (decision A11, 23 names), and the bullet or number of a list item is hidden from assistive technology instead of read as the item's first content. Both are checked in `tests/spec_invariants.rs`.
-
-### Added
-
-- The Web PORT runs MESH's 22 node-identity vectors (C1 to C22) in `identity-conformance.test.ts`: all pass.
-- The Desktop PORT reads the vectors where it can (`tests/conformance.rs`): every tree is accepted, the text-run case is readable, and the identity vectors run against a keyed update that the Desktop does not have yet: 14 of 19 change a kept identity's accessibility node (egui's widget ids follow position). Listed exactly in the test.
-
-### Fixed
-
-- `valancex-port-desktop`: the accessibility tree now says what a heading, a paragraph and a list are. egui draws these as labels and never emits their roles, so a screen reader was told "label" for a `heading` (with no level) and nothing for `list` and `listitem`. The PORT now sets `Heading` with its `level` (its text, drawn inside it, is its name), `Paragraph`, `List` and `ListItem` (with its position in the list and the list's size), and the items are children of the list. `blockquote` is unchanged: it is not in the version-1 role set. Pinned by `tests/spec_invariants.rs`, a checker of the update against AccessKit's invariants and the role and name rules (decision A11).
+- `valancex-port-desktop`: the accessibility tree now says what a heading, a paragraph and a list are. egui draws these as labels and never emits their roles, so a screen reader was told "label" for a `heading` (with no level) and nothing for `list` and `listitem`. The PORT now sets `Heading` with its `level` (its text, drawn inside it, is its name), `Paragraph`, `List` and `ListItem` (with its position in the list and the list's size), and the items are children of the list. `blockquote` followed in the entry above (it joined the version-1 role set). Pinned by `tests/spec_invariants.rs`, a checker of the update against AccessKit's invariants and the role and name rules (decision A11).
 
 ## [0.3.1] - 2026-10-17 (`valancex-port-desktop`, tag `desktop-v0.3.1`)
 
