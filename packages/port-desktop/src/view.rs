@@ -175,25 +175,36 @@ impl View {
                     });
                 }
                 "blockquote" => {
-                    ui.horizontal(|ui| {
-                        let (bar, _) = ui.allocate_exact_size(
-                            egui::vec2(3.0, ui.text_style_height(&egui::TextStyle::Body)),
-                            egui::Sense::hover(),
-                        );
+                    let id = ui.make_persistent_id(("blockquote", key));
 
-                        ui.painter()
-                            .rect_filled(bar, 0.0, ui.visuals().weak_text_color());
-                        ui.horizontal_wrapped(|ui| {
-                            no_gap(ui);
-                            self.inline_children(
-                                ui,
-                                children,
-                                out,
-                                Style {
-                                    italic: true,
-                                    ..Style::default()
-                                },
+                    // Role::Blockquote (decision A11): the web renders `blockquote`, ARIA defines the role and AccessKit 0.17 has it; egui never emits it. The bar is decoration.
+                    ui.ctx().accesskit_node_builder(id, |builder| {
+                        builder.set_role(egui::accesskit::Role::Blockquote);
+                    });
+
+                    let ctx = ui.ctx().clone();
+
+                    ctx.with_accessibility_parent(id, || {
+                        ui.horizontal(|ui| {
+                            let (bar, _) = ui.allocate_exact_size(
+                                egui::vec2(3.0, ui.text_style_height(&egui::TextStyle::Body)),
+                                egui::Sense::hover(),
                             );
+
+                            ui.painter()
+                                .rect_filled(bar, 0.0, ui.visuals().weak_text_color());
+                            ui.horizontal_wrapped(|ui| {
+                                no_gap(ui);
+                                self.inline_children(
+                                    ui,
+                                    children,
+                                    out,
+                                    Style {
+                                        italic: true,
+                                        ..Style::default()
+                                    },
+                                );
+                            });
                         });
                     });
                 }
@@ -231,10 +242,15 @@ impl View {
                                 ctx.with_accessibility_parent(item_id, || {
                                     ui.horizontal_wrapped(|ui| {
                                         no_gap(ui);
-                                        ui.label(if ordered {
+                                        // The bullet or number is decoration: the item is its text alone. Hidden, so an assistive technology does not read "bullet" before it.
+                                        let marker = ui.label(if ordered {
                                             format!("{}. ", at + 1)
                                         } else {
                                             "\u{2022} ".to_owned()
+                                        });
+
+                                        ui.ctx().accesskit_node_builder(marker.id, |builder| {
+                                            builder.set_hidden();
                                         });
                                         match item {
                                             Node::Node {

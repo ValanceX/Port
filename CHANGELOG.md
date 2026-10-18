@@ -8,6 +8,10 @@ All notable changes to PORT are recorded here. The project follows [Semantic Ver
 
 - **MESH's conformance vectors are consumed from `@valancex/mesh-conformance`, not copied.** `fixtures/mesh-conformance/` (a verbatim copy at MESH v0.6 that lacked the identity vectors) is deleted. `scripts/check-conformance.mjs` fails on a copy anywhere in the tree or an installed package older than `conformance.json`'s `supports`.
 
+### Fixed
+
+- `valancex-port-desktop`: `blockquote` is exposed as `Role::Blockquote` (decision A11, 23 names), and the bullet or number of a list item is hidden from assistive technology instead of read as the item's first content. Both are checked in `tests/spec_invariants.rs`.
+
 ### Added
 
 - The Web PORT runs MESH's 22 node-identity vectors (C1 to C22) in `identity-conformance.test.ts`: all pass.
