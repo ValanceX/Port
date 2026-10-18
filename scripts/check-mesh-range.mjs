@@ -1,13 +1,15 @@
 // Runs the Web PORT's tests against each MESH version its peer range claims, not only the one the workspace installs: a range says what is allowed, this says what was tried.
 //
-//   node scripts/check-mesh-range.mjs 0.13.0=<conformance dir> 0.14.0
+//   node scripts/check-mesh-range.mjs [0.12.0 0.13.0 ...]
+//
+// With no argument it runs every minor `packages/port-web`'s `peerDependencies` range lists, so a range cannot claim a version this has not run.
 //
 // For each argument it installs `@valancex/mesh-compiler` and `@valancex/mesh-runtime` at that version into a scratch directory and runs `packages/port-web`'s suite with them (MESH_PACKAGES,
-// see its vitest.config.ts). After `=` is a directory holding that MESH version's `@valancex/mesh-conformance` package (unpacked), for a version whose vectors differ from the workspace's; without it
-// the workspace's vectors are used. The program vectors (`program-vectors.test.ts`) are run only when the vectors have a `snippets/` directory (MESH 0.14 added them).
-// Exit 1 if any run fails.
+// see its vitest.config.ts). The vectors are the workspace's (the newest package carries the older ones unchanged: the values, events and identity vectors passed against 0.12 and 0.13 when this
+// was written), except the program vectors (`program-vectors.test.ts`: enums, snippets, forwarder, passing), which use constructs MESH 0.14 introduced and run only against 0.14 and later.
+// After `=` an argument may name a directory with another version of the `@valancex/mesh-conformance` package (unpacked), for a vector set of its own. Exit 1 if any run fails.
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -15,7 +17,13 @@ const root = new URL("..", import.meta.url).pathname;
 const run = (command, args, options) => spawnSync(command, args, { stdio: "inherit", ...options });
 let failed = false;
 
-for (const argument of process.argv.slice(2)) {
+const claimed = () => {
+  const range = JSON.parse(readFileSync(join(root, "packages", "port-web", "package.json"), "utf8")).peerDependencies["@valancex/mesh-runtime"];
+
+  return [...range.matchAll(/\^(\d+\.\d+\.\d+)/g)].map((match) => match[1]);
+};
+
+for (const argument of process.argv.length > 2 ? process.argv.slice(2) : claimed()) {
   const [version, conformance] = argument.split("=");
   const scratch = mkdtempSync(join(tmpdir(), `mesh-${version}-`));
 
@@ -28,9 +36,9 @@ for (const argument of process.argv.slice(2)) {
 
     const env = { ...process.env, MESH_PACKAGES: scratch, ...(conformance === undefined ? {} : { MESH_CONFORMANCE: conformance }) };
     const vectors = conformance ?? join(root, "node_modules", "@valancex", "mesh-conformance");
-    const program = existsSync(join(vectors, "conformance", "snippets"));
+    const program = existsSync(join(vectors, "conformance", "snippets")) && Number(version.split(".")[1]) >= 14;
 
-    console.log(`\n== the Web PORT against MESH ${version}${program ? "" : " (vectors without program cases)"}`);
+    console.log(`\n== the Web PORT against MESH ${version}${program ? "" : " (the program vectors need 0.14)"}`);
 
     const result = run("npx", ["vitest", "run", ...(program ? [] : ["--exclude", "test/program-vectors.test.ts"])], { cwd: join(root, "packages", "port-web"), env });
 

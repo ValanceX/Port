@@ -31,6 +31,21 @@ jobs:
       - run: pnpm test
       - run: pnpm build
 
+  # The Web PORT against each MESH minor its peer range claims (a range says what is allowed; this says what was run).
+  mesh-range:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: node scripts/check-mesh-range.mjs
+
   # The Desktop PORT (packages/port-desktop): a Rust crate. Its logic and the contract tests run without a display; the window feature is built too. Linux and Windows.
   desktop:
     runs-on: ${{ matrix.os }}
