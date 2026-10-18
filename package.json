@@ -19,6 +19,6 @@
   },
   "devDependencies": {
     "typescript": "^5.6.0",
-    "@valancex/mesh-conformance": "git+https://github.com/ValanceX/Mesh.git#2f358a99abf3f1835a8722bde298ff62f1fd49d4&path:/packages/mesh-conformance"
+    "@valancex/mesh-conformance": "git+https://github.com/ValanceX/Mesh.git#0328c504a4b62bbe36842e936748bbb32ab608f2&path:/packages/mesh-conformance"
   }
 }

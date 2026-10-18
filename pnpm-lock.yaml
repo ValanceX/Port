@@ -9,8 +9,8 @@ importers:
   .:
     devDependencies:
       '@valancex/mesh-conformance':
-        specifier: git+https://github.com/ValanceX/Mesh.git#2f358a99abf3f1835a8722bde298ff62f1fd49d4&path:/packages/mesh-conformance
-        version: https://codeload.github.com/ValanceX/Mesh/tar.gz/2f358a99abf3f1835a8722bde298ff62f1fd49d4#path:/packages/mesh-conformance
+        specifier: git+https://github.com/ValanceX/Mesh.git#0328c504a4b62bbe36842e936748bbb32ab608f2&path:/packages/mesh-conformance
+        version: https://codeload.github.com/ValanceX/Mesh/tar.gz/0328c504a4b62bbe36842e936748bbb32ab608f2#path:/packages/mesh-conformance
       typescript:
         specifier: ^5.6.0
         version: 5.9.3
@@ -456,9 +456,9 @@ packages:
     resolution: {integrity: sha512-+8k7ZTLqb3fmT0pQOfHiX8hxzGwU6anKsbdN7HY17NFarL9h44SpXPxtythRZp4ujm29gheC+Mh1BzBDv7CNxg==}
     engines: {node: '>=22'}
 
-  '@valancex/mesh-conformance@https://codeload.github.com/ValanceX/Mesh/tar.gz/2f358a99abf3f1835a8722bde298ff62f1fd49d4#path:/packages/mesh-conformance':
-    resolution: {path: /packages/mesh-conformance, tarball: https://codeload.github.com/ValanceX/Mesh/tar.gz/2f358a99abf3f1835a8722bde298ff62f1fd49d4}
-    version: 0.13.0
+  '@valancex/mesh-conformance@https://codeload.github.com/ValanceX/Mesh/tar.gz/0328c504a4b62bbe36842e936748bbb32ab608f2#path:/packages/mesh-conformance':
+    resolution: {path: /packages/mesh-conformance, tarball: https://codeload.github.com/ValanceX/Mesh/tar.gz/0328c504a4b62bbe36842e936748bbb32ab608f2}
+    version: 0.14.0
     engines: {node: '>=22'}
 
   '@valancex/mesh-runtime@0.6.0':
@@ -1174,7 +1174,7 @@ snapshots:
 
   '@valancex/mesh-compiler@0.6.0': {}
 
-  '@valancex/mesh-conformance@https://codeload.github.com/ValanceX/Mesh/tar.gz/2f358a99abf3f1835a8722bde298ff62f1fd49d4#path:/packages/mesh-conformance': {}
+  '@valancex/mesh-conformance@https://codeload.github.com/ValanceX/Mesh/tar.gz/0328c504a4b62bbe36842e936748bbb32ab608f2#path:/packages/mesh-conformance': {}
 
   '@valancex/mesh-runtime@0.6.0': {}
 

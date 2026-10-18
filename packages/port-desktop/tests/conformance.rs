@@ -14,6 +14,9 @@
 //!   the primitive's applicable event. The Desktop does not resolve on the tree: each egui widget reports its
 //!   own handler, and the vectors' components (`card`, `row`, `label`) and events (`press`, `select`,
 //!   `dismiss`) are not in its vocabulary. There is no function to run the cases against;
+//! - the program vectors with steps (`snippets`, `forwarder`, `passing`) are taken as trees, and their steps are held to the
+//!   same keyed-update law as the identity vectors (`program_steps_do_not_keep_identity_by_key`: four transitions fail,
+//!   listed exactly); `enums` is a tree it takes, and its `rejects` and `dispatches` cases are MESH's alone;
 //! - the `identity` vectors need a keyed update. `identity_is_not_kept_by_key` runs them where the Desktop
 //!   draws: each node with a handler becomes a button named by its key, two frames are drawn in one egui
 //!   context, and a kept identity must have the same accessibility node id. The ones that fail are listed in
@@ -204,5 +207,84 @@ fn identity_is_not_kept_by_key() {
     assert_eq!(
         failing, NOT_KEPT_BY_KEY,
         "the vectors in which a kept identity changed its accessibility node id"
+    );
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// The program vectors with steps (`snippets/`, `forwarder/`, `passing/`) and `enums/`: trees a renderer is given.
+
+/// The trees of a program directory: its snapshot's, then each step's.
+fn program_trees(dir: &str) -> Vec<Value> {
+    let mut trees = vec![json_of(&format!("{dir}/expected.tree.json"))];
+    let mut at = 1;
+    while vectors()
+        .join(format!("{dir}/step-{at}.expected.tree.json"))
+        .is_file()
+    {
+        trees.push(json_of(&format!("{dir}/step-{at}.expected.tree.json")));
+        at += 1;
+    }
+    trees
+}
+
+const PROGRAM_DIRS: [&str; 3] = ["snippets", "forwarder", "passing"];
+
+#[test]
+fn the_reader_and_the_port_take_every_tree_of_the_program_vectors() {
+    let mut trees: Vec<Value> = PROGRAM_DIRS
+        .iter()
+        .flat_map(|dir| program_trees(dir))
+        .collect();
+    trees.push(json_of("enums/expected.tree.json"));
+    // snippets: 4 (snapshot and 3 steps), forwarder: 3, passing: 3, and enums: 1.
+    assert_eq!(trees.len(), 4 + 3 + 3 + 1);
+
+    let mut port = Port::new();
+    for value in &trees {
+        let tree = tree_of(value);
+        port.draw(tree.clone()).unwrap();
+        port.update(tree.clone()).unwrap();
+        assert_eq!(port.tree(), Some(&tree));
+    }
+    assert_eq!(port.counts(), (trees.len(), trees.len()));
+}
+
+/// The step transitions of the program vectors in which a kept key changes its accessibility node id: asserted
+/// exactly, like [`NOT_KEPT_BY_KEY`]. `(directory, from step, to step)`.
+///
+/// These are reorders and removals in a repeat (`snippets` 0 to 1, `forwarder` 0 to 1 and 1 to 2, `passing` 0 to 1): a widget's
+/// egui id follows its position, so a row that moves is a new accessibility node, the Desktop's known difference from the identity
+/// law (the same reason as C5, C12 to C15 above). The ones that pass are the steps that only change values or add at the end.
+const STEPS_NOT_KEPT_BY_KEY: &[(&str, usize, usize)] = &[
+    ("snippets", 0, 1),
+    ("forwarder", 0, 1),
+    ("forwarder", 1, 2),
+    ("passing", 0, 1),
+];
+
+#[test]
+fn program_steps_do_not_keep_identity_by_key() {
+    let mut failing: Vec<(String, usize, usize)> = Vec::new();
+    for dir in PROGRAM_DIRS {
+        let trees = program_trees(dir);
+        for from in 0..trees.len() - 1 {
+            let drawn = frames(&[&trees[from], &trees[from + 1]]);
+            let (before, after) = (&drawn[0], &drawn[1]);
+            let moved = before
+                .iter()
+                .filter(|(label, id)| after.get(*label).is_some_and(|now| now != *id))
+                .count();
+            if moved > 0 {
+                failing.push((dir.to_string(), from, from + 1));
+            }
+        }
+    }
+    let expected: Vec<(String, usize, usize)> = STEPS_NOT_KEPT_BY_KEY
+        .iter()
+        .map(|(dir, from, to)| (dir.to_string(), *from, *to))
+        .collect();
+    assert_eq!(
+        failing, expected,
+        "the step transitions in which a kept key changed its accessibility node id"
     );
 }

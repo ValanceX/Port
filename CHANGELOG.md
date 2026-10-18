@@ -6,6 +6,7 @@ All notable changes to PORT are recorded here. The project follows [Semantic Ver
 
 ### Changed
 
+- **The program vectors of MESH 0.14 are run** (`enums/`, `snippets/`, `forwarder/`, `passing/`). The Web PORT draws every step's committed tree and updates between them (kept keys are the same DOM node, gone keys are disposed, the order is the tree's, handler identifiers are reported) and checks the key cases: 23 tests, all pass. The Desktop PORT takes every tree and is held to the same law: four step transitions (reorders and removals in a repeat) change a widget's accessibility node, listed exactly in `tests/conformance.rs`. `conformance.json` now supports 0.14.0; the git pin moves to the MESH commit that has the vectors. Not renderer vectors, and so not run: the `enums/` cases `rejects` (MESH refuses the snapshot, there is no tree) and `dispatches` (MESH resolves an intent).
 - **MESH's conformance vectors are consumed from `@valancex/mesh-conformance`, not copied.** `fixtures/mesh-conformance/` (a verbatim copy at MESH v0.6 that lacked the identity vectors) is deleted. `scripts/check-conformance.mjs` fails on a copy anywhere in the tree or an installed package older than `conformance.json`'s `supports`.
 
 ### Fixed
