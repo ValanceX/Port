@@ -186,7 +186,7 @@ fn an_unnamed_control_is_reported() {
 fn corrupted_updates_are_caught() {
     let mut u = drawn(&named());
     // dangle a child id
-    let (_, root) = u.nodes.iter_mut().next().unwrap();
+    let (_, root) = u.nodes.first_mut().unwrap();
     root.push_child(NodeId(999_999));
     let v = violations(&u);
     assert!(v.iter().any(|m| m.contains("missing")));
