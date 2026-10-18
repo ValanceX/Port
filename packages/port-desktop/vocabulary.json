@@ -213,6 +213,18 @@
       "commands": {},
       "scope": {}
     },
+    "status": {
+      "props": {},
+      "events": {},
+      "commands": {},
+      "scope": {}
+    },
+    "alert": {
+      "props": {},
+      "events": {},
+      "commands": {},
+      "scope": {}
+    },
     "label": {
       "props": {},
       "events": {},

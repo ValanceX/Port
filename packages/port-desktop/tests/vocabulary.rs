@@ -3,11 +3,11 @@ use port_desktop::vocabulary;
 use serde_json::Value;
 
 #[test]
-fn is_a_mesh_manifest_of_the_seventeen_components_a_newcomer_needs() {
+fn is_a_mesh_manifest_of_the_nineteen_components_a_newcomer_needs() {
     let manifest: Value = serde_json::from_str(vocabulary::JSON).expect("JSON");
 
     assert_eq!(manifest["version"], 1);
-    assert_eq!(vocabulary::components().len(), 17);
+    assert_eq!(vocabulary::components().len(), 19);
 
     for (name, each) in manifest["components"].as_object().unwrap() {
         for part in ["props", "events", "commands", "scope"] {

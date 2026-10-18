@@ -323,6 +323,32 @@ impl View {
                     });
                     marked(&self.described, ui, &response, props);
                 }
+                // A live region (decision A13): the text inside is the message. `status` is polite and `alert` assertive, both atomic, which is what `role=status` and `role=alert` imply in ARIA;
+                // egui sets neither role, so the PORT does. The region is a node even with nothing in it, because a region has to exist before its text changes to be announced.
+                "status" | "alert" => {
+                    let alert = component.as_str() == "alert";
+                    let id = ui.make_persistent_id((component.as_str(), key));
+
+                    ui.ctx().accesskit_node_builder(id, |builder| {
+                        builder.set_role(if alert {
+                            egui::accesskit::Role::Alert
+                        } else {
+                            egui::accesskit::Role::Status
+                        });
+                        builder.set_live(if alert {
+                            egui::accesskit::Live::Assertive
+                        } else {
+                            egui::accesskit::Live::Polite
+                        });
+                        builder.set_live_atomic();
+                    });
+
+                    let ctx = ui.ctx().clone();
+
+                    ctx.with_accessibility_parent(id, || {
+                        ui.vertical(|ui| self.each(ui, children, out));
+                    });
+                }
                 // One option: the engine owns the selection. Choosing an option that is not the selected one reports `select` with its `value`; the radio then shows whatever comes back.
                 "radio" => {
                     let checked = props
@@ -803,6 +829,8 @@ pub const REALIZED: &[&str] = &[
     "textfield",
     "radiogroup",
     "radio",
+    "status",
+    "alert",
     "label",
     "table",
     "tablehead",

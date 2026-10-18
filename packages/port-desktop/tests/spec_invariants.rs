@@ -250,3 +250,40 @@ fn a_list_markers_are_hidden_and_the_items_text_is_not() {
         assert_eq!(texts, ["One", "Two"]);
     }
 }
+
+/// A tree with the two live-region primitives (decision A13): `status` is polite, `alert` is assertive, both atomic, and the text drawn inside is the message.
+fn live() -> Tree {
+    serde_json::from_value(serde_json::json!({"format":"mesh-render","version":1,"root":{"type":"node","key":"c","component":"column","props":{},"events":{},"children":[
+      {"type":"node","key":"s","component":"status","props":{},"events":{},"children":[{"type":"text","key":"st","text":"Saved."}]},
+      {"type":"node","key":"a","component":"alert","props":{},"events":{},"children":[{"type":"text","key":"at","text":"Could not save."}]}]}})).unwrap()
+}
+
+/// Decision A13: egui never emits Status or Alert, so the PORT sets the role and the live setting the ARIA specification implies (`role=status`: polite, atomic; `role=alert`: assertive, atomic).
+#[test]
+fn status_and_alert_have_their_roles_and_their_live_settings() {
+    let u = drawn(&live());
+    let status = roles(&u, Role::Status);
+    let alert = roles(&u, Role::Alert);
+    assert_eq!((status.len(), alert.len()), (1, 1));
+    assert_eq!(status[0].live(), Some(accesskit::Live::Polite));
+    assert_eq!(alert[0].live(), Some(accesskit::Live::Assertive));
+    assert!(status[0].is_live_atomic() && alert[0].is_live_atomic());
+    // the text drawn inside is the message, and neither region has a name of its own (ARIA: author-only naming, not required)
+    assert!(!status[0].children().is_empty() && !alert[0].children().is_empty());
+    let v = violations(&u);
+    assert!(v.is_empty(), "{v:#?}");
+    let t = accesskit_consumer::Tree::new(u.clone(), true);
+    let _ = t.state().root().id();
+}
+
+/// The region exists before its text changes (the APG alert pattern): an empty `status` is still a Status node.
+#[test]
+fn an_empty_status_is_still_a_live_region() {
+    let tree: Tree = serde_json::from_value(serde_json::json!({"format":"mesh-render","version":1,"root":{"type":"node","key":"c","component":"column","props":{},"events":{},"children":[
+      {"type":"node","key":"s","component":"status","props":{},"events":{},"children":[]}]}})).unwrap();
+    let u = drawn(&tree);
+    let status = roles(&u, Role::Status);
+
+    assert_eq!(status.len(), 1);
+    assert_eq!(status[0].live(), Some(accesskit::Live::Polite));
+}
