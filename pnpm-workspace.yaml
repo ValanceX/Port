@@ -4,3 +4,5 @@ packages:
 allowBuilds:
   esbuild: true
   "@valancex/mesh-conformance": true
+  # Until @valancex/mesh-conformance is on npm (then this key goes with the git pin): pnpm 11 wants the git spec here, pnpm 10 rejects it, and CI runs pnpm 11.
+  "@valancex/mesh-conformance@https://codeload.github.com/ValanceX/Mesh/tar.gz/0328c504a4b62bbe36842e936748bbb32ab608f2#path:/packages/mesh-conformance": true
