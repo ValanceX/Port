@@ -3411,6 +3411,8 @@ checksum = "b6c140620e7ffbb22c2dee59cafe6084a59b5ffc27a8859a5f0d494b5d52b6be"
 name = "valancex-port-desktop"
 version = "0.3.1"
 dependencies = [
+ "accesskit",
+ "accesskit_consumer",
  "eframe",
  "egui",
  "egui_extras",

@@ -33,3 +33,8 @@ eframe = { version = "0.31", default-features = false, features = ["accesskit", 
 egui = { version = "0.31", optional = true }
 egui_extras = { version = "0.31", default-features = false, features = ["image", "file", "svg"], optional = true }
 image = { version = "0.25", default-features = false, features = ["png", "jpeg", "gif", "bmp", "webp"], optional = true }
+
+# The accessibility invariant checker (tests/spec_invariants.rs) reads the tree egui produces, so it uses the AccessKit versions egui 0.31 does.
+[dev-dependencies]
+accesskit = "0.17"
+accesskit_consumer = "0.26"

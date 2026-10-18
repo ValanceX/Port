@@ -134,18 +134,44 @@ impl View {
                         _ => 26.0,
                     };
 
-                    ui.horizontal_wrapped(|ui| {
-                        no_gap(ui);
-                        self.inline_children(ui, children, out, Style::heading(size));
+                    let level = match props.get("level").and_then(Value::as_u64) {
+                        Some(level @ 1..=6) => level as usize,
+                        _ => 1,
+                    };
+                    let id = ui.make_persistent_id(("heading", key));
+
+                    // egui draws a heading as labels and never emits the role (decision A11): the PORT sets Heading with its level, and its text, drawn inside it, is its name (the specification's name from content).
+                    ui.ctx().accesskit_node_builder(id, |builder| {
+                        builder.set_role(egui::accesskit::Role::Heading);
+                        builder.set_level(level);
+                    });
+
+                    let ctx = ui.ctx().clone();
+
+                    ctx.with_accessibility_parent(id, || {
+                        ui.horizontal_wrapped(|ui| {
+                            no_gap(ui);
+                            self.inline_children(ui, children, out, Style::heading(size));
+                        });
                     });
                 }
                 "text" => {
                     ui.label(node.text());
                 }
                 "paragraph" => {
-                    ui.horizontal_wrapped(|ui| {
-                        no_gap(ui);
-                        self.inline_children(ui, children, out, Style::default());
+                    let id = ui.make_persistent_id(("paragraph", key));
+
+                    ui.ctx().accesskit_node_builder(id, |builder| {
+                        builder.set_role(egui::accesskit::Role::Paragraph);
+                    });
+
+                    let ctx = ui.ctx().clone();
+
+                    ctx.with_accessibility_parent(id, || {
+                        ui.horizontal_wrapped(|ui| {
+                            no_gap(ui);
+                            self.inline_children(ui, children, out, Style::default());
+                        });
                     });
                 }
                 "blockquote" => {
@@ -182,28 +208,51 @@ impl View {
                         .get("ordered")
                         .and_then(Value::as_bool)
                         .unwrap_or(false);
+                    let size = children.len();
+                    let list_id = ui.make_persistent_id(("list", key));
 
-                    ui.vertical(|ui| {
-                        for (at, item) in children.iter().enumerate() {
-                            ui.horizontal_wrapped(|ui| {
-                                no_gap(ui);
-                                ui.label(if ordered {
-                                    format!("{}. ", at + 1)
-                                } else {
-                                    "\u{2022} ".to_owned()
+                    // The roles egui never emits (decision A11). Each item's nodes are children of the item's, and the items are children of the list's, as `with_accessibility_parent` makes them.
+                    ui.ctx().accesskit_node_builder(list_id, |builder| {
+                        builder.set_role(egui::accesskit::Role::List);
+                    });
+
+                    let ctx = ui.ctx().clone();
+
+                    ctx.with_accessibility_parent(list_id, || {
+                        ui.vertical(|ui| {
+                            for (at, item) in children.iter().enumerate() {
+                                let item_id = list_id.with(("item", at));
+
+                                ui.ctx().accesskit_node_builder(item_id, |builder| {
+                                    builder.set_role(egui::accesskit::Role::ListItem);
+                                    builder.set_position_in_set(at + 1);
+                                    builder.set_size_of_set(size);
                                 });
-                                match item {
-                                    Node::Node {
-                                        component,
-                                        children,
-                                        ..
-                                    } if component == "listitem" => {
-                                        self.inline_children(ui, children, out, Style::default())
-                                    }
-                                    other => self.inline(ui, other, out, Style::default()),
-                                }
-                            });
-                        }
+                                ctx.with_accessibility_parent(item_id, || {
+                                    ui.horizontal_wrapped(|ui| {
+                                        no_gap(ui);
+                                        ui.label(if ordered {
+                                            format!("{}. ", at + 1)
+                                        } else {
+                                            "\u{2022} ".to_owned()
+                                        });
+                                        match item {
+                                            Node::Node {
+                                                component,
+                                                children,
+                                                ..
+                                            } if component == "listitem" => self.inline_children(
+                                                ui,
+                                                children,
+                                                out,
+                                                Style::default(),
+                                            ),
+                                            other => self.inline(ui, other, out, Style::default()),
+                                        }
+                                    });
+                                });
+                            }
+                        });
                     });
                 }
                 "image" => {
