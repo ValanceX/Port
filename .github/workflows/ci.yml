@@ -44,6 +44,19 @@ jobs:
         working-directory: packages/port-desktop
     steps:
       - uses: actions/checkout@v4
+      # MESH's conformance vectors come from their package (decision Q2): tests/conformance.rs reads them from node_modules.
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install the conformance vectors
+        working-directory: .
+        run: pnpm install --frozen-lockfile
+      - name: No copy of the vectors, and the package is new enough
+        working-directory: .
+        run: node scripts/check-conformance.mjs
       - uses: actions/cache@v4
         with:
           path: |

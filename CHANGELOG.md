@@ -4,6 +4,15 @@ All notable changes to PORT are recorded here. The project follows [Semantic Ver
 
 ## [Unreleased]
 
+### Changed
+
+- **MESH's conformance vectors are consumed from `@valancex/mesh-conformance`, not copied.** `fixtures/mesh-conformance/` (a verbatim copy at MESH v0.6 that lacked the identity vectors) is deleted. `scripts/check-conformance.mjs` fails on a copy anywhere in the tree or an installed package older than `conformance.json`'s `supports`.
+
+### Added
+
+- The Web PORT runs MESH's 22 node-identity vectors (C1 to C22) in `identity-conformance.test.ts`: all pass.
+- The Desktop PORT reads the vectors where it can (`tests/conformance.rs`): every tree is accepted, the text-run case is readable, and the identity vectors run against a keyed update that the Desktop does not have yet: 14 of 19 change a kept identity's accessibility node (egui's widget ids follow position). Listed exactly in the test.
+
 ### Fixed
 
 - `valancex-port-desktop`: the accessibility tree now says what a heading, a paragraph and a list are. egui draws these as labels and never emits their roles, so a screen reader was told "label" for a `heading` (with no level) and nothing for `list` and `listitem`. The PORT now sets `Heading` with its `level` (its text, drawn inside it, is its name), `Paragraph`, `List` and `ListItem` (with its position in the list and the list's size), and the items are children of the list. `blockquote` is unchanged: it is not in the version-1 role set. Pinned by `tests/spec_invariants.rs`, a checker of the update against AccessKit's invariants and the role and name rules (decision A11).

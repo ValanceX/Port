@@ -12,6 +12,7 @@ import { realizeHtml } from "../src/server.js";
 
 import { domNodes, handler, node, reports, text, tree } from "./support.js";
 import { codeOf, drawn, hydrated, parse, propertySlots, realized } from "./ssr-support.js";
+import { vectors } from "./vectors.js";
 
 const primitives: WebPrimitives = {
   page: { element: "section", props: { title: attribute("aria-label") } },
@@ -309,9 +310,8 @@ describe("hydrate: events", () => {
     expect(ssr.calls).toEqual([[handler(9)]]);
   });
 
-  // MESH v0.6's event vectors, on hydrated DOM: the same resolution as on drawn DOM.
+  // MESH's event vectors, on hydrated DOM: the same resolution as on drawn DOM.
   describe("MESH conformance events, on hydrated DOM", () => {
-    const vectors = new URL("../../../fixtures/mesh-conformance/", import.meta.url);
     const events = JSON.parse(readFileSync(new URL("events/expected.tree.json", vectors), "utf8")) as RenderTree;
     const manifest = JSON.parse(readFileSync(new URL("components.json", vectors), "utf8")) as { components: Record<string, { events: Record<string, unknown> }> };
     const cases = JSON.parse(readFileSync(new URL("events/cases.json", vectors), "utf8")) as ReadonlyArray<{ readonly case: string; readonly interaction: { readonly target: string; readonly applicable: Readonly<Record<string, string>> }; readonly expect: { readonly none: true } | { readonly handler: string } }>;

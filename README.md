@@ -52,6 +52,13 @@ There is deliberately **no shared `@valancex/port` package** (a second PORT now 
 | Report interactions as handler identifiers and payloads | Decide what an interaction means, or see commands (NEXUS) |
 | Decide what each of the application's primitives becomes on its target | Decide how to handle missing device capabilities (NEXUS) |
 
+## MESH's conformance vectors
+
+Both PORTs are checked against MESH's conformance vectors (values, events, and node identity C1 to C22), which come from the data-only package [`@valancex/mesh-conformance`](https://github.com/ValanceX/Mesh/tree/main/packages/mesh-conformance) and are **never copied** into this repository. The Web PORT runs all of them (`packages/port-web/test/conformance.test.ts`, `identity-conformance.test.ts`); the Desktop PORT reads them where it can answer, and says in `packages/port-desktop/tests/conformance.rs` where it cannot.
+
+- `scripts/check-conformance.mjs` fails if a copy of the vectors exists anywhere in the tree, or if the installed package is older than the version in `conformance.json`. `pnpm test` runs it (`packages/port-web/test/vectors.test.ts`, which also shows it failing on a planted copy), and the Desktop CI job runs it.
+- **Until the package is published,** the root `package.json` depends on it as a git dependency pinned to a MESH commit (`git+https://github.com/ValanceX/Mesh.git#<commit>&path:/packages/mesh-conformance`); pnpm packs the subdirectory (running its `prepack`, allowed in `pnpm-workspace.yaml`). **When it is published,** change that line to `"@valancex/mesh-conformance": "^0.13.0"` (or the version then current), delete the `allowBuilds` entry for it, and run `pnpm install`. Moving to a newer MESH meanwhile is a new commit in the same line, and a new `supports` in `conformance.json`.
+
 ## Status
 
 The two npm packages share one version and are released together (one `v*` tag); the Desktop PORT crate has its own tag (`desktop-v*`). Newest first; the [changelog](./CHANGELOG.md) and the [release notes](./docs/releases) have the detail.

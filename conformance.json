@@ -1,0 +1,5 @@
+{
+  "package": "@valancex/mesh-conformance",
+  "supports": "0.13.0",
+  "note": "The oldest version of MESH's conformance vectors this repository's tests are written for (0.13.0 has the identity vectors, C1 to C22). scripts/check-conformance.mjs fails if the installed package is older, or if a copy of the vectors exists anywhere in this tree."
+}
