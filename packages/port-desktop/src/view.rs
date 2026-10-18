@@ -306,6 +306,32 @@ impl View {
                         report(events, "click", None, out);
                     }
                 }
+                // A button that stays pressed (`pressed` is the application's, and a click reports the value it is going to have). Its role is Button and its pressed state is the tree's toggled state;
+                // its name is its `label`, else the text drawn in it.
+                "toggle" => {
+                    let enabled = !props
+                        .get("disabled")
+                        .and_then(Value::as_bool)
+                        .unwrap_or(false);
+                    let pressed = props
+                        .get("pressed")
+                        .and_then(Value::as_bool)
+                        .unwrap_or(false);
+                    let text = node.text();
+                    let name = props
+                        .get("label")
+                        .and_then(Value::as_str)
+                        .map_or_else(|| text.clone(), str::to_owned);
+                    let response = ui.add_enabled(enabled, Button::new(text).selected(pressed));
+
+                    response.widget_info(move || {
+                        WidgetInfo::selected(WidgetType::Button, enabled, pressed, &name)
+                    });
+
+                    if response.clicked() {
+                        report(events, "change", Some(Value::Bool(!pressed)), out);
+                    }
+                }
                 // A group of radios: the options in a column, the group named for assistive technology by its `label`. It has no events; its radios raise them.
                 "radiogroup" => {
                     let response = ui.vertical(|ui| self.each(ui, children, out)).response;
@@ -825,6 +851,7 @@ pub const REALIZED: &[&str] = &[
     "heading",
     "text",
     "button",
+    "toggle",
     "checkbox",
     "textfield",
     "radiogroup",

@@ -287,3 +287,28 @@ fn an_empty_status_is_still_a_live_region() {
     assert_eq!(status.len(), 1);
     assert_eq!(status[0].live(), Some(accesskit::Live::Polite));
 }
+
+/// The `toggle` primitive: a button that stays pressed. Its role is Button, and its pressed state is the accessibility tree's toggled state (the ARIA `aria-pressed`); its name is its label, else its text.
+#[test]
+fn toggle_is_a_button_with_a_pressed_state_and_a_name() {
+    let tree: Tree = serde_json::from_value(serde_json::json!({"format":"mesh-render","version":1,"root":{"type":"node","key":"c","component":"column","props":{},"events":{},"children":[
+      {"type":"node","key":"on","component":"toggle","props":{"pressed":true,"label":"Bold"},"events":{"change":"h1"},"children":[{"type":"text","key":"t1","text":"B"}]},
+      {"type":"node","key":"off","component":"toggle","props":{"pressed":false},"events":{"change":"h2"},"children":[{"type":"text","key":"t2","text":"Italic"}]}]}})).unwrap();
+    let u = drawn(&tree);
+    let buttons = roles(&u, Role::Button);
+
+    assert_eq!(buttons.len(), 2);
+    assert_eq!(buttons[0].toggled(), Some(accesskit::Toggled::True));
+    assert_eq!(buttons[1].toggled(), Some(accesskit::Toggled::False));
+    // a label wins, otherwise the text drawn inside names it
+    assert_eq!(buttons[0].label(), Some("Bold"));
+    assert!(
+        buttons[1]
+            .label()
+            .is_some_and(|name| name.contains("Italic")),
+        "{:?}",
+        buttons[1].label()
+    );
+    let v = violations(&u);
+    assert!(v.is_empty(), "{v:#?}");
+}

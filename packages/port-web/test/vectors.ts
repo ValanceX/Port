@@ -8,7 +8,8 @@ import { dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
 
 const require = createRequire(import.meta.url);
-const packageJson = require.resolve("@valancex/mesh-conformance/package.json");
+// MESH_CONFORMANCE names a directory with another version of the package (scripts/check-mesh-range.mjs), to run the suite against the vectors that version had.
+const packageJson = process.env.MESH_CONFORMANCE === undefined ? require.resolve("@valancex/mesh-conformance/package.json") : join(process.env.MESH_CONFORMANCE, "package.json");
 
 /** The directory of the vectors: `values/`, `events/`, `identity/`, `components.json`. */
 export const vectors = pathToFileURL(join(dirname(packageJson), "conformance") + "/");
