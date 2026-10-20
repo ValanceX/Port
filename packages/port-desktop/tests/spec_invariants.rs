@@ -298,17 +298,18 @@ fn toggle_is_a_button_with_a_pressed_state_and_a_name() {
     let buttons = roles(&u, Role::Button);
 
     assert_eq!(buttons.len(), 2);
-    assert_eq!(buttons[0].toggled(), Some(accesskit::Toggled::True));
-    assert_eq!(buttons[1].toggled(), Some(accesskit::Toggled::False));
-    // a label wins, otherwise the text drawn inside names it
-    assert_eq!(buttons[0].label(), Some("Bold"));
-    assert!(
-        buttons[1]
-            .label()
-            .is_some_and(|name| name.contains("Italic")),
-        "{:?}",
-        buttons[1].label()
-    );
+    // (found by name: the order of the tree's nodes is the toolkit's ids', which a layout change may reorder)
+    let bold = buttons
+        .iter()
+        .find(|node| node.label() == Some("Bold"))
+        .expect("a label wins");
+    let italic = buttons
+        .iter()
+        .find(|node| node.label().is_some_and(|name| name.contains("Italic")))
+        .expect("otherwise the text drawn inside names it");
+
+    assert_eq!(bold.toggled(), Some(accesskit::Toggled::True));
+    assert_eq!(italic.toggled(), Some(accesskit::Toggled::False));
     let v = violations(&u);
     assert!(v.is_empty(), "{v:#?}");
 }

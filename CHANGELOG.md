@@ -4,6 +4,11 @@ All notable changes to PORT are recorded here. The project follows [Semantic Ver
 
 ## [Unreleased]
 
+### Added
+
+- **A theme for the window.** The host protocol's `appearance` message takes an optional `theme`: resolved values (colors, lengths in points) for the seven primitives of the portable core, by mode, sent once and kept (additive: protocol 1, no new number). The window applies a recipe's fill, text color, border, radius, padding, gap, least size and type size, a `button`'s `intent` and `size`, the `invalid` state and the viewport class, in the toolkit's light or dark mode; what it cannot apply (elevation, opacity, outline, hover, press and focus styles) is not sent. A theme it cannot read is reported on stderr and the window keeps its own look. `valancex-port-desktop`: `theme` module, `Session::theme`, `View::set_theme`; tests `theme.rs` (the wire contract, with the default theme as a fixture) and `themed.rs` (the toolkit's shapes and layout read back).
+- `@valancex/port-desktop-vocabulary`: `button` takes `intent` (`neutral`, `primary`, `danger`) and `size` (`sm`, `md`, `lg`), both optional. Without a theme they change nothing.
+
 ## [0.10.0] - 2026-10-18 (prepared, not yet released; the crate is 0.4.0, tag `desktop-v0.4.0`)
 
 A minor release of the two npm packages that share one version, and of the Desktop PORT crate. **`@valancex/port-desktop-vocabulary` grows to twenty components**, additively: nothing an application wrote before changes. **`@valancex/port-web`'s peer range now admits MESH 0.13 and 0.14.** See the [v0.10 release notes](./docs/releases/v0.10.md).

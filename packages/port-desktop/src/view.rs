@@ -2,10 +2,12 @@
 //! marker with its children, never dropped (an unknown component is the composer's to notice).
 use crate::field::Field;
 use crate::port::Report;
+use crate::theme::{self, Border, Theme};
 use crate::tree::Node;
 use egui::{Button, Response, RichText, TextEdit, Ui, WidgetInfo, WidgetType};
 use serde_json::Value;
 use std::collections::{BTreeMap, HashMap};
+use std::sync::Arc;
 
 /// What the person did in a frame.
 #[derive(Debug, Clone, PartialEq)]
@@ -99,9 +101,43 @@ pub struct View {
     described: HashMap<String, String>,
     /// The caption of the `label` being drawn: the one control inside it takes it as its visible text and its accessible name.
     caption: Option<String>,
+    /// The theme the engine gave the window, resolved: what each primitive of the portable core looks like. Absent: the toolkit's own look.
+    theme: Option<Arc<Theme>>,
 }
 
 impl View {
+    /// The theme the engine gave the window (or none).
+    pub fn set_theme(&mut self, theme: Option<Arc<Theme>>) {
+        self.theme = theme;
+    }
+
+    /// What the theme says of a primitive in the window as it is now: its mode is the toolkit's (light or dark) and its viewport is the window's width. Nothing when there is no theme.
+    fn themed(
+        &self,
+        ui: &Ui,
+        primitive: &str,
+        props: &BTreeMap<String, Value>,
+        states: &[&str],
+    ) -> theme::Style {
+        let Some(theme) = &self.theme else {
+            return theme::Style::default();
+        };
+        let mode = if ui.visuals().dark_mode {
+            "dark"
+        } else {
+            "light"
+        };
+        let given = |name: &str| props.get(name).and_then(Value::as_str).map(str::to_owned);
+
+        theme.style(
+            mode,
+            primitive,
+            &given,
+            states,
+            ui.ctx().screen_rect().width(),
+        )
+    }
+
     pub fn show(&mut self, ui: &mut Ui, node: &Node, out: &mut Vec<Output>) {
         self.described.clear();
         gather(node, &mut self.described);
@@ -122,17 +158,34 @@ impl View {
                 children,
             } => match component.as_str() {
                 "column" => {
-                    ui.vertical(|ui| self.each(ui, children, out));
+                    let gap = self.themed(ui, "column", props, &[]).gap;
+
+                    ui.scope(|ui| {
+                        if let Some(gap) = gap {
+                            ui.spacing_mut().item_spacing.y = gap;
+                        }
+                        ui.vertical(|ui| self.each(ui, children, out));
+                    });
                 }
                 "row" => {
-                    ui.horizontal_wrapped(|ui| self.each(ui, children, out));
+                    let gap = self.themed(ui, "row", props, &[]).gap;
+
+                    ui.scope(|ui| {
+                        if let Some(gap) = gap {
+                            ui.spacing_mut().item_spacing = egui::vec2(gap, gap);
+                        }
+                        ui.horizontal_wrapped(|ui| self.each(ui, children, out));
+                    });
                 }
                 "heading" => {
-                    let size = match props.get("level").and_then(Value::as_u64) {
-                        Some(2) => 20.0,
-                        Some(3) => 17.0,
-                        _ => 26.0,
-                    };
+                    let themed = self.themed(ui, "heading", props, &[]);
+                    let size = themed.font_size.unwrap_or(
+                        match props.get("level").and_then(Value::as_u64) {
+                            Some(2) => 20.0,
+                            Some(3) => 17.0,
+                            _ => 26.0,
+                        },
+                    );
 
                     let level = match props.get("level").and_then(Value::as_u64) {
                         Some(level @ 1..=6) => level as usize,
@@ -151,12 +204,23 @@ impl View {
                     ctx.with_accessibility_parent(id, || {
                         ui.horizontal_wrapped(|ui| {
                             no_gap(ui);
-                            self.inline_children(ui, children, out, Style::heading(size));
+                            self.inline_children(
+                                ui,
+                                children,
+                                out,
+                                Style::heading(size).themed(&themed),
+                            );
                         });
                     });
                 }
                 "text" => {
-                    ui.label(node.text());
+                    let themed = self.themed(ui, "text", props, &[]);
+
+                    ui.label(
+                        Style::default()
+                            .themed(&themed)
+                            .apply(RichText::new(node.text())),
+                    );
                 }
                 "paragraph" => {
                     let id = ui.make_persistent_id(("paragraph", key));
@@ -298,7 +362,16 @@ impl View {
                         .and_then(Value::as_bool)
                         .unwrap_or(false);
 
-                    let response = ui.add_enabled(enabled, Button::new(node.text()));
+                    let themed = self.themed(
+                        ui,
+                        "button",
+                        props,
+                        if enabled { &[] } else { &["disabled"] },
+                    );
+                    let label = Style::default()
+                        .themed(&themed)
+                        .apply(RichText::new(node.text()));
+                    let response = themed_button(ui, enabled, Button::new(label), &themed);
 
                     named(&response, WidgetType::Button, props, enabled, None, None);
 
@@ -455,7 +528,16 @@ impl View {
 
                     // The engine owns the value: the new value is reported, and the box shows what comes back. A value, not a flip: the same report twice is the same state.
                     let caption = self.caption.take();
-                    let response = ui.checkbox(&mut checked, caption.as_deref().unwrap_or(""));
+                    let themed = self.themed(ui, "checkbox", props, &[]);
+                    let response = ui
+                        .scope(|ui| {
+                            // the box is as large as the theme says (its minimum size)
+                            if let Some(size) = themed.min_size {
+                                ui.spacing_mut().icon_width = size;
+                            }
+                            ui.checkbox(&mut checked, caption.as_deref().unwrap_or(""))
+                        })
+                        .inner;
 
                     named(
                         &response,
@@ -473,6 +555,13 @@ impl View {
                 }
                 "textfield" => {
                     let shown = props.get("value").and_then(Value::as_str).unwrap_or("");
+                    let invalid = props.get("invalid").and_then(Value::as_bool) == Some(true);
+                    let themed = self.themed(
+                        ui,
+                        "textfield",
+                        props,
+                        if invalid { &["invalid"] } else { &[] },
+                    );
                     let hint = props
                         .get("placeholder")
                         .and_then(Value::as_str)
@@ -493,11 +582,13 @@ impl View {
 
                     // `kind="password"` masks what is shown; every other kind is plain text here.
                     let masked = props.get("kind").and_then(Value::as_str) == Some("password");
-                    let response = ui.add(
+                    let response = themed_field(
+                        ui,
                         TextEdit::singleline(&mut field.buffer)
                             .hint_text(hint)
                             .password(masked)
                             .desired_width(240.0),
+                        &themed,
                     );
 
                     named(
@@ -784,6 +875,12 @@ struct Style {
     strong: bool,
     italic: bool,
     size: Option<f32>,
+    color: Option<egui::Color32>,
+}
+
+/// A hex color of the theme as the toolkit's.
+fn paint(text: &str) -> Option<egui::Color32> {
+    theme::color(text).map(|[r, g, b, a]| egui::Color32::from_rgba_unmultiplied(r, g, b, a))
 }
 
 impl Style {
@@ -795,7 +892,25 @@ impl Style {
         }
     }
 
+    /// This style with what the theme says of the primitive laid over it: its size, its color and whether its weight is a strong one.
+    fn themed(mut self, themed: &theme::Style) -> Style {
+        if let Some(size) = themed.font_size {
+            self.size = Some(size);
+        }
+        if let Some(weight) = themed.font_weight {
+            self.strong = weight >= 600;
+        }
+        if let Some(color) = themed.text.as_deref().and_then(paint) {
+            self.color = Some(color);
+        }
+
+        self
+    }
+
     fn apply(self, mut text: RichText) -> RichText {
+        if let Some(color) = self.color {
+            text = text.color(color);
+        }
         if self.strong {
             text = text.strong();
         }
@@ -807,6 +922,96 @@ impl Style {
         }
         text
     }
+}
+
+/// A button drawn as the theme says: its fill, its text (already in the label), its border, its radius, its padding and its least size. What the theme does not say stays the toolkit's.
+fn themed_button(
+    ui: &mut Ui,
+    enabled: bool,
+    mut button: Button,
+    themed: &theme::Style,
+) -> Response {
+    if let Some(fill) = themed.background.as_deref().and_then(paint) {
+        button = button.fill(fill);
+    }
+    match &themed.border {
+        Some(Border::Stroke { width, color }) => {
+            if let Some(color) = paint(color) {
+                button = button.stroke(egui::Stroke::new(*width, color));
+            }
+        }
+        Some(Border::Keyword(_)) => button = button.stroke(egui::Stroke::NONE),
+        None => {}
+    }
+    if let Some(radius) = themed.radius {
+        button = button.corner_radius(radius);
+    }
+    if let Some(size) = themed.min_size {
+        button = button.min_size(egui::vec2(size, size));
+    }
+
+    ui.scope(|ui| {
+        if let Some([top, right, bottom, left]) = themed.padding {
+            ui.spacing_mut().button_padding =
+                egui::vec2((left + right) / 2.0, (top + bottom) / 2.0);
+        }
+        ui.add_enabled(enabled, button)
+    })
+    .inner
+}
+
+/// A text field drawn as the theme says: its fill, its text, its border (the toolkit draws it from the widget visuals, so they are set for the field only), its radius, its padding and its least size.
+fn themed_field(ui: &mut Ui, mut field: TextEdit, themed: &theme::Style) -> Response {
+    if let Some(fill) = themed.background.as_deref().and_then(paint) {
+        field = field.background_color(fill);
+    }
+    if let Some(color) = themed.text.as_deref().and_then(paint) {
+        field = field.text_color(color);
+    }
+    if let Some(size) = themed.font_size {
+        field = field.font(egui::FontId::proportional(size));
+    }
+    if let Some([top, right, bottom, left]) = themed.padding {
+        field = field.margin(egui::Margin {
+            left: left.round() as i8,
+            right: right.round() as i8,
+            top: top.round() as i8,
+            bottom: bottom.round() as i8,
+        });
+    }
+    if let Some(size) = themed.min_size {
+        field = field.min_size(egui::vec2(0.0, size));
+    }
+
+    ui.scope(|ui| {
+        let stroke = match &themed.border {
+            Some(Border::Stroke { width, color }) => {
+                paint(color).map(|color| egui::Stroke::new(*width, color))
+            }
+            Some(Border::Keyword(_)) => Some(egui::Stroke::NONE),
+            None => None,
+        };
+        let radius = themed
+            .radius
+            .map(|radius| egui::CornerRadius::same(radius.round().clamp(0.0, 255.0) as u8));
+        let widgets = &mut ui.visuals_mut().widgets;
+
+        for state in [
+            &mut widgets.inactive,
+            &mut widgets.hovered,
+            &mut widgets.active,
+        ] {
+            if let Some(stroke) = stroke {
+                state.bg_stroke = stroke;
+            }
+            if let Some(radius) = radius {
+                state.corner_radius = radius;
+            }
+        }
+
+        ui.add(field)
+    })
+    .inner
 }
 
 /// Runs of text sit against each other: the text carries its own spaces.

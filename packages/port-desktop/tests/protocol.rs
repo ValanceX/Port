@@ -8,7 +8,8 @@ fn the_engine_asks_for_an_appearance_and_the_session_keeps_it() {
     assert_eq!(
         message,
         FromEngine::Appearance {
-            appearance: "dark".into()
+            appearance: "dark".into(),
+            theme: None
         }
     );
 

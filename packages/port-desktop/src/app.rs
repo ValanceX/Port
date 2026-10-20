@@ -77,7 +77,14 @@ impl eframe::App for App {
         while let Ok(message) = self.engine.messages.try_recv() {
             let replaced = matches!(message, crate::host::FromEngine::Draw { .. });
 
-            match self.session.apply(message) {
+            let applied = self.session.apply(message);
+
+            // A theme the window cannot read is not the window's to mend: it keeps its own look, and says so where the person who wrote the theme looks.
+            if let Some(problem) = self.session.theme_problem.take() {
+                eprintln!("the theme could not be read: {problem}");
+            }
+
+            match applied {
                 Applied::Changed => {
                     if replaced {
                         self.view.reset();
@@ -153,6 +160,7 @@ impl eframe::App for App {
                 if let Some(problem) = &self.problem {
                     ui.colored_label(egui::Color32::LIGHT_RED, problem);
                 } else if let Some(tree) = self.session.port.tree() {
+                    self.view.set_theme(self.session.theme.clone());
                     self.view.show(ui, &tree.root, &mut reports);
                 } else {
                     ui.label("Starting…");

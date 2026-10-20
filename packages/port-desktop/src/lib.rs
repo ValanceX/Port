@@ -7,6 +7,7 @@ pub mod field;
 pub mod host;
 pub mod port;
 pub mod reload;
+pub mod theme;
 pub mod tree;
 pub mod vocabulary;
 
