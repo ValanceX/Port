@@ -3,3 +3,6 @@ packages:
   - "integration"
 allowBuilds:
   esbuild: true
+# Our own packages are exempt from the minimum release age: a release of ours is consumed by our other repos the day it is published.
+minimumReleaseAgeExclude:
+  - "@valancex/*"

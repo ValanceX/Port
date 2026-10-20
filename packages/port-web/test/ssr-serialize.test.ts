@@ -13,6 +13,7 @@ import { realizeHtml } from "../src/server.js";
 
 import { dom, handler, node, readJson, slicePrimitives, sliceProgram, text, tree, treeOf } from "./support.js";
 import { SERVER_ONLY, codeOf, expectParity, hydrated, parse, realized } from "./ssr-support.js";
+import { vectors as conformance } from "./vectors.js";
 
 const primitives: WebPrimitives = {
   page: { element: "section", props: { title: attribute("aria-label") } },
@@ -176,11 +177,11 @@ describe("serialization: determinism", () => {
   });
 });
 
-// MESH v0.6's value vectors through the server: each case's node, reduced
+// MESH's value vectors through the server: each case's node, reduced
 // to the case's prop, realized in a text attribute, gives the same result
 // by SSR + hydrate as by a client draw, or the same refusal on both sides.
 describe("serialization: MESH conformance values", () => {
-  const vectors = new URL("../../../fixtures/mesh-conformance/values/", import.meta.url);
+  const vectors = new URL("values/", conformance);
   const values = JSON.parse(readFileSync(new URL("expected.tree.json", vectors), "utf8")) as RenderTree;
   const cases = JSON.parse(readFileSync(new URL("cases.json", vectors), "utf8")) as ReadonlyArray<{ readonly case: string; readonly node?: string; readonly prop?: string; readonly textRun?: string; readonly states?: ReadonlyArray<{ readonly node: string }> }>;
   const nodes = (part: RenderNode): ReadonlyArray<RenderNode> => [part, ...part.children.flatMap((child) => child.type === "node" ? nodes(child) : [])];

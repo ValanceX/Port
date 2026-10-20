@@ -35,7 +35,7 @@ That's the whole [PORT contract](./docs/CONTRACT.md). What each public surface p
 
 | Package | What it is |
 |---|---|
-| [`valancex-port-desktop`](./packages/port-desktop) | The Desktop PORT (0.3.0 released, 0.3.1 prepared; its own tag): render-v1 → a native window, built and tested on Linux and Windows, with a vocabulary of its own (seventeen components: layout, text, a button, a checkbox, a text field, a choice group, a caption, a static table). Rust, because a native window is Rust's to draw. See the [architecture note](./docs/architecture/2026-10-14-port-desktop.md). |
+| [`valancex-port-desktop`](./packages/port-desktop) | The Desktop PORT (0.3.1 released, 0.4.0 prepared; its own tag): render-v1 → a native window, built and tested on Linux and Windows, with a vocabulary of its own (seventeen components: layout, text, a button, a checkbox, a text field, a choice group, a caption, a static table). Rust, because a native window is Rust's to draw. See the [architecture note](./docs/architecture/2026-10-14-port-desktop.md). |
 | [`@valancex/port-desktop-vocabulary`](./packages/port-desktop-vocabulary) | The Desktop PORT's vocabulary as data (`vocabulary.json`, `content.json`), for the tools that check a template against it. Versioned with `@valancex/port-web`. |
 | [`@valancex/port-web`](./packages/port-web) | The Web PORT: render-v1 → DOM, in-place updates by key, events → reports, and hydration of server HTML. Its `@valancex/port-web/server` entry realizes render-v1 as HTML with no DOM. TypeScript, because the DOM is JavaScript-native. |
 
@@ -52,9 +52,18 @@ There is deliberately **no shared `@valancex/port` package** (a second PORT now 
 | Report interactions as handler identifiers and payloads | Decide what an interaction means, or see commands (NEXUS) |
 | Decide what each of the application's primitives becomes on its target | Decide how to handle missing device capabilities (NEXUS) |
 
+## MESH's conformance vectors
+
+Both PORTs are checked against MESH's conformance vectors (values, events, node identity C1 to C22, and the program vectors with steps `snippets/`, `forwarder/` and `passing/`, and `enums/`), which come from the data-only package [`@valancex/mesh-conformance`](https://github.com/ValanceX/Mesh/tree/main/packages/mesh-conformance) and are **never copied** into this repository. The Web PORT runs all of them (`packages/port-web/test/conformance.test.ts`, `identity-conformance.test.ts`, `program-vectors.test.ts`: the committed trees of every step, drawn and updated, with keys kept, disposed and created as the cases say; the `enums/` cases `rejects` and `dispatches` are MESH's alone: no tree, no intent for a renderer); the Desktop PORT reads them where it can answer, and says in `packages/port-desktop/tests/conformance.rs` where it cannot (the program vectors' reorders and removals move a widget's accessibility node, four transitions listed exactly).
+
+- `scripts/check-conformance.mjs` fails if a copy of the vectors exists anywhere in the tree, or if the installed package is older than the version in `conformance.json`. `pnpm test` runs it (`packages/port-web/test/vectors.test.ts`, which also shows it failing on a planted copy), and the Desktop CI job runs it.
+- **The package is a development dependency of the workspace** (`"@valancex/mesh-conformance": "^0.14.0"`), from the registry. Moving to a newer MESH is a new range in the root `package.json` and a new `supports` in `conformance.json`. (Before MESH 0.14.0 was published it was a git dependency pinned to a MESH commit.)
+
 ## Status
 
 The two npm packages share one version and are released together (one `v*` tag); the Desktop PORT crate has its own tag (`desktop-v*`). Newest first; the [changelog](./CHANGELOG.md) and the [release notes](./docs/releases) have the detail.
+
+**v0.10.0 (prepared 2026-10-18; crate 0.4.0 prepared):** the Desktop PORT's vocabulary grows by `status` and `alert` (the live regions) and `toggle` (a button that stays pressed); `@valancex/port-web`'s peer range admits MESH 0.13 and 0.14, each line run (`scripts/check-mesh-range.mjs`). See the [release notes](./docs/releases/v0.10.md).
 
 **v0.9.0 (released 2026-10-17; crate 0.3.0 released the same day, 0.3.1 prepared: a table's cells no longer wrap their text):** a static table in the Desktop PORT's vocabulary (`table`, `tablehead`, `tablebody`, `tablerow`, `columnheader`, `rowheader`, `cell`), drawn as one grid with the table, rows and cells in the accessibility tree. `@valancex/port-web` is unchanged. See the [release notes](./docs/releases/v0.9.md).
 
@@ -72,7 +81,7 @@ The two npm packages share one version and are released together (one `v*` tag);
 
 The two semantic questions PORT handed MESH ([handoff](./docs/architecture/2026-09-27-mesh-semantic-handoff.md)) are settled by MESH v0.6: prop text and realization (spec §9.7.7, §9.8.7; the Web PORT's [value realization](./docs/architecture/2026-09-28-web-value-realization.md)) and event resolution (spec §9.9). The Web PORT also renders on a server, for a first, deliberately narrow subset: `@valancex/port-web/server` realizes a tree as HTML with no DOM, and the Web PORT's own `hydrate` takes it over in the browser, verified in full before anything is adopted. Neither is a PORT contract operation ([design](./docs/superpowers/specs/2026-09-28-port-web-ssr.md)).
 
-Not yet: styling (PORT adds no style mechanism: an application's styles are its own, and VALANCE scopes CSS to components for the web), a grid (a table of controls), macOS in the Desktop PORT's CI, and any mobile or canvas PORT. See the [roadmap](./docs/ROADMAP.md).
+Not yet: styling (PORT adds no style mechanism: an application's styles are its own, loaded per target by VALANCE as plain stylesheets; see Valance's [style contract](https://github.com/ValanceX/Valance/blob/main/docs/direction/bets/style-contract.md)), a grid (a table of controls), macOS in the Desktop PORT's CI, and any mobile or canvas PORT. See the [roadmap](./docs/ROADMAP.md).
 
 ```console
 $ pnpm install

@@ -61,6 +61,37 @@
       "commands": {},
       "scope": {}
     },
+    "toggle": {
+      "props": {
+        "pressed": {
+          "type": {
+            "kind": "boolean"
+          },
+          "required": true
+        },
+        "label": {
+          "type": {
+            "kind": "string"
+          },
+          "required": false
+        },
+        "disabled": {
+          "type": {
+            "kind": "boolean"
+          },
+          "required": false
+        }
+      },
+      "events": {
+        "change": {
+          "payload": {
+            "kind": "boolean"
+          }
+        }
+      },
+      "commands": {},
+      "scope": {}
+    },
     "checkbox": {
       "props": {
         "checked": {
@@ -210,6 +241,18 @@
           }
         }
       },
+      "commands": {},
+      "scope": {}
+    },
+    "status": {
+      "props": {},
+      "events": {},
+      "commands": {},
+      "scope": {}
+    },
+    "alert": {
+      "props": {},
+      "events": {},
       "commands": {},
       "scope": {}
     },

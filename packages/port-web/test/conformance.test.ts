@@ -1,5 +1,6 @@
-// MESH v0.6's conformance vectors (fixtures/mesh-conformance, a verbatim
-// copy of MESH's examples/conformance), through the Web PORT and a real DOM.
+// MESH's conformance vectors (the `@valancex/mesh-conformance` package: values
+// and events here, identity in identity-conformance.test.ts), through the Web
+// PORT and a real DOM.
 // Each program is compiled and rendered with the published compiler and
 // runtime, and must give MESH's committed tree; then every value case must
 // be realized, and every event case resolved, exactly as MESH gives it.
@@ -14,8 +15,8 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { attribute, createWebPort, property } from "../src/index.js";
 
 import { dom, domNodes, reports } from "./support.js";
+import { vectors } from "./vectors.js";
 
-const vectors = new URL("../../../fixtures/mesh-conformance/", import.meta.url);
 const read = (path: string): string => readFileSync(new URL(path, vectors), "utf8");
 const readJson = <T>(path: string): T => JSON.parse(read(path)) as T;
 const manifest = read("components.json");

@@ -439,7 +439,7 @@ Real Web interactions can reach NEXUS without exposing raw browser event objects
 
 # V0.4 — Styles and Accessibility
 
-**Status:** Partly met, by choice. Accessibility: an application's primitives declare the roles, names and states they realize (`aria-*`, `role`, `scope`, constant attributes), and the Web PORT writes them; the Desktop PORT passes names, roles, states, counts and indices to the platform through AccessKit (checkbox, radio group, text field, table). Styles: PORT adds no style mechanism (do not invent one, below): an application's styles are its own, and VALANCE scopes component CSS for the web. Not done: focus management beyond what the platform gives, and any styling vocabulary for a second target. *(Update 2026-10-17.)*
+**Status:** Partly met, by choice. Accessibility: an application's primitives declare the roles, names and states they realize (`aria-*`, `role`, `scope`, constant attributes), and the Web PORT writes them; the Desktop PORT passes names, roles, states, counts and indices to the platform through AccessKit (checkbox, radio group, text field, table). Styles: PORT adds no style mechanism (do not invent one, below): an application's styles are its own, loaded per target by VALANCE as plain stylesheets (it does not scope them; see Valance's [style contract](https://github.com/ValanceX/Valance/blob/main/docs/direction/bets/style-contract.md)). Not done: focus management beyond what the platform gives, and any styling vocabulary for a second target. *(Update 2026-10-17.)*
 
 ## Objective
 

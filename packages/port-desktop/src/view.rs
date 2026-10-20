@@ -134,40 +134,77 @@ impl View {
                         _ => 26.0,
                     };
 
-                    ui.horizontal_wrapped(|ui| {
-                        no_gap(ui);
-                        self.inline_children(ui, children, out, Style::heading(size));
+                    let level = match props.get("level").and_then(Value::as_u64) {
+                        Some(level @ 1..=6) => level as usize,
+                        _ => 1,
+                    };
+                    let id = ui.make_persistent_id(("heading", key));
+
+                    // egui draws a heading as labels and never emits the role (decision A11): the PORT sets Heading with its level, and its text, drawn inside it, is its name (the specification's name from content).
+                    ui.ctx().accesskit_node_builder(id, |builder| {
+                        builder.set_role(egui::accesskit::Role::Heading);
+                        builder.set_level(level);
+                    });
+
+                    let ctx = ui.ctx().clone();
+
+                    ctx.with_accessibility_parent(id, || {
+                        ui.horizontal_wrapped(|ui| {
+                            no_gap(ui);
+                            self.inline_children(ui, children, out, Style::heading(size));
+                        });
                     });
                 }
                 "text" => {
                     ui.label(node.text());
                 }
                 "paragraph" => {
-                    ui.horizontal_wrapped(|ui| {
-                        no_gap(ui);
-                        self.inline_children(ui, children, out, Style::default());
+                    let id = ui.make_persistent_id(("paragraph", key));
+
+                    ui.ctx().accesskit_node_builder(id, |builder| {
+                        builder.set_role(egui::accesskit::Role::Paragraph);
+                    });
+
+                    let ctx = ui.ctx().clone();
+
+                    ctx.with_accessibility_parent(id, || {
+                        ui.horizontal_wrapped(|ui| {
+                            no_gap(ui);
+                            self.inline_children(ui, children, out, Style::default());
+                        });
                     });
                 }
                 "blockquote" => {
-                    ui.horizontal(|ui| {
-                        let (bar, _) = ui.allocate_exact_size(
-                            egui::vec2(3.0, ui.text_style_height(&egui::TextStyle::Body)),
-                            egui::Sense::hover(),
-                        );
+                    let id = ui.make_persistent_id(("blockquote", key));
 
-                        ui.painter()
-                            .rect_filled(bar, 0.0, ui.visuals().weak_text_color());
-                        ui.horizontal_wrapped(|ui| {
-                            no_gap(ui);
-                            self.inline_children(
-                                ui,
-                                children,
-                                out,
-                                Style {
-                                    italic: true,
-                                    ..Style::default()
-                                },
+                    // Role::Blockquote (decision A11): the web renders `blockquote`, ARIA defines the role and AccessKit 0.17 has it; egui never emits it. The bar is decoration.
+                    ui.ctx().accesskit_node_builder(id, |builder| {
+                        builder.set_role(egui::accesskit::Role::Blockquote);
+                    });
+
+                    let ctx = ui.ctx().clone();
+
+                    ctx.with_accessibility_parent(id, || {
+                        ui.horizontal(|ui| {
+                            let (bar, _) = ui.allocate_exact_size(
+                                egui::vec2(3.0, ui.text_style_height(&egui::TextStyle::Body)),
+                                egui::Sense::hover(),
                             );
+
+                            ui.painter()
+                                .rect_filled(bar, 0.0, ui.visuals().weak_text_color());
+                            ui.horizontal_wrapped(|ui| {
+                                no_gap(ui);
+                                self.inline_children(
+                                    ui,
+                                    children,
+                                    out,
+                                    Style {
+                                        italic: true,
+                                        ..Style::default()
+                                    },
+                                );
+                            });
                         });
                     });
                 }
@@ -182,28 +219,56 @@ impl View {
                         .get("ordered")
                         .and_then(Value::as_bool)
                         .unwrap_or(false);
+                    let size = children.len();
+                    let list_id = ui.make_persistent_id(("list", key));
 
-                    ui.vertical(|ui| {
-                        for (at, item) in children.iter().enumerate() {
-                            ui.horizontal_wrapped(|ui| {
-                                no_gap(ui);
-                                ui.label(if ordered {
-                                    format!("{}. ", at + 1)
-                                } else {
-                                    "\u{2022} ".to_owned()
+                    // The roles egui never emits (decision A11). Each item's nodes are children of the item's, and the items are children of the list's, as `with_accessibility_parent` makes them.
+                    ui.ctx().accesskit_node_builder(list_id, |builder| {
+                        builder.set_role(egui::accesskit::Role::List);
+                    });
+
+                    let ctx = ui.ctx().clone();
+
+                    ctx.with_accessibility_parent(list_id, || {
+                        ui.vertical(|ui| {
+                            for (at, item) in children.iter().enumerate() {
+                                let item_id = list_id.with(("item", at));
+
+                                ui.ctx().accesskit_node_builder(item_id, |builder| {
+                                    builder.set_role(egui::accesskit::Role::ListItem);
+                                    builder.set_position_in_set(at + 1);
+                                    builder.set_size_of_set(size);
                                 });
-                                match item {
-                                    Node::Node {
-                                        component,
-                                        children,
-                                        ..
-                                    } if component == "listitem" => {
-                                        self.inline_children(ui, children, out, Style::default())
-                                    }
-                                    other => self.inline(ui, other, out, Style::default()),
-                                }
-                            });
-                        }
+                                ctx.with_accessibility_parent(item_id, || {
+                                    ui.horizontal_wrapped(|ui| {
+                                        no_gap(ui);
+                                        // The bullet or number is decoration: the item is its text alone. Hidden, so an assistive technology does not read "bullet" before it.
+                                        let marker = ui.label(if ordered {
+                                            format!("{}. ", at + 1)
+                                        } else {
+                                            "\u{2022} ".to_owned()
+                                        });
+
+                                        ui.ctx().accesskit_node_builder(marker.id, |builder| {
+                                            builder.set_hidden();
+                                        });
+                                        match item {
+                                            Node::Node {
+                                                component,
+                                                children,
+                                                ..
+                                            } if component == "listitem" => self.inline_children(
+                                                ui,
+                                                children,
+                                                out,
+                                                Style::default(),
+                                            ),
+                                            other => self.inline(ui, other, out, Style::default()),
+                                        }
+                                    });
+                                });
+                            }
+                        });
                     });
                 }
                 "image" => {
@@ -241,6 +306,32 @@ impl View {
                         report(events, "click", None, out);
                     }
                 }
+                // A button that stays pressed (`pressed` is the application's, and a click reports the value it is going to have). Its role is Button and its pressed state is the tree's toggled state;
+                // its name is its `label`, else the text drawn in it.
+                "toggle" => {
+                    let enabled = !props
+                        .get("disabled")
+                        .and_then(Value::as_bool)
+                        .unwrap_or(false);
+                    let pressed = props
+                        .get("pressed")
+                        .and_then(Value::as_bool)
+                        .unwrap_or(false);
+                    let text = node.text();
+                    let name = props
+                        .get("label")
+                        .and_then(Value::as_str)
+                        .map_or_else(|| text.clone(), str::to_owned);
+                    let response = ui.add_enabled(enabled, Button::new(text).selected(pressed));
+
+                    response.widget_info(move || {
+                        WidgetInfo::selected(WidgetType::Button, enabled, pressed, &name)
+                    });
+
+                    if response.clicked() {
+                        report(events, "change", Some(Value::Bool(!pressed)), out);
+                    }
+                }
                 // A group of radios: the options in a column, the group named for assistive technology by its `label`. It has no events; its radios raise them.
                 "radiogroup" => {
                     let response = ui.vertical(|ui| self.each(ui, children, out)).response;
@@ -257,6 +348,32 @@ impl View {
                         }
                     });
                     marked(&self.described, ui, &response, props);
+                }
+                // A live region (decision A13): the text inside is the message. `status` is polite and `alert` assertive, both atomic, which is what `role=status` and `role=alert` imply in ARIA;
+                // egui sets neither role, so the PORT does. The region is a node even with nothing in it, because a region has to exist before its text changes to be announced.
+                "status" | "alert" => {
+                    let alert = component.as_str() == "alert";
+                    let id = ui.make_persistent_id((component.as_str(), key));
+
+                    ui.ctx().accesskit_node_builder(id, |builder| {
+                        builder.set_role(if alert {
+                            egui::accesskit::Role::Alert
+                        } else {
+                            egui::accesskit::Role::Status
+                        });
+                        builder.set_live(if alert {
+                            egui::accesskit::Live::Assertive
+                        } else {
+                            egui::accesskit::Live::Polite
+                        });
+                        builder.set_live_atomic();
+                    });
+
+                    let ctx = ui.ctx().clone();
+
+                    ctx.with_accessibility_parent(id, || {
+                        ui.vertical(|ui| self.each(ui, children, out));
+                    });
                 }
                 // One option: the engine owns the selection. Choosing an option that is not the selected one reports `select` with its `value`; the radio then shows whatever comes back.
                 "radio" => {
@@ -734,10 +851,13 @@ pub const REALIZED: &[&str] = &[
     "heading",
     "text",
     "button",
+    "toggle",
     "checkbox",
     "textfield",
     "radiogroup",
     "radio",
+    "status",
+    "alert",
     "label",
     "table",
     "tablehead",
