@@ -136,6 +136,12 @@ export interface WebPort {
    */
   inspect(key: string): Node | undefined;
   /**
+   * Moves keyboard focus to the part `key` names, or to the first thing inside it that can take focus (a `column` holding a field is asked to focus the field).
+   * Returns whether focus is now in that part. It is a request to the platform, not state: the host calls it after the patches that drew the part are applied
+   * (a form asks for its first invalid field), and nothing is promised for a key that is not drawn (false). Tier 2.
+   */
+  focus(key: string): boolean;
+  /**
    * Removes what was drawn. Nothing is reported after this. Safe to call
    * twice or before anything was drawn. The PORT stays usable: `draw` (or
    * `hydrate`) draws a tree again, while `update` and `patch` refuse with
@@ -361,6 +367,10 @@ export const createWebPort = ({ container, primitives, report }: WebPortOptions)
   // gives at most one report.
 
   const interact = (event: Event): void => {
+    if (restoring && (event.type === "focus" || event.type === "blur" || event.type === "focusin" || event.type === "focusout")) {
+      return;
+    }
+
     let at = event.target as Node | null;
     let interacted: DrawnNode | undefined;
 
@@ -709,7 +719,108 @@ export const createWebPort = ({ container, primitives, report }: WebPortOptions)
     return node;
   };
 
-  const port: Omit<WebPort, typeof Symbol.dispose> = {
+  // -------------------------------------------------------------------------
+  // Focus follows identity (I2, I12). A browser drops focus from an element that is moved (`insertBefore`) or removed, and puts it on the body; the person
+  // did nothing, so the PORT puts it back: by key, with the selection of a text field, and when the focused part is gone on what follows it, then what
+  // precedes it, then what holds it. While it does, the focus events its own moves make are not interactions and are not reported.
+
+  let restoring = false;
+
+  /** The drawn node the focused element belongs to, if focus is inside the container. */
+  const focusedPart = (): DrawnNode | undefined => {
+    const active = doc.activeElement;
+
+    for (let at: Node | null = active; at !== null && at !== container; at = at.parentNode) {
+      const found = nodeOf.get(at);
+
+      if (found !== undefined) {
+        return found;
+      }
+    }
+
+    return undefined;
+  };
+
+  /** Focuses `part`, or the first part under it (in document order) that takes focus. */
+  const focusWithin = (part: Drawn): boolean => {
+    if (part.kind === "text") {
+      return false;
+    }
+
+    (part.dom as HTMLElement).focus?.({ preventScroll: true });
+
+    if (doc.activeElement === part.dom) {
+      return true;
+    }
+
+    return part.children.some(focusWithin);
+  };
+
+  /** Where focus goes when `at` is gone: what follows it, what precedes it (nearest first), then what holds it. */
+  const heirs = (at: DrawnNode): ReadonlyArray<string> => {
+    const keys: string[] = [at.key];
+
+    for (let node: DrawnNode | undefined = at; node !== undefined; node = node.parent) {
+      const siblings = node.parent?.children ?? [];
+      const index = siblings.indexOf(node);
+
+      if (node === at) {
+        keys.push(...siblings.slice(index + 1).map((each) => each.key), ...siblings.slice(0, index).reverse().map((each) => each.key));
+      } else {
+        keys.push(node.key);
+      }
+    }
+
+    return keys;
+  };
+
+  const keepingFocus = <T,>(run: () => T): T => {
+    const was = focusedPart();
+
+    if (was === undefined) {
+      return run();
+    }
+
+    const field = was.dom as Element & { selectionStart?: number | null; selectionEnd?: number | null; selectionDirection?: string | null; setSelectionRange?: (start: number, end: number, direction?: "forward" | "backward" | "none") => void };
+    let selection: [number, number, string | null] | undefined;
+
+    try {
+      if (field.selectionStart != null && field.selectionEnd != null) {
+        selection = [field.selectionStart, field.selectionEnd, field.selectionDirection ?? null];
+      }
+    } catch { /* a field with no selection (a number input) */ }
+
+    const order = heirs(was);
+    const before = doc.activeElement;
+
+    restoring = true;
+
+    try {
+      const result = run();
+
+      if (doc.activeElement === before && before?.isConnected) {
+        return result;
+      }
+
+      for (const key of order) {
+        const part = byKey.get(key);
+
+        if (part !== undefined && focusWithin(part)) {
+          if (key === was.key && selection !== undefined) {
+            try { field.setSelectionRange?.(selection[0], selection[1], (selection[2] ?? "none") as "forward" | "backward" | "none"); } catch { /* as above */ }
+          }
+
+          break;
+        }
+      }
+
+      return result;
+    } finally {
+      restoring = false;
+    }
+  };
+
+  const plain: Omit<WebPort, typeof Symbol.dispose> = {
     draw(tree) {
       drawChecked(tree, checkTree(tree, primitives));
     },
@@ -1026,6 +1137,12 @@ export const createWebPort = ({ container, primitives, report }: WebPortOptions)
       return byKey.get(key)?.dom;
     },
 
+    focus(key) {
+      const part = byKey.get(key);
+
+      return part !== undefined && focusWithin(part);
+    },
+
     hydrate(tree) {
       if (drawn !== undefined) {
         throw new WebRealizationError("already-drawn", "hydrate needs a PORT with nothing drawn: it takes over server HTML, never a drawn tree");
@@ -1070,6 +1187,13 @@ export const createWebPort = ({ container, primitives, report }: WebPortOptions)
       drawn = undefined;
       byKey.clear();
     },
+  };
+
+  const port: Omit<WebPort, typeof Symbol.dispose> = {
+    ...plain,
+    draw: (tree) => keepingFocus(() => plain.draw(tree)),
+    update: (tree) => keepingFocus(() => plain.update(tree)),
+    patch: (patches) => keepingFocus(() => plain.patch(patches)),
   };
 
   // Where the platform has `Symbol.dispose`, `using port = ...` unmounts at the end of the block.
