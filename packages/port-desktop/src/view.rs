@@ -695,16 +695,40 @@ impl View {
                         .and_then(Value::as_bool)
                         .unwrap_or(false);
 
-                    let themed = self.themed(
-                        ui,
-                        "button",
-                        props,
-                        if enabled { &[] } else { &["disabled"] },
-                    );
+                    // The interaction states a theme may style (decision I22): the pointer over the button's rect of the last frame, and down. The toolkit has no styled hover of its own to ask, so the state is
+                    // derived here, from what the last frame drew; focus-visible stays the toolkit's own ring.
+                    let body = ui.id().with(("body", key));
+                    let before: Option<egui::Rect> = ui.ctx().data(|data| data.get_temp(body));
+                    let over = enabled
+                        && before.is_some_and(|rect| {
+                            ui.input(|input| input.pointer.hover_pos())
+                                .is_some_and(|at| rect.contains(at))
+                        })
+                        && ui.ctx().layer_id_at(
+                            ui.input(|input| input.pointer.hover_pos())
+                                .unwrap_or_default(),
+                        ) == Some(ui.layer_id());
+                    let down = over && ui.input(|input| input.pointer.primary_down());
+                    let mut states: Vec<&str> = Vec::new();
+
+                    if !enabled {
+                        states.push("disabled");
+                    }
+                    if over {
+                        states.push("hovered");
+                    }
+                    if down {
+                        states.push("pressed");
+                    }
+
+                    let themed = self.themed(ui, "button", props, &states);
                     let label = Style::default()
                         .themed(&themed)
                         .apply(RichText::new(node.text()));
                     let response = themed_button(ui, enabled, Button::new(label), &themed);
+
+                    ui.ctx()
+                        .data_mut(|data| data.insert_temp(body, response.rect));
 
                     named(&response, WidgetType::Button, props, enabled, None, None);
                     self.focus.widget(key, &response);
