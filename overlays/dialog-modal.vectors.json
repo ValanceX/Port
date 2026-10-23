@@ -1,0 +1,1093 @@
+{
+  "pattern": "https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/",
+  "commit": "0f765e4dc33e966026114ac12a8380db1de3b787",
+  "generatedBy": "scripts/generate-overlay-vectors.mjs",
+  "vectors": [
+    {
+      "name": "focus-moves-inside-when-it-opens/1",
+      "apg": "When a dialog opens, focus moves to an element inside the dialog.",
+      "layout": {
+        "tabbables": 1
+      },
+      "steps": [
+        {
+          "focus": "opener"
+        },
+        {
+          "open": true
+        },
+        {
+          "expect": {
+            "focused": "d1",
+            "open": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "it-is-modal/1",
+      "apg": "aria-modal set to true",
+      "layout": {
+        "tabbables": 1
+      },
+      "steps": [
+        {
+          "focus": "opener"
+        },
+        {
+          "open": true
+        },
+        {
+          "expect": {
+            "modal": true,
+            "name": "Dialog"
+          }
+        }
+      ]
+    },
+    {
+      "name": "tab-from-the-last-wraps-to-the-first/1",
+      "apg": "If focus is on the last tabbable element inside the dialog, moves focus to the first tabbable element inside the dialog.",
+      "layout": {
+        "tabbables": 1
+      },
+      "steps": [
+        {
+          "focus": "opener"
+        },
+        {
+          "open": true
+        },
+        {
+          "expect": {
+            "focused": "d1"
+          }
+        },
+        {
+          "press": "Tab"
+        },
+        {
+          "expect": {
+            "focused": "d1"
+          }
+        }
+      ]
+    },
+    {
+      "name": "shift-tab-from-the-first-wraps-to-the-last/1",
+      "apg": "If focus is on the first tabbable element inside the dialog, moves focus to the last tabbable element inside the dialog.",
+      "layout": {
+        "tabbables": 1
+      },
+      "steps": [
+        {
+          "focus": "opener"
+        },
+        {
+          "open": true
+        },
+        {
+          "expect": {
+            "focused": "d1"
+          }
+        },
+        {
+          "press": "Shift+Tab"
+        },
+        {
+          "expect": {
+            "focused": "d1"
+          }
+        }
+      ]
+    },
+    {
+      "name": "what-is-under-it-is-inert/1",
+      "apg": "Windows under a modal dialog are inert.",
+      "layout": {
+        "tabbables": 1
+      },
+      "steps": [
+        {
+          "focus": "opener"
+        },
+        {
+          "open": true
+        },
+        {
+          "press": "Tab",
+          "expect": {
+            "focusedIn": [
+              "d1"
+            ]
+          }
+        },
+        {
+          "press": "Tab",
+          "expect": {
+            "focusedIn": [
+              "d1"
+            ]
+          }
+        },
+        {
+          "press": "Tab",
+          "expect": {
+            "focusedIn": [
+              "d1"
+            ]
+          }
+        },
+        {
+          "press": "Shift+Tab",
+          "expect": {
+            "focusedIn": [
+              "d1"
+            ]
+          }
+        },
+        {
+          "press": "Shift+Tab",
+          "expect": {
+            "focusedIn": [
+              "d1"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "escape-closes-it-and-the-invoker-has-focus-again/1",
+      "apg": "Closes the dialog.",
+      "layout": {
+        "tabbables": 1
+      },
+      "steps": [
+        {
+          "focus": "opener"
+        },
+        {
+          "open": true
+        },
+        {
+          "press": "Escape"
+        },
+        {
+          "expect": {
+            "reported": [
+              "dismiss:escape"
+            ],
+            "open": false,
+            "focused": "opener"
+          }
+        }
+      ]
+    },
+    {
+      "name": "focus-returns-to-the-invoker-it-was-not-the-first-button/1",
+      "apg": "When a dialog closes, focus returns to the element that invoked the dialog unless either:",
+      "layout": {
+        "tabbables": 1
+      },
+      "steps": [
+        {
+          "focus": "elsewhere"
+        },
+        {
+          "open": true
+        },
+        {
+          "press": "Escape"
+        },
+        {
+          "expect": {
+            "open": false,
+            "focused": "elsewhere"
+          }
+        }
+      ]
+    },
+    {
+      "name": "a-dialog-the-application-keeps-open-stays-open/1",
+      "apg": "Closes the dialog.",
+      "layout": {
+        "tabbables": 1
+      },
+      "app": {
+        "ignores": true
+      },
+      "steps": [
+        {
+          "focus": "opener"
+        },
+        {
+          "open": true
+        },
+        {
+          "press": "Escape"
+        },
+        {
+          "expect": {
+            "reported": [
+              "dismiss:escape"
+            ],
+            "open": true,
+            "focusedIn": [
+              "d1"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "the-invoker-is-gone-so-focus-goes-to-another-element/1",
+      "apg": "The invoking element no longer exists. Then, focus is set on another element that provides logical work flow.",
+      "layout": {
+        "tabbables": 1
+      },
+      "steps": [
+        {
+          "focus": "opener"
+        },
+        {
+          "open": true
+        },
+        {
+          "remove": "opener"
+        },
+        {
+          "press": "Escape"
+        },
+        {
+          "expect": {
+            "open": false,
+            "focused": "elsewhere"
+          }
+        }
+      ]
+    },
+    {
+      "name": "focus-moves-inside-when-it-opens/2",
+      "apg": "When a dialog opens, focus moves to an element inside the dialog.",
+      "layout": {
+        "tabbables": 2
+      },
+      "steps": [
+        {
+          "focus": "opener"
+        },
+        {
+          "open": true
+        },
+        {
+          "expect": {
+            "focused": "d1",
+            "open": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "it-is-modal/2",
+      "apg": "aria-modal set to true",
+      "layout": {
+        "tabbables": 2
+      },
+      "steps": [
+        {
+          "focus": "opener"
+        },
+        {
+          "open": true
+        },
+        {
+          "expect": {
+            "modal": true,
+            "name": "Dialog"
+          }
+        }
+      ]
+    },
+    {
+      "name": "tab-from-d1-moves-to-the-next/2",
+      "apg": "Moves focus to the next tabbable element inside the dialog.",
+      "layout": {
+        "tabbables": 2
+      },
+      "steps": [
+        {
+          "focus": "opener"
+        },
+        {
+          "open": true
+        },
+        {
+          "expect": {
+            "focused": "d1"
+          }
+        },
+        {
+          "press": "Tab"
+        },
+        {
+          "expect": {
+            "focused": "d2"
+          }
+        }
+      ]
+    },
+    {
+      "name": "shift-tab-from-d2-moves-to-the-previous/2",
+      "apg": "Moves focus to the previous tabbable element inside the dialog.",
+      "layout": {
+        "tabbables": 2
+      },
+      "steps": [
+        {
+          "focus": "opener"
+        },
+        {
+          "open": true
+        },
+        {
+          "press": "Tab"
+        },
+        {
+          "expect": {
+            "focused": "d2"
+          }
+        },
+        {
+          "press": "Shift+Tab"
+        },
+        {
+          "expect": {
+            "focused": "d1"
+          }
+        }
+      ]
+    },
+    {
+      "name": "tab-from-the-last-wraps-to-the-first/2",
+      "apg": "If focus is on the last tabbable element inside the dialog, moves focus to the first tabbable element inside the dialog.",
+      "layout": {
+        "tabbables": 2
+      },
+      "steps": [
+        {
+          "focus": "opener"
+        },
+        {
+          "open": true
+        },
+        {
+          "press": "Tab"
+        },
+        {
+          "expect": {
+            "focused": "d2"
+          }
+        },
+        {
+          "press": "Tab"
+        },
+        {
+          "expect": {
+            "focused": "d1"
+          }
+        }
+      ]
+    },
+    {
+      "name": "shift-tab-from-the-first-wraps-to-the-last/2",
+      "apg": "If focus is on the first tabbable element inside the dialog, moves focus to the last tabbable element inside the dialog.",
+      "layout": {
+        "tabbables": 2
+      },
+      "steps": [
+        {
+          "focus": "opener"
+        },
+        {
+          "open": true
+        },
+        {
+          "expect": {
+            "focused": "d1"
+          }
+        },
+        {
+          "press": "Shift+Tab"
+        },
+        {
+          "expect": {
+            "focused": "d2"
+          }
+        }
+      ]
+    },
+    {
+      "name": "what-is-under-it-is-inert/2",
+      "apg": "Windows under a modal dialog are inert.",
+      "layout": {
+        "tabbables": 2
+      },
+      "steps": [
+        {
+          "focus": "opener"
+        },
+        {
+          "open": true
+        },
+        {
+          "press": "Tab",
+          "expect": {
+            "focusedIn": [
+              "d1",
+              "d2"
+            ]
+          }
+        },
+        {
+          "press": "Tab",
+          "expect": {
+            "focusedIn": [
+              "d1",
+              "d2"
+            ]
+          }
+        },
+        {
+          "press": "Tab",
+          "expect": {
+            "focusedIn": [
+              "d1",
+              "d2"
+            ]
+          }
+        },
+        {
+          "press": "Tab",
+          "expect": {
+            "focusedIn": [
+              "d1",
+              "d2"
+            ]
+          }
+        },
+        {
+          "press": "Tab",
+          "expect": {
+            "focusedIn": [
+              "d1",
+              "d2"
+            ]
+          }
+        },
+        {
+          "press": "Shift+Tab",
+          "expect": {
+            "focusedIn": [
+              "d1",
+              "d2"
+            ]
+          }
+        },
+        {
+          "press": "Shift+Tab",
+          "expect": {
+            "focusedIn": [
+              "d1",
+              "d2"
+            ]
+          }
+        },
+        {
+          "press": "Shift+Tab",
+          "expect": {
+            "focusedIn": [
+              "d1",
+              "d2"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "escape-closes-it-and-the-invoker-has-focus-again/2",
+      "apg": "Closes the dialog.",
+      "layout": {
+        "tabbables": 2
+      },
+      "steps": [
+        {
+          "focus": "opener"
+        },
+        {
+          "open": true
+        },
+        {
+          "press": "Escape"
+        },
+        {
+          "expect": {
+            "reported": [
+              "dismiss:escape"
+            ],
+            "open": false,
+            "focused": "opener"
+          }
+        }
+      ]
+    },
+    {
+      "name": "focus-returns-to-the-invoker-it-was-not-the-first-button/2",
+      "apg": "When a dialog closes, focus returns to the element that invoked the dialog unless either:",
+      "layout": {
+        "tabbables": 2
+      },
+      "steps": [
+        {
+          "focus": "elsewhere"
+        },
+        {
+          "open": true
+        },
+        {
+          "press": "Escape"
+        },
+        {
+          "expect": {
+            "open": false,
+            "focused": "elsewhere"
+          }
+        }
+      ]
+    },
+    {
+      "name": "a-dialog-the-application-keeps-open-stays-open/2",
+      "apg": "Closes the dialog.",
+      "layout": {
+        "tabbables": 2
+      },
+      "app": {
+        "ignores": true
+      },
+      "steps": [
+        {
+          "focus": "opener"
+        },
+        {
+          "open": true
+        },
+        {
+          "press": "Escape"
+        },
+        {
+          "expect": {
+            "reported": [
+              "dismiss:escape"
+            ],
+            "open": true,
+            "focusedIn": [
+              "d1",
+              "d2"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "the-invoker-is-gone-so-focus-goes-to-another-element/2",
+      "apg": "The invoking element no longer exists. Then, focus is set on another element that provides logical work flow.",
+      "layout": {
+        "tabbables": 2
+      },
+      "steps": [
+        {
+          "focus": "opener"
+        },
+        {
+          "open": true
+        },
+        {
+          "remove": "opener"
+        },
+        {
+          "press": "Escape"
+        },
+        {
+          "expect": {
+            "open": false,
+            "focused": "elsewhere"
+          }
+        }
+      ]
+    },
+    {
+      "name": "focus-moves-inside-when-it-opens/3",
+      "apg": "When a dialog opens, focus moves to an element inside the dialog.",
+      "layout": {
+        "tabbables": 3
+      },
+      "steps": [
+        {
+          "focus": "opener"
+        },
+        {
+          "open": true
+        },
+        {
+          "expect": {
+            "focused": "d1",
+            "open": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "it-is-modal/3",
+      "apg": "aria-modal set to true",
+      "layout": {
+        "tabbables": 3
+      },
+      "steps": [
+        {
+          "focus": "opener"
+        },
+        {
+          "open": true
+        },
+        {
+          "expect": {
+            "modal": true,
+            "name": "Dialog"
+          }
+        }
+      ]
+    },
+    {
+      "name": "tab-from-d1-moves-to-the-next/3",
+      "apg": "Moves focus to the next tabbable element inside the dialog.",
+      "layout": {
+        "tabbables": 3
+      },
+      "steps": [
+        {
+          "focus": "opener"
+        },
+        {
+          "open": true
+        },
+        {
+          "expect": {
+            "focused": "d1"
+          }
+        },
+        {
+          "press": "Tab"
+        },
+        {
+          "expect": {
+            "focused": "d2"
+          }
+        }
+      ]
+    },
+    {
+      "name": "shift-tab-from-d2-moves-to-the-previous/3",
+      "apg": "Moves focus to the previous tabbable element inside the dialog.",
+      "layout": {
+        "tabbables": 3
+      },
+      "steps": [
+        {
+          "focus": "opener"
+        },
+        {
+          "open": true
+        },
+        {
+          "press": "Tab"
+        },
+        {
+          "expect": {
+            "focused": "d2"
+          }
+        },
+        {
+          "press": "Shift+Tab"
+        },
+        {
+          "expect": {
+            "focused": "d1"
+          }
+        }
+      ]
+    },
+    {
+      "name": "tab-from-d2-moves-to-the-next/3",
+      "apg": "Moves focus to the next tabbable element inside the dialog.",
+      "layout": {
+        "tabbables": 3
+      },
+      "steps": [
+        {
+          "focus": "opener"
+        },
+        {
+          "open": true
+        },
+        {
+          "press": "Tab"
+        },
+        {
+          "expect": {
+            "focused": "d2"
+          }
+        },
+        {
+          "press": "Tab"
+        },
+        {
+          "expect": {
+            "focused": "d3"
+          }
+        }
+      ]
+    },
+    {
+      "name": "shift-tab-from-d3-moves-to-the-previous/3",
+      "apg": "Moves focus to the previous tabbable element inside the dialog.",
+      "layout": {
+        "tabbables": 3
+      },
+      "steps": [
+        {
+          "focus": "opener"
+        },
+        {
+          "open": true
+        },
+        {
+          "press": "Tab"
+        },
+        {
+          "press": "Tab"
+        },
+        {
+          "expect": {
+            "focused": "d3"
+          }
+        },
+        {
+          "press": "Shift+Tab"
+        },
+        {
+          "expect": {
+            "focused": "d2"
+          }
+        }
+      ]
+    },
+    {
+      "name": "tab-from-the-last-wraps-to-the-first/3",
+      "apg": "If focus is on the last tabbable element inside the dialog, moves focus to the first tabbable element inside the dialog.",
+      "layout": {
+        "tabbables": 3
+      },
+      "steps": [
+        {
+          "focus": "opener"
+        },
+        {
+          "open": true
+        },
+        {
+          "press": "Tab"
+        },
+        {
+          "press": "Tab"
+        },
+        {
+          "expect": {
+            "focused": "d3"
+          }
+        },
+        {
+          "press": "Tab"
+        },
+        {
+          "expect": {
+            "focused": "d1"
+          }
+        }
+      ]
+    },
+    {
+      "name": "shift-tab-from-the-first-wraps-to-the-last/3",
+      "apg": "If focus is on the first tabbable element inside the dialog, moves focus to the last tabbable element inside the dialog.",
+      "layout": {
+        "tabbables": 3
+      },
+      "steps": [
+        {
+          "focus": "opener"
+        },
+        {
+          "open": true
+        },
+        {
+          "expect": {
+            "focused": "d1"
+          }
+        },
+        {
+          "press": "Shift+Tab"
+        },
+        {
+          "expect": {
+            "focused": "d3"
+          }
+        }
+      ]
+    },
+    {
+      "name": "what-is-under-it-is-inert/3",
+      "apg": "Windows under a modal dialog are inert.",
+      "layout": {
+        "tabbables": 3
+      },
+      "steps": [
+        {
+          "focus": "opener"
+        },
+        {
+          "open": true
+        },
+        {
+          "press": "Tab",
+          "expect": {
+            "focusedIn": [
+              "d1",
+              "d2",
+              "d3"
+            ]
+          }
+        },
+        {
+          "press": "Tab",
+          "expect": {
+            "focusedIn": [
+              "d1",
+              "d2",
+              "d3"
+            ]
+          }
+        },
+        {
+          "press": "Tab",
+          "expect": {
+            "focusedIn": [
+              "d1",
+              "d2",
+              "d3"
+            ]
+          }
+        },
+        {
+          "press": "Tab",
+          "expect": {
+            "focusedIn": [
+              "d1",
+              "d2",
+              "d3"
+            ]
+          }
+        },
+        {
+          "press": "Tab",
+          "expect": {
+            "focusedIn": [
+              "d1",
+              "d2",
+              "d3"
+            ]
+          }
+        },
+        {
+          "press": "Tab",
+          "expect": {
+            "focusedIn": [
+              "d1",
+              "d2",
+              "d3"
+            ]
+          }
+        },
+        {
+          "press": "Tab",
+          "expect": {
+            "focusedIn": [
+              "d1",
+              "d2",
+              "d3"
+            ]
+          }
+        },
+        {
+          "press": "Shift+Tab",
+          "expect": {
+            "focusedIn": [
+              "d1",
+              "d2",
+              "d3"
+            ]
+          }
+        },
+        {
+          "press": "Shift+Tab",
+          "expect": {
+            "focusedIn": [
+              "d1",
+              "d2",
+              "d3"
+            ]
+          }
+        },
+        {
+          "press": "Shift+Tab",
+          "expect": {
+            "focusedIn": [
+              "d1",
+              "d2",
+              "d3"
+            ]
+          }
+        },
+        {
+          "press": "Shift+Tab",
+          "expect": {
+            "focusedIn": [
+              "d1",
+              "d2",
+              "d3"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "escape-closes-it-and-the-invoker-has-focus-again/3",
+      "apg": "Closes the dialog.",
+      "layout": {
+        "tabbables": 3
+      },
+      "steps": [
+        {
+          "focus": "opener"
+        },
+        {
+          "open": true
+        },
+        {
+          "press": "Escape"
+        },
+        {
+          "expect": {
+            "reported": [
+              "dismiss:escape"
+            ],
+            "open": false,
+            "focused": "opener"
+          }
+        }
+      ]
+    },
+    {
+      "name": "focus-returns-to-the-invoker-it-was-not-the-first-button/3",
+      "apg": "When a dialog closes, focus returns to the element that invoked the dialog unless either:",
+      "layout": {
+        "tabbables": 3
+      },
+      "steps": [
+        {
+          "focus": "elsewhere"
+        },
+        {
+          "open": true
+        },
+        {
+          "press": "Escape"
+        },
+        {
+          "expect": {
+            "open": false,
+            "focused": "elsewhere"
+          }
+        }
+      ]
+    },
+    {
+      "name": "a-dialog-the-application-keeps-open-stays-open/3",
+      "apg": "Closes the dialog.",
+      "layout": {
+        "tabbables": 3
+      },
+      "app": {
+        "ignores": true
+      },
+      "steps": [
+        {
+          "focus": "opener"
+        },
+        {
+          "open": true
+        },
+        {
+          "press": "Escape"
+        },
+        {
+          "expect": {
+            "reported": [
+              "dismiss:escape"
+            ],
+            "open": true,
+            "focusedIn": [
+              "d1",
+              "d2",
+              "d3"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "the-invoker-is-gone-so-focus-goes-to-another-element/3",
+      "apg": "The invoking element no longer exists. Then, focus is set on another element that provides logical work flow.",
+      "layout": {
+        "tabbables": 3
+      },
+      "steps": [
+        {
+          "focus": "opener"
+        },
+        {
+          "open": true
+        },
+        {
+          "remove": "opener"
+        },
+        {
+          "press": "Escape"
+        },
+        {
+          "expect": {
+            "open": false,
+            "focused": "elsewhere"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -12,7 +12,7 @@ import type { RenderNode, RenderTree, TextRun } from "@valancex/mesh-runtime";
 import type { WebPrimitives } from "./primitives.js";
 import type { Plan } from "./check.js";
 
-import { COMPONENT_ATTRIBUTE, UNKNOWN_COMPONENT_ELEMENT, VOID_ELEMENTS, checkTree, elementOf, groupKeyOf, own, validatePrimitives } from "./check.js";
+import { COMPONENT_ATTRIBUTE, UNKNOWN_COMPONENT_ELEMENT, VOID_ELEMENTS, checkTree, elementOf, groupKeyOf, layerIsOpen, own, popoverMode, validatePrimitives } from "./check.js";
 import { WebRealizationError } from "./error.js";
 
 // Elements whose content HTML parsing doesn't give back as a tree of nodes
@@ -54,6 +54,16 @@ const attributesOf = (node: RenderNode, primitives: WebPrimitives, plan: Plan, p
       attributes.push([name, value]);
     }
 
+    // A modal layer that is open is written open, so that it paints before the script: a dialog with `open` is not modal, and hydration shows it modally (decision I7). A popover has no open attribute,
+    // and is written with the mode it has.
+    if (primitive.layer === "modal" && layerIsOpen(primitive, plan.get(node.key))) {
+      attributes.push(["open", undefined]);
+    }
+
+    if (primitive.layer === "popover") {
+      attributes.push(["popover", popoverMode(primitive, plan.get(node.key))]);
+    }
+
     const group = groupKeyOf(primitive, [...parents].reverse());
 
     if (group !== undefined) {
@@ -66,6 +76,10 @@ const attributesOf = (node: RenderNode, primitives: WebPrimitives, plan: Plan, p
       switch (realization.kind) {
         case "attribute":
         case "controlled":
+          if (primitive.layer === "popover" && realization.name === "popover") {
+            break; // written above, with its default
+          }
+
           if ("text" in output) {
             attributes.push([realization.name, output.text]);
           }
@@ -80,6 +94,8 @@ const attributesOf = (node: RenderNode, primitives: WebPrimitives, plan: Plan, p
           break;
         case "element":
           break; // it chose the element; it is not an attribute
+        case "layer":
+          break; // the PORT's, not an attribute (whether it is open is written below)
         case "property":
         case "text-property":
           if (!("absent" in output)) {

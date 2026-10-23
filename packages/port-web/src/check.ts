@@ -57,7 +57,7 @@ const isRealization = (entry: unknown): entry is PropRealization => {
   const { kind, name, holds } = entry as { readonly kind?: unknown; readonly name?: unknown; readonly holds?: unknown };
 
   return typeof name === "string"
-    && (kind === "element" || kind === "attribute" || kind === "text-property" || kind === "controlled" || kind === "controlled-boolean" || kind === "boolean-attribute" || (kind === "property" && (holds === "boolean" || holds === "number" || holds === "value")));
+    && (kind === "element" || kind === "layer" || kind === "attribute" || kind === "text-property" || kind === "controlled" || kind === "controlled-boolean" || kind === "boolean-attribute" || (kind === "property" && (holds === "boolean" || holds === "number" || holds === "value")));
 };
 
 /**
@@ -75,6 +75,7 @@ export const validatePrimitives = (primitives: WebPrimitives): Applicable => {
     const attributes = new Map<string, string>([[COMPONENT_ATTRIBUTE, "the unknown-component placeholder"]]);
     const properties = new Map<string, string>();
     let choosing: string | undefined;
+    const layerRoles = new Set<string>();
 
     for (const prop of Object.keys(primitive.props ?? {})) {
       // One source prop, one realization: an accessor could give a different
@@ -89,6 +90,24 @@ export const validatePrimitives = (primitives: WebPrimitives): Applicable => {
 
       if (!isRealization(realization)) {
         throw invalid(component, `maps its prop \`${prop}\` to something that isn't a realization of a known kind`);
+      }
+
+      if (realization.kind === "layer") {
+        if (primitive.layer !== "modal" && primitive.layer !== "popover") {
+          throw invalid(component, `has the layer prop \`${prop}\` and is not a layer (its \`layer\` is "modal" or "popover")`);
+        }
+
+        if (realization.name !== "open" && realization.name !== "anchor" && realization.name !== "placement") {
+          throw invalid(component, `gives its prop \`${prop}\` the layer role "${String((realization as { readonly name: unknown }).name)}", which is not open, anchor or placement`);
+        }
+
+        if (layerRoles.has(realization.name)) {
+          throw invalid(component, `has two props for the layer's ${realization.name}`);
+        }
+
+        layerRoles.add(realization.name);
+
+        continue;
       }
 
       if (realization.kind === "element") {
@@ -121,6 +140,24 @@ export const validatePrimitives = (primitives: WebPrimitives): Applicable => {
       names.set(realization.name, `its prop \`${prop}\``);
     }
 
+    if (primitive.layer !== undefined) {
+      if (primitive.layer !== "modal" && primitive.layer !== "popover") {
+        throw invalid(component, "has a layer that is neither modal nor popover");
+      }
+
+      if (!layerRoles.has("open")) {
+        throw invalid(component, "is a layer and has no prop for whether it is open");
+      }
+
+      if (primitive.layer === "modal" && primitive.element !== "dialog") {
+        throw invalid(component, `is a modal layer realized as <${primitive.element}>: only a <dialog> is shown modally`);
+      }
+
+      if (primitive.layer === "modal" && (layerRoles.has("anchor") || layerRoles.has("placement"))) {
+        throw invalid(component, "is a modal layer with an anchor or a placement: only a popover is anchored");
+      }
+    }
+
     // Constant attributes: the element's own, never data. A name is claimed once, whether by a prop or a constant.
     for (const name of Object.keys(primitive.attributes ?? {})) {
       const descriptor = Object.getOwnPropertyDescriptor(primitive.attributes, name)!;
@@ -131,6 +168,10 @@ export const validatePrimitives = (primitives: WebPrimitives): Applicable => {
 
       if (!ATTRIBUTE_NAME.test(name)) {
         throw invalid(component, `has the constant attribute "${name}", which isn't a lowercase attribute name the DOM and HTML both give back unchanged`);
+      }
+
+      if (name === "popover" && primitive.layer === "popover") {
+        throw invalid(component, `has a constant attribute "popover", which the PORT writes itself (its prop's value, else auto)`);
       }
 
       if (name.startsWith("on") || URL_ATTRIBUTES.has(name)) {
@@ -168,6 +209,14 @@ export const validatePrimitives = (primitives: WebPrimitives): Applicable => {
     const byType = new Map<string, Array<string>>();
 
     for (const [event, realization] of Object.entries(primitive.events ?? {})) {
+      if (realization.raised === true) {
+        if (primitive.layer === undefined) {
+          throw invalid(component, `has the event \`${event}\` raised by the PORT, and is not a layer`);
+        }
+
+        continue;
+      }
+
       if (realization.key !== undefined && (typeof realization.key !== "string" || realization.key === "" || realization.key.length > 32 || !KEY_EVENTS.has(realization.type))) {
         throw invalid(component, `gives its event \`${event}\` a key that isn't a non-empty name of at most 32 characters on a keyboard event (keydown, keyup)`);
       }
@@ -190,6 +239,31 @@ export const validatePrimitives = (primitives: WebPrimitives): Applicable => {
   }
 
   return applicable;
+};
+
+/** The prop of each role of a layer primitive, by role. */
+export const layerRoles = (primitive: WebPrimitive): ReadonlyMap<string, string> =>
+  new Map(Object.entries(primitive.props ?? {}).flatMap(([prop, realization]) => (realization.kind === "layer" ? [[realization.name, prop] as const] : [])));
+
+/** Whether the layer is open in a node's realized props. */
+export const layerIsOpen = (primitive: WebPrimitive, outputs: ReadonlyMap<string, Output> | undefined): boolean => {
+  const prop = layerRoles(primitive).get("open");
+  const output = prop === undefined ? undefined : outputs?.get(prop);
+
+  return output !== undefined && "native" in output && output.native === true;
+};
+
+/** The `popover` attribute a popover has: its prop's value when the table maps one to the attribute, else `auto`. */
+export const popoverMode = (primitive: WebPrimitive, outputs: ReadonlyMap<string, Output> | undefined): string => {
+  for (const [prop, realization] of Object.entries(primitive.props ?? {})) {
+    if (realization.kind === "attribute" && realization.name === "popover") {
+      const output = outputs?.get(prop);
+
+      return output !== undefined && "text" in output ? output.text : "auto";
+    }
+  }
+
+  return "auto";
 };
 
 /** The element a node of `primitive` is, given its realized props: the one its `element`-kind prop chooses when that prop is true, else the primitive's own. */

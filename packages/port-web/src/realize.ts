@@ -89,6 +89,13 @@ export const realizeProp = (node: RenderNode, name: string, realization: PropRea
         ? { native: value }
         : { code: "unrealizable-value", reason: `is ${kindOf(value)}, and a boolean attribute holds only a boolean` };
 
+    case "layer":
+      if (realization.name === "open") {
+        return typeof value === "boolean" ? { native: value } : { code: "unrealizable-value", reason: `is ${kindOf(value)}, and whether a layer is open is a boolean` };
+      }
+
+      return typeof value === "string" ? { text: value } : { code: "unrealizable-value", reason: `is ${kindOf(value)}, and a layer's ${realization.name} is a string` };
+
     case "element":
       return typeof value === "boolean"
         ? { native: value }
