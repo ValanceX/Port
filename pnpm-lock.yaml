@@ -9,8 +9,8 @@ importers:
   .:
     devDependencies:
       '@valancex/mesh-conformance':
-        specifier: ^0.14.0
-        version: 0.14.0
+        specifier: ^0.15.0
+        version: 0.15.0
       typescript:
         specifier: ^5.6.0
         version: 5.9.3
@@ -456,8 +456,8 @@ packages:
     resolution: {integrity: sha512-+8k7ZTLqb3fmT0pQOfHiX8hxzGwU6anKsbdN7HY17NFarL9h44SpXPxtythRZp4ujm29gheC+Mh1BzBDv7CNxg==}
     engines: {node: '>=22'}
 
-  '@valancex/mesh-conformance@0.14.0':
-    resolution: {integrity: sha512-hzCWBYF9VTu+LTKp0VX2jH64JYsa/Y4HrtMhGdQ7+oRADpXdM3tEc/u4PIemcu2i4o73y2O/9Fl1MS+fa7Legw==}
+  '@valancex/mesh-conformance@0.15.0':
+    resolution: {integrity: sha512-GsfIbGzlFeUGecrdGCznEyHgRqWFBS62Xq6boIr+CO2xNpv44zEqD0I7ri9bpt22IIvN+lKUIY4hH5FTCJY4fg==}
     engines: {node: '>=22'}
 
   '@valancex/mesh-runtime@0.6.0':
@@ -1173,7 +1173,7 @@ snapshots:
 
   '@valancex/mesh-compiler@0.6.0': {}
 
-  '@valancex/mesh-conformance@0.14.0': {}
+  '@valancex/mesh-conformance@0.15.0': {}
 
   '@valancex/mesh-runtime@0.6.0': {}
 

@@ -63,6 +63,8 @@ Both PORTs are checked against MESH's conformance vectors (values, events, node 
 
 The two npm packages share one version and are released together (one `v*` tag); the Desktop PORT crate has its own tag (`desktop-v*`). Newest first; the [changelog](./CHANGELOG.md) and the [release notes](./docs/releases) have the detail.
 
+**v0.11.0 (prepared 2026-10-23; crate 0.5.0 prepared):** PORT behavior: focus follows identity and `focus(key)` on the Web; `group` (radios are one group) and `elementWhen` (a list's element chosen by `ordered`); on the Desktop, widget ids from node keys (all identity vectors pass), focus follows identity, the host's `focus` message and roving focus in a radio group. See the [release notes](./docs/releases/v0.11.md).
+
 **v0.10.0 (prepared 2026-10-18; crate 0.4.0 prepared):** the Desktop PORT's vocabulary grows by `status` and `alert` (the live regions) and `toggle` (a button that stays pressed); `@valancex/port-web`'s peer range admits MESH 0.13 and 0.14, each line run (`scripts/check-mesh-range.mjs`). See the [release notes](./docs/releases/v0.10.md).
 
 **v0.9.0 (released 2026-10-17; crate 0.3.0 released the same day, 0.3.1 prepared: a table's cells no longer wrap their text):** a static table in the Desktop PORT's vocabulary (`table`, `tablehead`, `tablebody`, `tablerow`, `columnheader`, `rowheader`, `cell`), drawn as one grid with the table, rows and cells in the accessibility tree. `@valancex/port-web` is unchanged. See the [release notes](./docs/releases/v0.9.md).
