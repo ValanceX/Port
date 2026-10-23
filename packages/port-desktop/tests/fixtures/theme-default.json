@@ -28,7 +28,8 @@
         "base": {
           "text": "#1d2330",
           "fontSize": 16,
-          "fontWeight": 400
+          "fontWeight": 400,
+          "minSize": 24
         }
       },
       "button": {
@@ -160,7 +161,8 @@
         "base": {
           "text": "#e8eaf1",
           "fontSize": 16,
-          "fontWeight": 400
+          "fontWeight": 400,
+          "minSize": 24
         }
       },
       "button": {
