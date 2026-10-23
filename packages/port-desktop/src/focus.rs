@@ -10,6 +10,7 @@ const FOCUSABLE: [&str; 5] = ["button", "toggle", "checkbox", "textfield", "radi
 /// The shape of a frame's tree, as far as focus needs it.
 #[derive(Debug, Default, Clone)]
 pub struct Outline {
+    root: Option<String>,
     parents: HashMap<String, String>,
     children: HashMap<String, Vec<String>>,
     /// The nodes that take focus: a focusable component that is not disabled.
@@ -53,7 +54,10 @@ impl Outline {
             }
         }
 
-        let mut outline = Outline::default();
+        let mut outline = Outline {
+            root: Some(root.key().to_owned()),
+            ..Outline::default()
+        };
 
         walk(root, None, &mut outline);
 
@@ -62,6 +66,32 @@ impl Outline {
 
     pub fn contains(&self, key: &str) -> bool {
         self.children.contains_key(key)
+    }
+
+    /// The nodes that take focus, in order, that `reachable` lets through.
+    pub fn in_order(&self, reachable: &dyn Fn(&str) -> bool) -> Vec<String> {
+        fn walk(
+            outline: &Outline,
+            key: &str,
+            reachable: &dyn Fn(&str) -> bool,
+            into: &mut Vec<String>,
+        ) {
+            if outline.takes.contains(key) && reachable(key) {
+                into.push(key.to_owned());
+            }
+
+            for child in outline.children.get(key).into_iter().flatten() {
+                walk(outline, child, reachable, into);
+            }
+        }
+
+        let mut found = Vec::new();
+
+        if let Some(root) = &self.root {
+            walk(self, root, reachable, &mut found);
+        }
+
+        found
     }
 
     /// Whether the node, or anything under it, takes focus.
@@ -126,6 +156,12 @@ impl Asking {
         false
     }
 
+    /// The next widget drawn that takes focus gets it: the person pressed Tab in a part that handles Tab itself, and focus goes on past it.
+    pub fn seek_next(&mut self) {
+        self.pending = None;
+        self.seeking = true;
+    }
+
     pub fn leave(&mut self) {
         self.seeking = false;
     }
@@ -142,10 +178,14 @@ impl Asking {
         false
     }
 
-    /// The frame is over: a request for a node that was not drawn is dropped, not kept for a node that may come later.
-    pub fn end_frame(&mut self) {
+    /// The frame is over: a request for a node that was not drawn is dropped, not kept for a node that may come later. Returns whether a search for the next widget found none.
+    pub fn end_frame(&mut self) -> bool {
+        let unmet = self.seeking;
+
         self.pending = None;
         self.seeking = false;
+
+        unmet
     }
 }
 
@@ -252,10 +292,26 @@ mod tests {
         assert!(asking.is_for("field"));
 
         asking.ask("gone");
-        asking.end_frame();
+        assert!(!asking.end_frame());
         assert!(
             !asking.is_for("gone"),
             "a request for a node that was not drawn is dropped"
         );
+    }
+}
+
+#[cfg(test)]
+mod order {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn the_nodes_that_take_focus_are_listed_in_order() {
+        let button = |key: &str| json!({"type": "node", "key": key, "component": "button", "props": {}, "events": {}, "children": []});
+        let outline = Outline::of(&serde_json::from_value(json!({"type": "node", "key": "root", "component": "column", "props": {}, "events": {},
+            "children": [button("a"), {"type": "node", "key": "g", "component": "column", "props": {}, "events": {}, "children": [button("b"), button("c")]}]})).unwrap());
+
+        assert_eq!(outline.in_order(&|_| true), ["a", "b", "c"]);
+        assert_eq!(outline.in_order(&|key| key != "b"), ["a", "c"]);
     }
 }

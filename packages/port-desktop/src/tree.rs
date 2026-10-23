@@ -32,6 +32,14 @@ impl Node {
         }
     }
 
+    /// A boolean prop of the node (`false` when it has none, or it is not a boolean).
+    pub fn bool_prop(&self, name: &str) -> bool {
+        match self {
+            Node::Node { props, .. } => props.get(name).and_then(Value::as_bool).unwrap_or(false),
+            Node::Text { .. } => false,
+        }
+    }
+
     /// The text of a node and everything under it: a button's label.
     pub fn text(&self) -> String {
         match self {

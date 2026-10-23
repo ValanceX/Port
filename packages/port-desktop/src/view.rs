@@ -7,7 +7,7 @@ use crate::theme::{self, Border, Theme};
 use crate::tree::Node;
 use egui::{Button, Response, RichText, TextEdit, Ui, WidgetInfo, WidgetType};
 use serde_json::Value;
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::sync::Arc;
 
 /// What the person did in a frame.
@@ -79,15 +79,141 @@ fn marked(
     }
 }
 
-/// A widget that takes focus has been drawn for `key`: gives it focus when it was asked for, and remembers that it has it.
-fn focusing(asking: &mut Asking, focused: &mut Option<String>, key: &str, response: &Response) {
-    if asking.is_for(key) {
-        response.request_focus();
+/// What the window knows about keyboard focus between frames (decisions I2, I10, I13).
+#[derive(Default)]
+struct Focusing {
+    /// What the window has been asked for focus.
+    asking: Asking,
+    /// The key of the widget that has focus in this frame so far, and the one that had it in the last: when that node is gone, focus goes to its heir.
+    focused: Option<String>,
+    had: Option<String>,
+    /// The shape of the last frame's tree.
+    outline: Outline,
+    /// The widget that took focus-order place last in this frame, so Shift+Tab out of a group has somewhere to go.
+    last: Option<egui::Id>,
+    /// The radios of the groups drawn this frame, and the one of each that is the tab stop (roving focus).
+    members: HashSet<String>,
+    stops: HashSet<String>,
+    /// Tab left a group with nowhere to go on to: the frame's end wraps it.
+    wrapping: Option<Leaving>,
+}
+
+impl Focusing {
+    /// A widget that takes focus has been drawn for `key`: gives it focus when it was asked for, and remembers that it has it.
+    fn widget(&mut self, key: &str, response: &Response) {
+        if self.asking.is_for(key) {
+            response.request_focus();
+        }
+
+        if response.has_focus() {
+            self.focused = Some(key.to_owned());
+        }
+
+        self.last = Some(response.id);
+    }
+}
+
+/// Which way the person pressed Tab in a group.
+#[derive(Debug, PartialEq, Clone, Copy)]
+enum Leaving {
+    Forward,
+    Back,
+}
+
+/// The radios of a group in order: its children, and what a `label` in it holds.
+fn radios_of(children: &[Node]) -> Vec<&Node> {
+    let mut found = Vec::new();
+
+    for child in children {
+        if let Node::Node {
+            component,
+            children,
+            ..
+        } = child
+        {
+            match component.as_str() {
+                "radio" => found.push(child),
+                "label" => found.extend(radios_of(children)),
+                _ => {}
+            }
+        }
     }
 
-    if response.has_focus() {
-        *focused = Some(key.to_owned());
+    found
+}
+
+/// A radio button: the toolkit's own (`egui::RadioButton`), except that it is reached by Tab only when it is the `tab_stop` of its group, which the toolkit's cannot be told. A radio that is not
+/// the stop still senses clicks and is given focus by the arrow keys of the group.
+fn radio_button(ui: &mut Ui, checked: bool, text: &str, tab_stop: bool) -> Response {
+    let spacing = ui.spacing();
+    let icon_width = spacing.icon_width;
+    let icon_spacing = spacing.icon_spacing;
+    let (galley, mut desired_size) = if text.is_empty() {
+        (None, egui::vec2(icon_width, 0.0))
+    } else {
+        let extra = egui::vec2(icon_width + icon_spacing, 0.0);
+        let galley = egui::WidgetText::from(text).into_galley(
+            ui,
+            None,
+            ui.available_width() - extra.x,
+            egui::TextStyle::Button,
+        );
+        let size = (extra + galley.size()).max(spacing.interact_size);
+
+        (Some(galley), size)
+    };
+
+    desired_size = desired_size.max(egui::Vec2::splat(ui.spacing().interact_size.y));
+    desired_size.y = desired_size.y.max(icon_width);
+
+    let sense = if tab_stop {
+        egui::Sense::click()
+    } else {
+        egui::Sense::CLICK
+    };
+    let (rect, response) = ui.allocate_exact_size(desired_size, sense);
+
+    response.widget_info(|| {
+        WidgetInfo::selected(
+            WidgetType::RadioButton,
+            ui.is_enabled(),
+            checked,
+            galley.as_ref().map_or("", |galley| galley.text()),
+        )
+    });
+
+    if ui.is_rect_visible(rect) {
+        let visuals = ui.style().interact(&response);
+        let (small, big) = ui.spacing().icon_rectangles(rect);
+        let painter = ui.painter();
+
+        painter.add(egui::epaint::CircleShape {
+            center: big.center(),
+            radius: big.width() / 2.0 + visuals.expansion,
+            fill: visuals.bg_fill,
+            stroke: visuals.bg_stroke,
+        });
+
+        if checked {
+            painter.add(egui::epaint::CircleShape {
+                center: small.center(),
+                radius: small.width() / 3.0,
+                fill: visuals.fg_stroke.color,
+                stroke: Default::default(),
+            });
+        }
+
+        if let Some(galley) = galley {
+            let at = egui::pos2(
+                rect.min.x + icon_width + icon_spacing,
+                rect.center().y - 0.5 * galley.size().y,
+            );
+
+            ui.painter().galley(at, galley, visuals.text_color());
+        }
     }
+
+    response
 }
 
 /// Whether a component is a widget that takes keyboard focus (an inline link does too, and is not followed here).
@@ -149,10 +275,16 @@ pub struct View {
     /// The theme the engine gave the window, resolved: what each primitive of the portable core looks like. Absent: the toolkit's own look.
     theme: Option<Arc<Theme>>,
     /// The key of the widget that had focus in the last frame, and the shape of that frame's tree: when the node is gone, focus goes to its heir (decision I2).
-    focused: Option<String>,
-    outline: Outline,
-    /// What the window has been asked for focus (decision I13).
-    asking: Asking,
+    focus: Focusing,
+    /// The roving tab stop of each radio group, by the group's key (decision I10: one tab stop, the arrows move it).
+    roving: HashMap<String, Roving>,
+}
+
+/// Which radio of a group is its tab stop, and which was the checked one when that was last looked at (the stop follows the application's choice when it changes).
+#[derive(Default)]
+struct Roving {
+    stop: Option<String>,
+    checked: Option<String>,
 }
 
 impl View {
@@ -195,20 +327,43 @@ impl View {
         // A node that has focus and is gone from this frame's tree hands it on; one that only moved keeps it by its id (decision I16).
         let now = Outline::of(node);
 
-        if let Some(gone) = self.focused.take().filter(|key| !now.contains(key)) {
-            if let Some(heir) = self.outline.heir(&gone, &now) {
-                self.asking.ask(&heir);
+        self.focus.had = self.focus.focused.take();
+        self.focus.members.clear();
+        self.focus.stops.clear();
+        self.focus.last = None;
+
+        if let Some(gone) = self.focus.had.clone().filter(|key| !now.contains(key)) {
+            if let Some(heir) = self.focus.outline.heir(&gone, &now) {
+                self.focus.asking.ask(&heir);
             }
         }
 
         self.block(ui, node, out);
-        self.asking.end_frame();
-        self.outline = now;
+
+        // Tab went on from the last (or back from the first) widget that takes focus: it wraps, as the toolkit's own does.
+        let unmet = self.focus.asking.end_frame();
+
+        if let Some(wrapping) = self.focus.wrapping.take() {
+            let reachable =
+                |key: &str| !self.focus.members.contains(key) || self.focus.stops.contains(key);
+            let order = now.in_order(&reachable);
+            let target = match wrapping {
+                Leaving::Forward if unmet => order.first(),
+                Leaving::Back => order.last(),
+                _ => None,
+            };
+
+            if let Some(target) = target {
+                self.focus.asking.ask(target);
+            }
+        }
+
+        self.focus.outline = now;
     }
 
     /// Asks for focus on the part `key` names, or the first thing in it that takes focus, in the next frame drawn (decision I13). Nothing is reported.
     pub fn focus(&mut self, key: &str) {
-        self.asking.ask(key);
+        self.focus.asking.ask(key);
     }
 
     /// A node as a block: it takes the width and a line of its own. Its widgets' ids come from its key (decision I16): a node that keeps its identity keeps its widget, its accessibility
@@ -219,12 +374,12 @@ impl View {
                 ui.label(text);
             }
             Node::Node { key, component, .. } => {
-                let seeking = self.asking.enter(key, takes_focus(component));
+                let seeking = self.focus.asking.enter(key, takes_focus(component));
 
                 keyed(ui, key, |ui| self.draw(ui, node, out));
 
                 if seeking {
-                    self.asking.leave();
+                    self.focus.asking.leave();
                 }
             }
         }
@@ -465,7 +620,7 @@ impl View {
                     let response = themed_button(ui, enabled, Button::new(label), &themed);
 
                     named(&response, WidgetType::Button, props, enabled, None, None);
-                    focusing(&mut self.asking, &mut self.focused, key, &response);
+                    self.focus.widget(key, &response);
 
                     if response.clicked() {
                         report(events, "click", None, out);
@@ -492,7 +647,7 @@ impl View {
                     response.widget_info(move || {
                         WidgetInfo::selected(WidgetType::Button, enabled, pressed, &name)
                     });
-                    focusing(&mut self.asking, &mut self.focused, key, &response);
+                    self.focus.widget(key, &response);
 
                     if response.clicked() {
                         report(events, "change", Some(Value::Bool(!pressed)), out);
@@ -500,6 +655,8 @@ impl View {
                 }
                 // A group of radios: the options in a column, the group named for assistive technology by its `label`. It has no events; its radios raise them.
                 "radiogroup" => {
+                    let radios = radios_of(children);
+                    let leaving = self.rove(ui, key, &radios, out);
                     let response = ui.vertical(|ui| self.each(ui, children, out)).response;
                     let name = props
                         .get("label")
@@ -514,6 +671,12 @@ impl View {
                         }
                     });
                     marked(&self.described, ui, &response, props);
+
+                    // Tab in a group leaves it: forward to the next widget drawn that takes focus.
+                    if leaving == Some(Leaving::Forward) {
+                        self.focus.asking.seek_next();
+                        self.focus.wrapping = Some(Leaving::Forward);
+                    }
                 }
                 // A live region (decision A13): the text inside is the message. `status` is polite and `alert` assertive, both atomic, which is what `role=status` and `role=alert` imply in ARIA;
                 // egui sets neither role, so the PORT does. The region is a node even with nothing in it, because a region has to exist before its text changes to be announced.
@@ -557,7 +720,27 @@ impl View {
                         .and_then(Value::as_str)
                         .or(caption.as_deref())
                         .unwrap_or("");
-                    let response = ui.add_enabled(enabled, egui::RadioButton::new(checked, text));
+                    // In a group only the tab stop is reached by Tab; the arrows move the stop (APG radio group pattern, decision I10).
+                    let in_group = self.focus.members.contains(key);
+                    let tab_stop = !in_group || self.focus.stops.contains(key);
+                    let response = ui
+                        .add_enabled_ui(enabled, |ui| radio_button(ui, checked, text, tab_stop))
+                        .inner;
+
+                    if in_group && response.has_focus() {
+                        // Tab and the arrows are the group's while one of its radios has focus: egui must not spend them moving focus by itself.
+                        ui.memory_mut(|memory| {
+                            memory.set_focus_lock_filter(
+                                response.id,
+                                egui::EventFilter {
+                                    tab: true,
+                                    horizontal_arrows: true,
+                                    vertical_arrows: true,
+                                    escape: false,
+                                },
+                            )
+                        });
+                    }
 
                     named(
                         &response,
@@ -567,7 +750,7 @@ impl View {
                         Some(checked),
                         caption.as_deref(),
                     );
-                    focusing(&mut self.asking, &mut self.focused, key, &response);
+                    self.focus.widget(key, &response);
 
                     if response.clicked() && !checked {
                         let value = props.get("value").and_then(Value::as_str).unwrap_or("");
@@ -642,7 +825,7 @@ impl View {
                         caption.as_deref(),
                     );
                     marked(&self.described, ui, &response, props);
-                    focusing(&mut self.asking, &mut self.focused, key, &response);
+                    self.focus.widget(key, &response);
 
                     if response.changed() {
                         report(events, "change", Some(Value::Bool(checked)), out);
@@ -695,7 +878,7 @@ impl View {
                         caption.as_deref(),
                     );
                     marked(&self.described, ui, &response, props);
-                    focusing(&mut self.asking, &mut self.focused, key, &response);
+                    self.focus.widget(key, &response);
 
                     if let Some(caption) = captioned {
                         if caption.clicked() {
@@ -748,6 +931,115 @@ impl View {
                 }
             },
         }
+    }
+
+    /// The roving focus of a radio group (the APG radio group pattern, decision I10). One radio is the group's tab stop: the checked one, else the first that is enabled; Tab reaches the group at
+    /// it and leaves the group from it. While a radio of the group has focus, the arrow keys move focus to the next or previous radio (wrapping), and choose it, which reports `select`
+    /// as a click on it would. Returns which way the person pressed Tab, if they did.
+    fn rove(
+        &mut self,
+        ui: &mut Ui,
+        group: &str,
+        radios: &[&Node],
+        out: &mut Vec<Output>,
+    ) -> Option<Leaving> {
+        let enabled: Vec<&Node> = radios
+            .iter()
+            .copied()
+            .filter(|radio| !radio.bool_prop("disabled"))
+            .collect();
+        let checked = enabled
+            .iter()
+            .find(|radio| radio.bool_prop("checked"))
+            .map(|radio| radio.key().to_owned());
+        let roving = self.roving.entry(group.to_owned()).or_default();
+
+        // The stop follows the application's choice when that changes, and is the first radio when nothing is chosen.
+        if roving.checked != checked {
+            roving.checked = checked.clone();
+
+            if checked.is_some() {
+                roving.stop = checked.clone();
+            }
+        }
+
+        if !roving
+            .stop
+            .as_ref()
+            .is_some_and(|stop| enabled.iter().any(|radio| radio.key() == stop))
+        {
+            roving.stop = checked.or_else(|| enabled.first().map(|radio| radio.key().to_owned()));
+        }
+
+        for radio in radios {
+            self.focus.members.insert(radio.key().to_owned());
+        }
+
+        let mut leaving = None;
+        let at = self
+            .focus
+            .had
+            .as_ref()
+            .and_then(|key| enabled.iter().position(|radio| radio.key() == key));
+
+        if let Some(at) = at {
+            let step = ui.input_mut(|input| {
+                use egui::{Key, Modifiers};
+
+                if input.consume_key(Modifiers::NONE, Key::ArrowDown)
+                    || input.consume_key(Modifiers::NONE, Key::ArrowRight)
+                {
+                    Some(1)
+                } else if input.consume_key(Modifiers::NONE, Key::ArrowUp)
+                    || input.consume_key(Modifiers::NONE, Key::ArrowLeft)
+                {
+                    Some(enabled.len() - 1)
+                } else {
+                    None
+                }
+            });
+
+            if let Some(step) = step {
+                let target = enabled[(at + step) % enabled.len()];
+
+                roving.stop = Some(target.key().to_owned());
+                self.focus.asking.ask(target.key());
+
+                if !target.bool_prop("checked") {
+                    if let Node::Node { props, events, .. } = target {
+                        let value = props.get("value").and_then(Value::as_str).unwrap_or("");
+
+                        report(events, "select", Some(Value::String(value.to_owned())), out);
+                    }
+                }
+            }
+
+            let tab = ui.input_mut(|input| {
+                use egui::{Key, Modifiers};
+
+                if input.consume_key(Modifiers::NONE, Key::Tab) {
+                    Some(Leaving::Forward)
+                } else if input.consume_key(Modifiers::SHIFT, Key::Tab) {
+                    Some(Leaving::Back)
+                } else {
+                    None
+                }
+            });
+
+            match tab {
+                Some(Leaving::Back) => match self.focus.last {
+                    Some(before) => ui.memory_mut(|memory| memory.request_focus(before)),
+                    None => self.focus.wrapping = Some(Leaving::Back),
+                },
+                other => leaving = other,
+            }
+        }
+
+        if let Some(stop) = &self.roving[group].stop {
+            self.focus.stops.insert(stop.clone());
+        }
+
+        leaving
     }
 
     fn each(&mut self, ui: &mut Ui, children: &[Node], out: &mut Vec<Output>) {
