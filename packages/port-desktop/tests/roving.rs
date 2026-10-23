@@ -36,6 +36,8 @@ fn screen(checked: Option<&str>) -> Tree {
 struct Window {
     ctx: egui::Context,
     view: View,
+    /// The modifiers held in the frames being run (the toolkit reads them from the input's state, not from the key event).
+    modifiers: egui::Modifiers,
 }
 
 impl Window {
@@ -46,6 +48,7 @@ impl Window {
         Window {
             ctx,
             view: View::default(),
+            modifiers: egui::Modifiers::NONE,
         }
     }
 
@@ -58,6 +61,7 @@ impl Window {
             .run(
                 egui::RawInput {
                     events,
+                    modifiers: self.modifiers,
                     ..Default::default()
                 },
                 |ctx| {
@@ -96,7 +100,12 @@ impl Window {
             repeat: false,
             modifiers,
         };
+        self.modifiers = modifiers;
+
         let (_, reported) = self.frame(tree, vec![event(true)]);
+
+        self.modifiers = egui::Modifiers::NONE;
+
         // the toolkit moves focus backwards a frame late, so that the widget can tell it gained it; what the person sees is the frame after
         let (focused, _) = self.frame(tree, vec![event(false)]);
 

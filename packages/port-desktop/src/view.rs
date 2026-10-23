@@ -96,6 +96,19 @@ struct Focusing {
     stops: HashSet<String>,
     /// Tab left a group with nowhere to go on to: the frame's end wraps it.
     wrapping: Option<Leaving>,
+    /// How many modal dialogs the drawing is inside: Tab in a dialog is the dialog's, so it does not leave it (the pattern), and egui must not spend it.
+    modal_depth: usize,
+    /// The tab stops of the last frame's radio groups, to know what Tab reaches.
+    last_members: HashSet<String>,
+    last_stops: HashSet<String>,
+}
+
+/// What the window remembers of a layer between frames.
+#[derive(Default)]
+struct Remembered {
+    open: bool,
+    /// The key of the part that had focus when the layer opened: focus returns to it when it closes.
+    invoker: Option<String>,
 }
 
 impl Focusing {
@@ -107,6 +120,20 @@ impl Focusing {
 
         if response.has_focus() {
             self.focused = Some(key.to_owned());
+
+            // Inside a modal dialog Tab is the dialog's, and Escape asks to close it: egui must not move focus away with either.
+            if self.modal_depth > 0 {
+                response.ctx.memory_mut(|memory| {
+                    memory.set_focus_lock_filter(
+                        response.id,
+                        egui::EventFilter {
+                            tab: true,
+                            escape: true,
+                            ..Default::default()
+                        },
+                    )
+                });
+            }
         }
 
         self.last = Some(response.id);
@@ -276,6 +303,11 @@ pub struct View {
     theme: Option<Arc<Theme>>,
     /// The key of the widget that had focus in the last frame, and the shape of that frame's tree: when the node is gone, focus goes to its heir (decision I2).
     focus: Focusing,
+    /// The layers (dialogs and popovers) as the last frame left them, by the node's key.
+    layers: HashMap<String, Remembered>,
+    /// Where nodes that have an `id` were drawn in the last frame, and in this one: what a popover is anchored to.
+    rects: HashMap<String, egui::Rect>,
+    rects_now: HashMap<String, egui::Rect>,
     /// The roving tab stop of each radio group, by the group's key (decision I10: one tab stop, the arrows move it).
     roving: HashMap<String, Roving>,
 }
@@ -327,9 +359,40 @@ impl View {
         // A node that has focus and is gone from this frame's tree hands it on; one that only moved keeps it by its id (decision I16).
         let now = Outline::of(node);
 
+        // A layer the application no longer has open (closed, or gone from the tree) hands focus back to what opened it, before this frame draws what comes after the invoker: for a popover only when
+        // focus was inside it.
+        let closed: Vec<String> = self
+            .layers
+            .iter()
+            .filter(|(key, remembered)| remembered.open && !now.is_open(key))
+            .map(|(key, _)| key.clone())
+            .collect();
+
+        for key in closed {
+            let modal = self.focus.outline.is_dialog(&key);
+            let inside = self
+                .focus
+                .focused
+                .as_ref()
+                .is_some_and(|had| self.focus.outline.is_within(had, &key));
+            let invoker = self.layers.get_mut(&key).and_then(|remembered| {
+                remembered.open = false;
+                remembered.invoker.take()
+            });
+
+            if modal || inside {
+                self.return_focus(invoker, &key, &now);
+            }
+
+            if !now.contains(&key) {
+                self.layers.remove(&key);
+            }
+        }
+
+        self.focus.last_members = std::mem::take(&mut self.focus.members);
+        self.focus.last_stops = std::mem::take(&mut self.focus.stops);
+        self.rects = std::mem::take(&mut self.rects_now);
         self.focus.had = self.focus.focused.take();
-        self.focus.members.clear();
-        self.focus.stops.clear();
         self.focus.last = None;
 
         if let Some(gone) = self.focus.had.clone().filter(|key| !now.contains(key)) {
@@ -373,10 +436,23 @@ impl View {
             Node::Text { text, .. } => {
                 ui.label(text);
             }
-            Node::Node { key, component, .. } => {
+            Node::Node {
+                key,
+                component,
+                props,
+                ..
+            } => {
                 let seeking = self.focus.asking.enter(key, takes_focus(component));
+                let mut used = egui::Rect::NOTHING;
 
-                keyed(ui, key, |ui| self.draw(ui, node, out));
+                keyed(ui, key, |ui| {
+                    self.draw(ui, node, out);
+                    used = ui.min_rect();
+                });
+
+                if let Some(id) = props.get("id").and_then(Value::as_str) {
+                    self.rects_now.insert(id.to_owned(), used);
+                }
 
                 if seeking {
                     self.focus.asking.leave();
@@ -651,6 +727,165 @@ impl View {
 
                     if response.clicked() {
                         report(events, "change", Some(Value::Bool(!pressed)), out);
+                    }
+                }
+                // A modal layer (decisions I4, I5, I10): egui's `Modal`, which blocks the pointer behind it and limits focus to itself. What it lacks the PORT supplies: focus moves inside when it opens,
+                // Tab wraps, and focus returns to the part that opened it (by key) when it closes. It is drawn only while the application has it open, and it asks to close (`dismiss`, with the reason
+                // `escape` or `outside`); it stays open until the application says otherwise.
+                "dialog" => {
+                    let open = props.get("open").and_then(Value::as_bool).unwrap_or(false);
+                    let id = ui.make_persistent_id(("dialog", key));
+
+                    if !open {
+                        return;
+                    }
+
+                    let remembered = self.layers.entry(key.clone()).or_default();
+
+                    if !remembered.open {
+                        // opening: remember who had focus, and give it to the first thing that takes it inside
+                        remembered.open = true;
+                        remembered.invoker = self
+                            .focus
+                            .had
+                            .clone()
+                            .filter(|had| !self.focus.outline.is_within(had, key));
+                        self.focus.asking.ask(key);
+                    }
+
+                    // Tab and Shift+Tab are the dialog's while focus is in it: they wrap, and never leave (the APG modal dialog pattern).
+                    if let Some(target) = self.wrap_in_dialog(ui, key) {
+                        self.focus.asking.ask(&target);
+                    }
+
+                    let name = props
+                        .get("label")
+                        .and_then(Value::as_str)
+                        .map(str::to_owned);
+                    let ctx = ui.ctx().clone();
+                    let seeking = self.focus.asking.enter(key, false);
+
+                    self.focus.modal_depth += 1;
+
+                    let shown = egui::Modal::new(id).show(&ctx, |ui| {
+                        ui.ctx().accesskit_node_builder(id, |builder| {
+                            builder.set_role(egui::accesskit::Role::Dialog);
+                            builder.set_modal();
+
+                            if let Some(name) = name {
+                                builder.set_label(name);
+                            }
+                        });
+                        ctx.with_accessibility_parent(id, || {
+                            ui.vertical(|ui| self.each(ui, children, out));
+                        });
+                    });
+
+                    self.focus.modal_depth -= 1;
+
+                    if seeking {
+                        self.focus.asking.leave();
+                    }
+
+                    if shown.should_close() {
+                        let reason = if shown.backdrop_response.clicked() {
+                            "outside"
+                        } else {
+                            "escape"
+                        };
+
+                        report(
+                            events,
+                            "dismiss",
+                            Some(Value::String(reason.to_owned())),
+                            out,
+                        );
+                    }
+                }
+                // A layer that is not modal, drawn above the content beside the part it is anchored to (the `id` its `anchor` names), by `placement`. `auto` (the default) is light-dismissed: a click
+                // outside it, or Escape, asks to close; `manual` is closed only by the application. Opening does not move focus; closing returns it to the invoker when it was inside.
+                "popover" => {
+                    let open = props.get("open").and_then(Value::as_bool).unwrap_or(false);
+                    let manual = props.get("kind").and_then(Value::as_str) == Some("manual");
+                    let id = ui.make_persistent_id(("popover", key));
+
+                    if !open {
+                        return;
+                    }
+
+                    let remembered = self.layers.entry(key.clone()).or_default();
+
+                    if !remembered.open {
+                        remembered.open = true;
+                        remembered.invoker = self
+                            .focus
+                            .had
+                            .clone()
+                            .filter(|had| !self.focus.outline.is_within(had, key));
+                    }
+
+                    let anchor = props
+                        .get("anchor")
+                        .and_then(Value::as_str)
+                        .and_then(|name| self.rects.get(name))
+                        .copied();
+                    let (pivot, at) = match (props.get("placement").and_then(Value::as_str), anchor)
+                    {
+                        (Some("top"), Some(rect)) => {
+                            (egui::Align2::CENTER_BOTTOM, rect.center_top())
+                        }
+                        (Some("start"), Some(rect)) => {
+                            (egui::Align2::RIGHT_CENTER, rect.left_center())
+                        }
+                        (Some("end"), Some(rect)) => {
+                            (egui::Align2::LEFT_CENTER, rect.right_center())
+                        }
+                        (_, Some(rect)) => (egui::Align2::CENTER_TOP, rect.center_bottom()),
+                        (_, None) => (egui::Align2::CENTER_CENTER, ui.ctx().screen_rect().center()),
+                    };
+                    let name = props
+                        .get("label")
+                        .and_then(Value::as_str)
+                        .map(str::to_owned);
+                    let ctx = ui.ctx().clone();
+                    let shown = egui::Area::new(id)
+                        .order(egui::Order::Foreground)
+                        .pivot(pivot)
+                        .fixed_pos(at)
+                        .show(&ctx, |ui| {
+                            egui::Frame::popup(ui.style()).show(ui, |ui| {
+                                ui.ctx().accesskit_node_builder(id, |builder| {
+                                    builder.set_role(egui::accesskit::Role::GenericContainer);
+
+                                    if let Some(name) = name {
+                                        builder.set_label(name);
+                                    }
+                                });
+                                ctx.with_accessibility_parent(id, || {
+                                    ui.vertical(|ui| self.each(ui, children, out));
+                                });
+                            });
+                        });
+
+                    if !manual {
+                        let clicked_away = ctx.input(|input| input.pointer.any_pressed())
+                            && ctx
+                                .input(|input| input.pointer.interact_pos())
+                                .is_some_and(|pos| !shown.response.rect.contains(pos));
+                        let escaped = ctx.input_mut(|input| {
+                            input.consume_key(egui::Modifiers::NONE, egui::Key::Escape)
+                        });
+
+                        if escaped || clicked_away {
+                            report(
+                                events,
+                                "dismiss",
+                                Some(Value::String(
+                                    if escaped { "escape" } else { "outside" }.to_owned(),
+                                )),
+                                out,
+                            );
+                        }
                     }
                 }
                 // A group of radios: the options in a column, the group named for assistive technology by its `label`. It has no events; its radios raise them.
@@ -1017,10 +1252,10 @@ impl View {
             let tab = ui.input_mut(|input| {
                 use egui::{Key, Modifiers};
 
-                if input.consume_key(Modifiers::NONE, Key::Tab) {
-                    Some(Leaving::Forward)
-                } else if input.consume_key(Modifiers::SHIFT, Key::Tab) {
+                if input.consume_key(Modifiers::SHIFT, Key::Tab) {
                     Some(Leaving::Back)
+                } else if input.consume_key(Modifiers::NONE, Key::Tab) {
+                    Some(Leaving::Forward)
                 } else {
                     None
                 }
@@ -1040,6 +1275,56 @@ impl View {
         }
 
         leaving
+    }
+
+    /// Tab or Shift+Tab pressed while focus is inside the dialog `key`: where focus goes, wrapping at the ends. What Tab reaches is what the last frame's tree and radio groups say.
+    fn wrap_in_dialog(&mut self, ui: &mut Ui, key: &str) -> Option<String> {
+        let had = self
+            .focus
+            .had
+            .clone()
+            .filter(|had| self.focus.outline.is_within(had, key))?;
+        // Shift+Tab first: the toolkit matches a key logically, so Tab with no modifiers would take it too.
+        let backward =
+            ui.input_mut(|input| input.consume_key(egui::Modifiers::SHIFT, egui::Key::Tab));
+        let forward = !backward
+            && ui.input_mut(|input| input.consume_key(egui::Modifiers::NONE, egui::Key::Tab));
+
+        if !forward && !backward {
+            return None;
+        }
+
+        let (members, stops) = (&self.focus.last_members, &self.focus.last_stops);
+        let order = self.focus.outline.in_order(&|each| {
+            self.focus.outline.is_within(each, key)
+                && (!members.contains(each) || stops.contains(each))
+        });
+        let at = order.iter().position(|each| *each == had)?;
+
+        Some(if forward {
+            order[(at + 1) % order.len()].clone()
+        } else {
+            order[(at + order.len() - 1) % order.len()].clone()
+        })
+    }
+
+    /// Focus goes back to `invoker` when a layer closes; when that is gone, to what follows it, then what precedes it, then what holds it (as for any part that leaves).
+    fn return_focus(&mut self, invoker: Option<String>, layer: &str, now: &Outline) {
+        match invoker {
+            Some(invoker) if now.contains(&invoker) && now.holds_focus(&invoker) => {
+                self.focus.asking.ask(&invoker)
+            }
+            // the invoker is gone: what follows it, then what precedes it, then what holds the layer (the pattern: "another element that provides logical work flow")
+            other => {
+                let heir = other
+                    .and_then(|invoker| self.focus.outline.heir(&invoker, now))
+                    .or_else(|| now.parent_of(layer).map(str::to_owned));
+
+                if let Some(heir) = heir {
+                    self.focus.asking.ask(&heir);
+                }
+            }
+        }
     }
 
     fn each(&mut self, ui: &mut Ui, children: &[Node], out: &mut Vec<Output>) {
@@ -1461,6 +1746,8 @@ pub const REALIZED: &[&str] = &[
     "columnheader",
     "rowheader",
     "cell",
+    "dialog",
+    "popover",
 ];
 
 /// The content-layer components this window draws: exactly the ones `content.json` declares.
