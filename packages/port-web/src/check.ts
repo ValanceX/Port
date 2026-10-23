@@ -57,7 +57,7 @@ const isRealization = (entry: unknown): entry is PropRealization => {
   const { kind, name, holds } = entry as { readonly kind?: unknown; readonly name?: unknown; readonly holds?: unknown };
 
   return typeof name === "string"
-    && (kind === "attribute" || kind === "text-property" || kind === "controlled" || kind === "controlled-boolean" || kind === "boolean-attribute" || (kind === "property" && (holds === "boolean" || holds === "number" || holds === "value")));
+    && (kind === "element" || kind === "attribute" || kind === "text-property" || kind === "controlled" || kind === "controlled-boolean" || kind === "boolean-attribute" || (kind === "property" && (holds === "boolean" || holds === "number" || holds === "value")));
 };
 
 /**
@@ -74,6 +74,7 @@ export const validatePrimitives = (primitives: WebPrimitives): Applicable => {
 
     const attributes = new Map<string, string>([[COMPONENT_ATTRIBUTE, "the unknown-component placeholder"]]);
     const properties = new Map<string, string>();
+    let choosing: string | undefined;
 
     for (const prop of Object.keys(primitive.props ?? {})) {
       // One source prop, one realization: an accessor could give a different
@@ -88,6 +89,21 @@ export const validatePrimitives = (primitives: WebPrimitives): Applicable => {
 
       if (!isRealization(realization)) {
         throw invalid(component, `maps its prop \`${prop}\` to something that isn't a realization of a known kind`);
+      }
+
+      if (realization.kind === "element") {
+        // Chooses the element, claims no slot: the alternative is an element as well named as the primitive's own, and there is one such prop.
+        if (!ELEMENT_NAME.test(realization.name)) {
+          throw invalid(component, `realizes its prop \`${prop}\` as the element "${realization.name}", which isn't a lowercase element name the DOM and HTML both give back unchanged`);
+        }
+
+        if (choosing !== undefined) {
+          throw invalid(component, `chooses its element by both \`${choosing}\` and \`${prop}\`; one prop chooses it`);
+        }
+
+        choosing = prop;
+
+        continue;
       }
 
       const attributeClass = realization.kind === "attribute" || realization.kind === "boolean-attribute";
@@ -176,6 +192,19 @@ export const validatePrimitives = (primitives: WebPrimitives): Applicable => {
   return applicable;
 };
 
+/** The element a node of `primitive` is, given its realized props: the one its `element`-kind prop chooses when that prop is true, else the primitive's own. */
+export const elementOf = (primitive: WebPrimitive, outputs: ReadonlyMap<string, Output> | undefined): string => {
+  for (const [name, realization] of Object.entries(primitive.props ?? {})) {
+    if (realization.kind === "element") {
+      const output = outputs?.get(name);
+
+      return output !== undefined && "native" in output && output.native === true ? realization.name : primitive.element;
+    }
+  }
+
+  return primitive.element;
+};
+
 /**
  * The key of the group an element of `primitive` is in: the key of the nearest of `parents` (nearest first) drawn as the component the group is within. Nothing when the
  * primitive has no group, or none of its ancestors is that component.
@@ -261,8 +290,8 @@ export const checkTree = (tree: RenderTree, primitives: WebPrimitives): Plan => 
         }
       }
 
-      if (part.children.length > 0 && VOID_ELEMENTS.has(primitive.element)) {
-        throw new WebRealizationError("unrealizable-children", `<${part.component}> has children, but is realized as <${primitive.element}>, which can't hold any`, part.key);
+      if (part.children.length > 0 && VOID_ELEMENTS.has(elementOf(primitive, outputs))) {
+        throw new WebRealizationError("unrealizable-children", `<${part.component}> has children, but is realized as <${elementOf(primitive, outputs)}>, which can't hold any`, part.key);
       }
     }
 

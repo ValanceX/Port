@@ -89,6 +89,11 @@ export const realizeProp = (node: RenderNode, name: string, realization: PropRea
         ? { native: value }
         : { code: "unrealizable-value", reason: `is ${kindOf(value)}, and a boolean attribute holds only a boolean` };
 
+    case "element":
+      return typeof value === "boolean"
+        ? { native: value }
+        : { code: "unrealizable-value", reason: `is ${kindOf(value)}, and a prop that chooses the element holds only a boolean` };
+
     case "property":
       switch (realization.holds) {
         case "value":

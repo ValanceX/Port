@@ -15,7 +15,7 @@ import type { Plan } from "./check.js";
 import type { PropRealization, WebPrimitive, WebPrimitives } from "./primitives.js";
 import type { Output } from "./realize.js";
 
-import { COMPONENT_ATTRIBUTE, UNKNOWN_COMPONENT_ELEMENT, checkTree, groupKeyOf, own, validatePrimitives } from "./check.js";
+import { COMPONENT_ATTRIBUTE, UNKNOWN_COMPONENT_ELEMENT, checkTree, elementOf, groupKeyOf, own, validatePrimitives } from "./check.js";
 import { WebRealizationError } from "./error.js";
 import { isUnrealizable, realizeProp } from "./realize.js";
 
@@ -168,7 +168,8 @@ interface DrawnNode {
   /** Undefined for a component the PORT doesn't know. */
   readonly primitive: WebPrimitive | undefined;
   readonly parent: DrawnNode | undefined;
-  readonly dom: Element;
+  /** The element that realizes the node: replaced, by a new one that takes its children, when the prop that chooses the element changes. */
+  dom: Element;
   /** What each prop's slot holds, as realized. A prop with no entry is absent. */
   outputs: ReadonlyMap<string, Output>;
   /**
@@ -230,6 +231,8 @@ const writeProp = (node: DrawnNode, realization: PropRealization, output: Output
       }
 
       return;
+    case "element":
+      return; // the element was chosen when it was made
     case "text-property":
     case "property":
       slots(element)[realization.name] = "text" in output ? output.text : "native" in output ? output.native : node.initial.get(realization.name);
@@ -487,7 +490,7 @@ export const createWebPort = ({ container, primitives, report }: WebPortOptions)
     }
 
     const primitive = own(primitives, part.component);
-    const node = record(part, parent, doc.createElement(primitive?.element ?? UNKNOWN_COMPONENT_ELEMENT), plan);
+    const node = record(part, parent, doc.createElement(primitive === undefined ? UNKNOWN_COMPONENT_ELEMENT : elementOf(primitive, plan.get(part.key))), plan);
 
     if (primitive === undefined) {
       // Shown, not dropped: its children are still realized inside it.
@@ -521,6 +524,46 @@ export const createWebPort = ({ container, primitives, report }: WebPortOptions)
     return node;
   };
 
+  /**
+   * Makes the element of `node` the one its realized props choose, when it is not that: a new element takes the old one's place and children (each child keeps its DOM node and its
+   * state), the primitive's constants, the group, and every prop of `outputs`. Reports nothing: the same node is drawn, in another element.
+   */
+  const reelement = (node: DrawnNode, outputs: ReadonlyMap<string, Output>): void => {
+    const primitive = node.primitive;
+
+    if (primitive === undefined || elementOf(primitive, outputs) === node.dom.localName) {
+      return;
+    }
+
+    const previous = node.dom;
+    const fresh = doc.createElement(elementOf(primitive, outputs));
+
+    for (const [name, value] of Object.entries(primitive.attributes ?? {})) {
+      fresh.setAttribute(name, value);
+    }
+
+    nodeOf.delete(previous);
+    node.dom = fresh;
+    nodeOf.set(fresh, node);
+    node.initial.clear();
+
+    for (const realization of Object.values(primitive.props ?? {})) {
+      if (hasPropertySlot(realization)) {
+        node.initial.set(realization.name, slots(fresh)[realization.name]);
+      }
+    }
+
+    groupOf(node, node.parent);
+    fresh.append(...Array.from(previous.childNodes));
+    previous.replaceWith(fresh);
+
+    for (const [name, output] of outputs) {
+      writeProp(node, own(primitive.props, name)!, output);
+    }
+
+    node.outputs = outputs;
+  };
+
   /** Brings `old` to `next` in place when they're the same part, or replaces it. Returns what is drawn now. */
   const patch = (old: Drawn, next: RenderNode | TextRun, parent: DrawnNode | undefined, plan: Plan): Drawn => {
     if (old.kind === "text" && next.type === "text" && old.key === next.key) {
@@ -536,6 +579,8 @@ export const createWebPort = ({ container, primitives, report }: WebPortOptions)
       const outputs = plan.get(next.key) ?? new Map<string, Output>();
 
       if (old.primitive !== undefined) {
+        reelement(old, outputs);
+
         for (const name of new Set([...old.outputs.keys(), ...outputs.keys()])) {
           const after = outputs.get(name) ?? ABSENT;
 
@@ -624,7 +669,7 @@ export const createWebPort = ({ container, primitives, report }: WebPortOptions)
     }
 
     const primitive = own(primitives, part.component);
-    const tag = primitive?.element ?? UNKNOWN_COMPONENT_ELEMENT;
+    const tag = primitive === undefined ? UNKNOWN_COMPONENT_ELEMENT : elementOf(primitive, plan.get(part.key));
 
     if (found === undefined || found.nodeType !== ELEMENT_NODE || (found as Element).localName !== tag || (found as Element).namespaceURI !== HTML_NAMESPACE) {
       return mismatch("element", `<${tag}>`, describeNode(found));
@@ -698,7 +743,7 @@ export const createWebPort = ({ container, primitives, report }: WebPortOptions)
       // whose state the server's markup or the user may have changed.
       for (const realization of Object.values(primitive.props ?? {})) {
         if (hasPropertySlot(realization)) {
-          node.initial.set(realization.name, slots(probe(primitive.element))[realization.name]);
+          node.initial.set(realization.name, slots(probe(dom.localName))[realization.name]);
         }
       }
 
@@ -1149,6 +1194,8 @@ export const createWebPort = ({ container, primitives, report }: WebPortOptions)
               } else {
                 outputs.set(step.name, step.output);
               }
+
+              reelement(node, outputs);
 
               if (!sameOutput(node.outputs.get(step.name) ?? ABSENT, step.output)) {
                 writeProp(node, step.realization, step.output);

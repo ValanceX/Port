@@ -12,7 +12,7 @@ import type { RenderNode, RenderTree, TextRun } from "@valancex/mesh-runtime";
 import type { WebPrimitives } from "./primitives.js";
 import type { Plan } from "./check.js";
 
-import { COMPONENT_ATTRIBUTE, UNKNOWN_COMPONENT_ELEMENT, VOID_ELEMENTS, checkTree, groupKeyOf, own, validatePrimitives } from "./check.js";
+import { COMPONENT_ATTRIBUTE, UNKNOWN_COMPONENT_ELEMENT, VOID_ELEMENTS, checkTree, elementOf, groupKeyOf, own, validatePrimitives } from "./check.js";
 import { WebRealizationError } from "./error.js";
 
 // Elements whose content HTML parsing doesn't give back as a tree of nodes
@@ -78,6 +78,8 @@ const attributesOf = (node: RenderNode, primitives: WebPrimitives, plan: Plan, p
           }
 
           break;
+        case "element":
+          break; // it chose the element; it is not an attribute
         case "property":
         case "text-property":
           if (!("absent" in output)) {
@@ -111,7 +113,8 @@ export const realizeHtml = (tree: RenderTree, primitives: WebPrimitives): string
       return escape(part.text, TEXT_ESCAPES, part.key);
     }
 
-    const element = own(primitives, part.component)?.element ?? UNKNOWN_COMPONENT_ELEMENT;
+    const primitive = own(primitives, part.component);
+    const element = primitive === undefined ? UNKNOWN_COMPONENT_ELEMENT : elementOf(primitive, plan.get(part.key));
 
     if (UNSERIALIZABLE_ELEMENTS.has(element)) {
       throw new WebRealizationError("unserializable-element", `<${part.component}> is realized as <${element}>, whose content HTML parsing wouldn't give back as the tree says`, part.key);

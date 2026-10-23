@@ -124,11 +124,11 @@ describe("the public API surface", () => {
   });
 
   it("the client entry: the Web PORT, the realization table's helpers, and its error", () => {
-    expect(Object.keys(client).sort()).toEqual(["UNKNOWN_COMPONENT_ELEMENT", "WebRealizationError", "attribute", "booleanAttribute", "controlled", "controlledBoolean", "createWebPort", "property", "textProperty"]);
+    expect(Object.keys(client).sort()).toEqual(["UNKNOWN_COMPONENT_ELEMENT", "WebRealizationError", "attribute", "booleanAttribute", "controlled", "controlledBoolean", "createWebPort", "elementWhen", "property", "textProperty"]);
   });
 
   it("the server entry: realizeHtml, the realization table's helpers, and the same error", () => {
-    expect(Object.keys(server).sort()).toEqual(["WebRealizationError", "attribute", "booleanAttribute", "controlled", "controlledBoolean", "property", "realizeHtml", "textProperty"]);
+    expect(Object.keys(server).sort()).toEqual(["WebRealizationError", "attribute", "booleanAttribute", "controlled", "controlledBoolean", "elementWhen", "property", "realizeHtml", "textProperty"]);
     expect(server.WebRealizationError).toBe(client.WebRealizationError);
   });
 });
