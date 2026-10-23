@@ -1,0 +1,85 @@
+{
+  "chromium": "141.0.7390.37",
+  "commit": "30c8fa729a746472239a3ef1dc5728a96a0e4f38",
+  "tests": {
+    "html/semantics/interactive-elements/the-dialog-element/dialog-showModal.html": {
+      "harness": "OK",
+      "failing": {
+        "when opening multiple dialogs, the most recently opened is rendered on top": "FAIL"
+      },
+      "means": "Chromium 141 does not raise a dialog above a later one when its open attribute is removed and showModal() is called on it. The PORT upgrades a server-written dialog by close() and then showModal(), not by removing the attribute, and layer.browser.test.ts looks at that upgrade: nothing for the PORT."
+    },
+    "html/semantics/interactive-elements/the-dialog-element/dialog-close.html": {
+      "harness": "OK",
+      "failing": {}
+    },
+    "html/semantics/interactive-elements/the-dialog-element/dialog-close-event.html": {
+      "harness": "OK",
+      "failing": {}
+    },
+    "html/semantics/interactive-elements/the-dialog-element/dialog-cancel-events.html": {
+      "harness": "OK",
+      "failing": {}
+    },
+    "html/semantics/interactive-elements/the-dialog-element/dialog-cancel-preventDefault.html": {
+      "harness": "OK",
+      "failing": {}
+    },
+    "html/semantics/interactive-elements/the-dialog-element/dialog-canceling.html": {
+      "harness": "OK",
+      "failing": {}
+    },
+    "html/semantics/interactive-elements/the-dialog-element/dialog-inert.html": {
+      "harness": "OK",
+      "failing": {}
+    },
+    "html/semantics/interactive-elements/the-dialog-element/dialog-focusing-steps-inert.html": {
+      "harness": "OK",
+      "failing": {
+        "dialog.show(): focusing steps should not change focus when dialog is inert": "FAIL"
+      },
+      "means": "Chromium 141 moves focus into an inert dialog opened with show(), against the HTML Standard's focusing steps. The PORT shows modal dialogs and popovers, never an inert non-modal dialog: nothing for the PORT."
+    },
+    "html/semantics/interactive-elements/the-dialog-element/dialog-open-2.html": {
+      "harness": "OK",
+      "failing": {}
+    },
+    "html/semantics/interactive-elements/the-dialog-element/dialog-focusability.html": {
+      "harness": "OK",
+      "failing": {}
+    },
+    "html/semantics/popovers/popover-close-request.html": {
+      "harness": "OK",
+      "failing": {}
+    },
+    "dom/nodes/moveBefore/focus-preserve.html": {
+      "harness": "OK",
+      "failing": {
+        "moveBefore() preserves focus and a backward selection in a text input": "FAIL"
+      },
+      "means": "The known defect of Bet 9 (decision I12): moveBefore() does not keep a backward selection in Chromium 141. The PORT restores the selection and its direction itself after every move, whether or not the browser has moveBefore: nothing more for the PORT."
+    },
+    "dom/nodes/moveBefore/focus-within.html": {
+      "harness": "OK",
+      "failing": {}
+    },
+    "dom/nodes/moveBefore/modal-dialog.html": {
+      "harness": "OK",
+      "failing": {}
+    },
+    "dom/nodes/moveBefore/fire-focusin-focusout.html": {
+      "harness": "OK",
+      "failing": {}
+    },
+    "html/semantics/interactive-elements/the-dialog-element/child-sequential-focus.html": {
+      "harness": "OK",
+      "failing": {
+        "dialog element with autofocus should get initial focus.": "FAIL",
+        "Only keyboard-focusable elements should get dialog initial focus.": "FAIL",
+        "Only keyboard-focusable elements should get dialog initial focus including in subtrees.": "FAIL",
+        "Only keyboard-focusable elements should get dialog initial focus including in nested buttons.": "FAIL"
+      },
+      "means": "Chromium 141 gives initial focus in a dialog to a mouse-focusable element (tabindex=-1) and to a nested autofocus element, where the HTML Standard says the first keyboard-focusable one. The PORT leaves initial focus to the browser: a dialog whose first focusable thing has tabindex=-1 gets focus there in this browser; the PORT's own dialogs hold ordinary controls (the vectors)."
+    }
+  }
+}

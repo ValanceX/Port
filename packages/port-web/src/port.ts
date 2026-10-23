@@ -15,7 +15,7 @@ import type { Plan } from "./check.js";
 import type { PropRealization, WebPrimitive, WebPrimitives } from "./primitives.js";
 import type { Output } from "./realize.js";
 
-import { COMPONENT_ATTRIBUTE, UNKNOWN_COMPONENT_ELEMENT, checkTree, elementOf, groupKeyOf, own, validatePrimitives } from "./check.js";
+import { COMPONENT_ATTRIBUTE, UNKNOWN_COMPONENT_ELEMENT, checkTree, elementOf, groupKeyOf, layerIsOpen, layerRoles, own, popoverMode, validatePrimitives } from "./check.js";
 import { WebRealizationError } from "./error.js";
 import { isUnrealizable, realizeProp } from "./realize.js";
 
@@ -233,6 +233,8 @@ const writeProp = (node: DrawnNode, realization: PropRealization, output: Output
       return;
     case "element":
       return; // the element was chosen when it was made
+    case "layer":
+      return; // a layer's props are the PORT's: it shows, hides and places the element after the pass
     case "text-property":
     case "property":
       slots(element)[realization.name] = "text" in output ? output.text : "native" in output ? output.native : node.initial.get(realization.name);
@@ -330,8 +332,21 @@ const expectedAttributes = (node: RenderNode, primitive: WebPrimitive | undefine
     expected.push([primitive.group!.attribute, group, "attribute"]);
   }
 
+  // A modal layer that is open is written open, and a popover has the mode it has (the server's side of decision I7).
+  if (primitive.layer === "modal" && layerIsOpen(primitive, plan.get(node.key))) {
+    expected.push(["open", "", "boolean-attribute"]);
+  }
+
+  if (primitive.layer === "popover") {
+    expected.push(["popover", popoverMode(primitive, plan.get(node.key)), "attribute"]);
+  }
+
   for (const [name, output] of plan.get(node.key) ?? []) {
     const realization = own(primitive.props, name)!;
+
+    if (primitive.layer === "popover" && realization.kind === "attribute" && realization.name === "popover") {
+      continue;
+    }
 
     if ((realization.kind === "attribute" || realization.kind === "controlled") && "text" in output) {
       expected.push([realization.name, output.text, "attribute"]);
@@ -439,6 +454,13 @@ export const createWebPort = ({ container, primitives, report }: WebPortOptions)
     }
   };
 
+  /** When Escape was last pressed in the document (focus may be nowhere in the container: a key goes to the focused element): what tells a popover the person closed with Escape from one they clicked away from. */
+  const noteEscape = (event: Event): void => {
+    if ((event as KeyboardEvent).key === "Escape") {
+      escapeAt = performance.now();
+    }
+  };
+
   const listen = (on: boolean): void => {
     if (on !== listening) {
       for (const type of types) {
@@ -447,6 +469,12 @@ export const createWebPort = ({ container, primitives, report }: WebPortOptions)
         } else {
           container.removeEventListener(type, interact, true);
         }
+      }
+
+      if (on) {
+        container.ownerDocument.addEventListener("keydown", noteEscape, true);
+      } else {
+        container.ownerDocument.removeEventListener("keydown", noteEscape, true);
       }
 
       listening = on;
@@ -464,6 +492,7 @@ export const createWebPort = ({ container, primitives, report }: WebPortOptions)
 
     if (part.kind === "node") {
       nodeOf.delete(part.dom);
+      forgetLayer(part);
       part.children.forEach(dispose);
     }
   };
@@ -513,11 +542,16 @@ export const createWebPort = ({ container, primitives, report }: WebPortOptions)
         writeProp(node, own(primitive.props, name)!, output);
       }
 
+      if (primitive.layer === "popover") {
+        node.dom.setAttribute("popover", popoverMode(primitive, node.outputs));
+      }
+
       reassert(node);
     }
 
     nodeOf.set(node.dom, node);
     byKey.set(node.key, node);
+    registerLayer(node);
     node.children = part.children.map((child) => create(child, node, plan));
     node.dom.append(...node.children.map((child) => child.dom));
 
@@ -768,6 +802,7 @@ export const createWebPort = ({ container, primitives, report }: WebPortOptions)
 
     adopted.push(node);
     byKey.set(node.key, node);
+    registerLayer(node);
 
     const nodes = Array.from(dom.childNodes);
     let next = 0;
@@ -851,11 +886,319 @@ export const createWebPort = ({ container, primitives, report }: WebPortOptions)
     return keys;
   };
 
+  // -------------------------------------------------------------------------
+  // Layers (decisions I4 to I8, Bet 9). `open` is the application's: after every pass the PORT shows and hides each layer to match it. A modal is a `<dialog>` shown with `showModal()`, so the rest
+  // of the page is inert, Tab stays inside and Escape asks to close; a popover is shown with `showPopover()` and sits against its anchor where the browser has anchor positioning. When the
+  // person asks to close, the PORT reports `dismiss` with the reason, and the layer stays open until the application says otherwise: a browser that closes it anyway (a second Escape that cannot
+  // be refused) has it drawn again. Closing returns focus to what had it before the layer opened, by key, and not to what the browser guesses.
+
+  /** How long a layer the browser closed against the application's `open` waits for the application to answer the `dismiss` before it is drawn again. */
+  const REASSERT_MS = 100;
+
+  interface Layer {
+    readonly node: DrawnNode;
+    /** What the PORT last did: shown, or hidden. */
+    shown: boolean;
+    /** The key of the part that had focus when the layer opened, to return focus to when it closes. */
+    invoker: string | undefined;
+    /** The layer is gone or closed and focus has not been returned yet. */
+    returning: boolean;
+    /** A `cancel` is on its way to a `close` (Escape): the one `dismiss` is reported already. */
+    escaped: boolean;
+    reopen: ReturnType<typeof setTimeout> | undefined;
+  }
+
+  const layers = new Map<DrawnNode, Layer>();
+  /** Focus owed to a part after a layer that is gone: (invoker, the layer's parent). */
+  const owed: Array<readonly [invoker: string | undefined, parent: string | undefined]> = [];
+  let escapeAt = -Infinity;
+  let layersMoved = false;
+
+  const wants = (layer: Layer): boolean => layer.node.primitive !== undefined && layerIsOpen(layer.node.primitive, layer.node.outputs);
+
+  const dismiss = (layer: Layer, reason: "escape" | "outside"): void => {
+    const handler = layer.node.handlers.get("dismiss");
+
+    if (handler !== undefined) {
+      report(handler, reason);
+    }
+  };
+
+  /** The browser closed the layer, and the application has it open still: after a moment to answer the `dismiss`, it is drawn again. */
+  const reassertLayer = (layer: Layer): void => {
+    clearTimeout(layer.reopen);
+    layer.reopen = setTimeout(() => {
+      layer.reopen = undefined;
+
+      if (layers.get(layer.node) === layer && wants(layer) && !layer.shown) {
+        showLayer(layer);
+      }
+    }, REASSERT_MS);
+  };
+
+  /** What Tab reaches inside a layer: links, enabled controls and what asks for a place in the tab order. A radio is reached only at the checked one of its group, as the browser does it. */
+  const TABBABLE = 'a[href], button, input:not([type="hidden"]), select, textarea, summary, [tabindex], [contenteditable=""], [contenteditable="true"]';
+
+  const tabbablesIn = (element: HTMLElement): HTMLElement[] =>
+    Array.from(element.querySelectorAll<HTMLElement>(TABBABLE)).filter((candidate) => {
+      if (candidate.matches(":disabled") || candidate.closest("[inert]") !== null || (candidate.getAttribute("tabindex") !== null && Number(candidate.getAttribute("tabindex")) < 0)) {
+        return false;
+      }
+
+      if (candidate instanceof (doc.defaultView?.HTMLInputElement ?? Object) && (candidate as HTMLInputElement).type === "radio" && (candidate as HTMLInputElement).name !== "") {
+        const group = Array.from(element.querySelectorAll<HTMLInputElement>('input[type="radio"]')).filter((each) => each.name === (candidate as HTMLInputElement).name);
+        const checked = group.find((each) => each.checked);
+
+        return checked === undefined ? candidate === group[0] : candidate === checked;
+      }
+
+      return true;
+    });
+
+  const registerLayer = (node: DrawnNode): void => {
+    if (node.primitive?.layer === undefined) {
+      return;
+    }
+
+    const layer: Layer = { node, shown: false, invoker: undefined, returning: false, escaped: false, reopen: undefined };
+    const element = node.dom as HTMLElement;
+
+    layers.set(node, layer);
+
+    if (node.primitive.layer === "modal") {
+      // The pattern: Tab and Shift+Tab do not leave the dialog. The platform lets Tab go on to the browser's own controls after the last one, so the PORT wraps (decision I20).
+      element.addEventListener("keydown", (event) => {
+        if (event.key !== "Tab" || event.defaultPrevented || !layer.shown) {
+          return;
+        }
+
+        const tabbables = tabbablesIn(element);
+        const active = doc.activeElement;
+        const first = tabbables[0];
+        const last = tabbables[tabbables.length - 1];
+
+        if (first === undefined || last === undefined) {
+          event.preventDefault();
+
+          return;
+        }
+
+        if (event.shiftKey ? active === first || active === element : active === last) {
+          event.preventDefault();
+          (event.shiftKey ? last : first).focus();
+        }
+      });
+      element.addEventListener("cancel", (event) => {
+        if (wants(layer)) {
+          layer.escaped = true;
+          dismiss(layer, "escape");
+
+          if (event.cancelable) {
+            event.preventDefault();
+          }
+        }
+      });
+      element.addEventListener("close", () => {
+        const asked = layer.escaped;
+
+        layer.escaped = false;
+
+        if (layer.shown) {
+          // not the PORT's doing
+          layer.shown = false;
+          layer.returning = true;
+
+          if (wants(layer)) {
+            if (!asked) {
+              dismiss(layer, "escape");
+            }
+
+            reassertLayer(layer);
+          }
+        }
+      });
+      element.addEventListener("click", (event) => {
+        if (event.target === element && wants(layer)) {
+          const box = element.getBoundingClientRect();
+          const { clientX: x, clientY: y } = event as MouseEvent;
+
+          if (x < box.left || x > box.right || y < box.top || y > box.bottom) {
+            dismiss(layer, "outside");
+          }
+        }
+      });
+    } else {
+      element.addEventListener("toggle", (event) => {
+        if ((event as Event & { readonly newState?: string }).newState === "closed" && layer.shown) {
+          layer.shown = false;
+          layer.returning = true;
+
+          if (wants(layer)) {
+            dismiss(layer, doc.defaultView !== null && performance.now() - escapeAt < 100 ? "escape" : "outside");
+            reassertLayer(layer);
+          }
+        }
+      });
+    }
+  };
+
+  const forgetLayer = (part: DrawnNode): void => {
+    const layer = layers.get(part);
+
+    if (layer !== undefined) {
+      clearTimeout(layer.reopen);
+      layers.delete(part);
+
+      if (layer.shown || layer.returning) {
+        owed.push([layer.invoker, part.parent?.key]);
+        layersMoved = true;
+      }
+    }
+  };
+
+  /** Where a popover sits: against the element whose `id` the tree names, by the placement, where the browser has anchor positioning. Otherwise it is where the top layer puts it. */
+  const placeLayer = (layer: Layer): void => {
+    const primitive = layer.node.primitive!;
+    const element = layer.node.dom as HTMLElement;
+    const roles = layerRoles(primitive);
+    const named = (role: string): string | undefined => {
+      const prop = roles.get(role);
+      const output = prop === undefined ? undefined : layer.node.outputs.get(prop);
+
+      return output !== undefined && "text" in output ? output.text : undefined;
+    };
+    const anchor = named("anchor");
+
+    if (primitive.layer !== "popover" || anchor === undefined || typeof CSS === "undefined" || !CSS.supports("position-area", "top")) {
+      return;
+    }
+
+    const target = Array.from(container.querySelectorAll("[id]")).find((candidate) => candidate.id === anchor) as HTMLElement | undefined;
+
+    if (target === undefined) {
+      return;
+    }
+
+    const name = `--port-anchor-${scope.replace(/\W/g, "")}${layer.node.key}`;
+    const area = { top: "block-start center", bottom: "block-end center", start: "inline-start center", end: "inline-end center" }[named("placement") ?? "bottom"] ?? "block-end center";
+
+    target.style.setProperty("anchor-name", name);
+    element.style.setProperty("position-anchor", name);
+    element.style.setProperty("position-area", area);
+    element.style.setProperty("position-try-fallbacks", "flip-block, flip-inline");
+  };
+
+  const showLayer = (layer: Layer): void => {
+    const element = layer.node.dom as HTMLElement & { showModal?: () => void; close?: () => void; showPopover?: () => void };
+
+    if (!element.isConnected) {
+      return; // gone from the document (a timer that outlived the page): nothing to show
+    }
+
+    const inside = doc.activeElement !== null && element.contains(doc.activeElement);
+
+    layer.invoker = inside ? layer.invoker : focusedPart()?.key;
+    layer.shown = true;
+    layer.returning = false;
+    layersMoved = true;
+
+    if (layer.node.primitive!.layer === "modal") {
+      // A dialog the server wrote open is not modal: close it and show it again, which is the one focus move at hydration (decision I7).
+      if (element.hasAttribute("open") && typeof element.close === "function") {
+        element.close();
+      }
+
+      if (typeof element.showModal === "function") {
+        element.showModal();
+      } else {
+        element.setAttribute("open", "");
+      }
+    } else {
+      placeLayer(layer);
+
+      if (typeof element.showPopover === "function") {
+        element.showPopover();
+      }
+    }
+  };
+
+  const hideLayer = (layer: Layer): void => {
+    const element = layer.node.dom as HTMLElement & { close?: () => void; hidePopover?: () => void };
+
+    clearTimeout(layer.reopen);
+    layer.reopen = undefined;
+    layer.shown = false;
+    layersMoved = true;
+
+    if (layer.node.primitive!.layer === "modal") {
+      if (typeof element.close === "function") {
+        element.close();
+      } else {
+        element.removeAttribute("open");
+      }
+    } else if (typeof element.hidePopover === "function" && element.matches(":popover-open")) {
+      element.hidePopover();
+    }
+  };
+
+  /** After a pass: every layer shown or hidden to match the application's `open`, and focus returned for those that closed. Returns whether it moved focus's whole neighborhood (a layer opened or closed). */
+  const settleLayers = (): boolean => {
+    layersMoved = false;
+
+    for (const layer of layers.values()) {
+      const open = wants(layer);
+
+      if (open && !layer.shown) {
+        clearTimeout(layer.reopen);
+        showLayer(layer);
+      } else if (open && layer.shown && layer.node.primitive!.layer === "modal" && (layer.node.dom as HTMLElement).hasAttribute("open") && !(layer.node.dom as HTMLElement).matches(":modal")) {
+        // adopted open and not modal: the upgrade
+        layer.shown = false;
+        showLayer(layer);
+      } else if (!open && (layer.shown || layer.returning)) {
+        const invoker = layer.invoker;
+
+        hideLayer(layer);
+        layer.returning = false;
+        layer.invoker = undefined;
+        owed.push([invoker, layer.node.parent?.key]);
+      } else if (open && layer.shown) {
+        placeLayer(layer);
+      }
+    }
+
+    for (const [invoker, parent] of owed.splice(0)) {
+      const target = invoker === undefined ? undefined : byKey.get(invoker);
+
+      if (target !== undefined && focusWithin(target)) {
+        continue;
+      }
+
+      const holder = parent === undefined ? undefined : byKey.get(parent);
+
+      if (holder !== undefined) {
+        focusWithin(holder);
+      }
+    }
+
+    return layersMoved;
+  };
+
   const keepingFocus = <T,>(run: () => T): T => {
     const was = focusedPart();
 
     if (was === undefined) {
-      return run();
+      restoring = true;
+
+      try {
+        const result = run();
+
+        settleLayers();
+
+        return result;
+      } finally {
+        restoring = false;
+      }
     }
 
     const field = was.dom as Element & { selectionStart?: number | null; selectionEnd?: number | null; selectionDirection?: string | null; setSelectionRange?: (start: number, end: number, direction?: "forward" | "backward" | "none") => void };
@@ -875,7 +1218,8 @@ export const createWebPort = ({ container, primitives, report }: WebPortOptions)
     try {
       const result = run();
 
-      if (doc.activeElement === before && before?.isConnected) {
+      // A layer that opened or closed has moved focus where it belongs (inside it, or back to the part that opened it): not to be undone.
+      if (settleLayers() || (doc.activeElement === before && before?.isConnected)) {
         return result;
       }
 
@@ -1052,6 +1396,20 @@ export const createWebPort = ({ container, primitives, report }: WebPortOptions)
 
           // The part is checked as a tree of its own would be: every prop and event realized, void elements, adjacent text.
           const plan = patch.node.type === "node" ? checkTree({ format: "mesh-render", version: 1, root: patch.node }, primitives) : new Map<string, ReadonlyMap<string, Output>>();
+
+          // One modal at a time (decision I29): the part, with a modal layer in it, is not put under another.
+          const holdsModal = (part: RenderNode | TextRun): RenderNode | undefined =>
+            part.type !== "node" ? undefined : own(primitives, part.component)?.layer === "modal" ? part : part.children.map(holdsModal).find((found) => found !== undefined);
+          const inner = holdsModal(patch.node);
+
+          for (let up: string | undefined = patch.parent; inner !== undefined && up !== undefined; up = shadowOf(up)?.parent) {
+            const outer = shadowOf(up);
+
+            if (outer?.kind === "node" && own(primitives, outer.component!)?.layer === "modal") {
+              throw new WebRealizationError("nested-modal", `${at} inserts <${inner.component}>, a modal layer, inside <${outer.component}>, another modal layer: a dialog inside a dialog is not supported, so open one at a time or put them side by side`, inner.key);
+            }
+          }
+
           const siblings = target.children;
           siblings.splice(patch.before === undefined ? siblings.length : siblings.indexOf(patch.before), 0, patch.node.key);
           shadowInsert(patch.node, patch.parent);
@@ -1251,12 +1609,20 @@ export const createWebPort = ({ container, primitives, report }: WebPortOptions)
 
       drawn = root;
       listen(true);
+      settleLayers();
 
       return { adopted: true };
     },
 
     unmount() {
       listen(false);
+
+      for (const layer of layers.values()) {
+        clearTimeout(layer.reopen);
+      }
+
+      layers.clear();
+      owed.length = 0;
 
       if (drawn !== undefined) {
         dispose(drawn);

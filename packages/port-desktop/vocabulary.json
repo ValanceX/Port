@@ -42,6 +42,12 @@
     },
     "button": {
       "props": {
+        "id": {
+          "type": {
+            "kind": "string"
+          },
+          "required": false
+        },
         "disabled": {
           "type": {
             "kind": "boolean"
@@ -337,6 +343,84 @@
         }
       },
       "events": {},
+      "commands": {},
+      "scope": {}
+    },
+    "dialog": {
+      "props": {
+        "open": {
+          "type": {
+            "kind": "boolean"
+          },
+          "required": true
+        },
+        "label": {
+          "type": {
+            "kind": "string"
+          },
+          "required": true
+        }
+      },
+      "events": {
+        "dismiss": {
+          "payload": {
+            "kind": "string"
+          }
+        }
+      },
+      "commands": {},
+      "scope": {}
+    },
+    "popover": {
+      "props": {
+        "open": {
+          "type": {
+            "kind": "boolean"
+          },
+          "required": true
+        },
+        "anchor": {
+          "type": {
+            "kind": "string"
+          },
+          "required": false
+        },
+        "placement": {
+          "type": {
+            "kind": "enum",
+            "values": [
+              "top",
+              "bottom",
+              "start",
+              "end"
+            ]
+          },
+          "required": false
+        },
+        "label": {
+          "type": {
+            "kind": "string"
+          },
+          "required": false
+        },
+        "mode": {
+          "type": {
+            "kind": "enum",
+            "values": [
+              "auto",
+              "manual"
+            ]
+          },
+          "required": false
+        }
+      },
+      "events": {
+        "dismiss": {
+          "payload": {
+            "kind": "string"
+          }
+        }
+      },
       "commands": {},
       "scope": {}
     }

@@ -41,6 +41,13 @@ export interface WebPrimitive {
    * or a prop cannot claim the same attribute.
    */
   readonly group?: { readonly within: string; readonly attribute: string };
+  /**
+   * The element is a layer drawn above the page: `"modal"` (a `<dialog>` shown with `showModal()`: the rest of the page inert, focus kept inside, Escape asks to close) or `"popover"` (an element with the
+   * `popover` attribute, shown with `showPopover()`, anchored to another element when the tree says which). Whether it is open is the application's: a prop of kind `layer` named `open` is the whole truth,
+   * and the PORT shows and hides the element to match it, returns focus to what had it before the layer opened, and reports the event `dismiss` (with the reason `"escape"` or `"outside"`) when the person
+   * asks to close it. A layer the browser closes while the application still has it open is drawn again. A popover's `popover` attribute is its prop's (`"auto"` or `"manual"`) or `"auto"`.
+   */
+  readonly layer?: "modal" | "popover";
 }
 
 /**
@@ -94,7 +101,11 @@ export type PropRealization =
   | { readonly kind: "boolean-attribute"; readonly name: string }
   | { readonly kind: "controlled-boolean"; readonly name: string }
   | { readonly kind: "property"; readonly name: string; readonly holds: PropertyKind }
-  | { readonly kind: "element"; readonly name: string };
+  | { readonly kind: "element"; readonly name: string }
+  | { readonly kind: "layer"; readonly name: LayerRole };
+
+/** What a prop of a layer is for: whether it is open (a boolean, controlled), the `id` of the element it is anchored to, and where it sits against it. */
+export type LayerRole = "open" | "anchor" | "placement";
 
 /** The kind of value a native DOM property holds exactly. */
 export type PropertyKind = "boolean" | "number" | "value";
@@ -116,6 +127,11 @@ export interface EventRealization {
    * keyboard event type (`keydown`, `keyup`). Another key is not this event, at this node or for it: the interaction goes on toward the root as any that does not apply.
    */
   readonly key?: string;
+  /**
+   * The PORT raises this event itself, from what it knows and the DOM event does not say (a layer's `dismiss`: the reason, and whether the application still has the layer open). It takes no part
+   * in the resolution of interactions, and its `type` and `payload` are not used. See `WebPrimitive.layer`.
+   */
+  readonly raised?: true;
 }
 
 /** Every primitive the Web PORT can realize, by component name. */
@@ -147,6 +163,12 @@ export const controlledBoolean = (name: string): PropRealization => ({ kind: "co
 
 /** A boolean attribute, realized natively by presence. `{ kind: "boolean-attribute", name }`. */
 export const booleanAttribute = (name: string): PropRealization => ({ kind: "boolean-attribute", name });
+
+/** The event a layer raises when the person asks to close it: `dismiss`, with the reason `"escape"` or `"outside"` as its payload. Realized by the PORT (`raised`), not by a DOM event of the table's. */
+export const layerDismiss: EventRealization = { type: "close", raised: true };
+
+/** A prop of a layer (the primitive's `layer`): `"open"` is whether it is shown, `"anchor"` the `id` of the element a popover sits against, `"placement"` where (`top`, `bottom`, `start`, `end`). `{ kind: "layer", name }`. */
+export const layerProp = (name: LayerRole): PropRealization => ({ kind: "layer", name });
 
 /** A boolean prop that makes the primitive's element `name` when it is `true`. `{ kind: "element", name }`. */
 export const elementWhen = (name: string): PropRealization => ({ kind: "element", name });

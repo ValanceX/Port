@@ -1,0 +1,18 @@
+{
+  "pattern": "https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/",
+  "source": "https://raw.githubusercontent.com/w3c/aria-practices/0f765e4dc33e966026114ac12a8380db1de3b787/content/patterns/dialog-modal/dialog-modal-pattern.html",
+  "commit": "0f765e4dc33e966026114ac12a8380db1de3b787",
+  "note": "The rows are sentences of the pattern's keyboard interaction and notes, quoted as they are. `node scripts/generate-overlay-vectors.mjs --check-source` fetches the pinned page and fails if a quote is not in it (after the markup is removed and the whitespace is made one space). Nothing else here is the pattern's: the vectors are generated from the rows by the script.",
+  "rows": {
+    "opens": "When a dialog opens, focus moves to an element inside the dialog.",
+    "tab-next": "Moves focus to the next tabbable element inside the dialog.",
+    "tab-wrap": "If focus is on the last tabbable element inside the dialog, moves focus to the first tabbable element inside the dialog.",
+    "shift-tab-previous": "Moves focus to the previous tabbable element inside the dialog.",
+    "shift-tab-wrap": "If focus is on the first tabbable element inside the dialog, moves focus to the last tabbable element inside the dialog.",
+    "escape": "Closes the dialog.",
+    "returns": "When a dialog closes, focus returns to the element that invoked the dialog unless either:",
+    "invoker-gone": "The invoking element no longer exists. Then, focus is set on another element that provides logical work flow.",
+    "inert": "Windows under a modal dialog are inert.",
+    "modal": "aria-modal set to true"
+  }
+}

@@ -3,11 +3,11 @@ use port_desktop::vocabulary;
 use serde_json::Value;
 
 #[test]
-fn is_a_mesh_manifest_of_the_twenty_components_a_newcomer_needs() {
+fn is_a_mesh_manifest_of_the_twenty_two_components_a_newcomer_needs() {
     let manifest: Value = serde_json::from_str(vocabulary::JSON).expect("JSON");
 
     assert_eq!(manifest["version"], 1);
-    assert_eq!(vocabulary::components().len(), 20);
+    assert_eq!(vocabulary::components().len(), 22);
 
     for (name, each) in manifest["components"].as_object().unwrap() {
         for part in ["props", "events", "commands", "scope"] {
@@ -23,16 +23,16 @@ fn is_a_mesh_manifest_of_the_twenty_components_a_newcomer_needs() {
 }
 
 #[test]
-fn names_are_one_lowercase_word_each_and_events_are_seven_verbs_click_change_submit_cancel_focus_blur_and_select(
+fn names_are_one_lowercase_word_each_and_events_are_eight_verbs_click_change_submit_cancel_focus_blur_select_and_dismiss(
 ) {
     let manifest: Value = serde_json::from_str(vocabulary::JSON).unwrap();
 
     for (name, each) in manifest["components"].as_object().unwrap() {
         assert!(name.chars().all(|c| c.is_ascii_lowercase()), "{name}");
         for event in each["events"].as_object().unwrap().keys() {
-            // `click` (a press), `change` (a value changed, carrying it) `submit` (a text field's Enter: done typing) and `cancel` (its Escape: backing out). `focus` and `blur` (a text field gained or lost the keyboard focus: the person came in, or left) and `select` (a radio chosen, carrying its value). An eighth is a decision, not an addition.
+            // `click` (a press), `change` (a value changed, carrying it) `submit` (a text field's Enter: done typing) and `cancel` (its Escape: backing out). `focus` and `blur` (a text field gained or lost the keyboard focus: the person came in, or left) and `select` (a radio chosen, carrying its value) and `dismiss` (a layer asked to close, carrying why: `escape` or `outside`). A ninth is a decision, not an addition.
             assert!(
-                ["click", "change", "submit", "cancel", "focus", "blur", "select"]
+                ["click", "change", "submit", "cancel", "focus", "blur", "select", "dismiss"]
                     .contains(&event.as_str()),
                 "{name}.{event}"
             );
@@ -208,4 +208,23 @@ fn the_window_draws_real_screens_without_a_display() {
             "drawing reports nothing; only a person does"
         );
     }
+}
+
+#[test]
+fn a_popover_has_a_mode_and_no_kind() {
+    let manifest: Value = serde_json::from_str(vocabulary::JSON).unwrap();
+    let props: Vec<&String> = manifest["components"]["popover"]["props"]
+        .as_object()
+        .unwrap()
+        .keys()
+        .collect();
+
+    assert!(props.iter().any(|name| *name == "mode"));
+    assert!(
+        !props.iter().any(|name| *name == "kind"),
+        "kind is the input type of a textfield"
+    );
+    assert!(manifest["components"]["textfield"]["props"]
+        .get("kind")
+        .is_some());
 }

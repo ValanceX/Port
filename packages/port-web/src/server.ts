@@ -9,7 +9,7 @@
  */
 
 export { realizeHtml } from "./html.js";
-export { attribute, booleanAttribute, controlled, controlledBoolean, elementWhen, property, textProperty } from "./primitives.js";
-export type { EventRealization, PropertyKind, PropRealization, WebPrimitive, WebPrimitives } from "./primitives.js";
+export { attribute, booleanAttribute, controlled, controlledBoolean, elementWhen, layerDismiss, layerProp, property, textProperty } from "./primitives.js";
+export type { EventRealization, LayerRole, PropertyKind, PropRealization, WebPrimitive, WebPrimitives } from "./primitives.js";
 export { WebRealizationError } from "./error.js";
 export type { WebRealizationCode } from "./error.js";

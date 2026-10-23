@@ -319,3 +319,120 @@ mod parts {
         }
     }
 }
+
+/// A link inside a run of text is named by its key too (decision I21), and the run still wraps.
+mod links {
+    use super::*;
+
+    fn link(key: &str, href: &str) -> Value {
+        json!({"type": "node", "key": key, "component": "link", "props": {"href": href}, "events": {}, "children": [{"type": "text", "key": format!("t{key}"), "text": key}]})
+    }
+
+    fn paragraph(links: &[&str]) -> Tree {
+        let words: Vec<Value> = links
+            .iter()
+            .flat_map(|key| {
+                [
+                    json!({"type": "text", "key": format!("w{key}"), "text": "and "}),
+                    link(key, &format!("/{key}")),
+                ]
+            })
+            .collect();
+
+        serde_json::from_value(json!({"format": "mesh-render", "version": 1, "root": {"type": "node", "key": "p", "component": "paragraph", "props": {}, "events": {}, "children": words}})).unwrap()
+    }
+
+    fn ids(
+        ctx: &egui::Context,
+        view: &mut View,
+        tree: &Tree,
+    ) -> std::collections::BTreeMap<String, u64> {
+        let mut out: Vec<Output> = Vec::new();
+        let update = ctx
+            .run(egui::RawInput::default(), |ctx| {
+                egui::CentralPanel::default().show(ctx, |ui| view.show(ui, &tree.root, &mut out));
+            })
+            .platform_output
+            .accesskit_update
+            .expect("the accessibility tree");
+
+        update
+            .nodes
+            .iter()
+            .filter(|(_, node)| node.role() == egui::accesskit::Role::Link)
+            .map(|(id, node)| (node.label().unwrap().to_owned(), id.0))
+            .collect()
+    }
+
+    #[test]
+    fn a_link_keeps_its_accessibility_node_when_the_links_change_places() {
+        let ctx = egui::Context::default();
+        ctx.enable_accesskit();
+        let mut view = View::default();
+        let before = ids(&ctx, &mut view, &paragraph(&["x", "y", "z"]));
+        let after = ids(&ctx, &mut view, &paragraph(&["z", "x", "y"]));
+
+        assert_eq!(
+            before.keys().collect::<Vec<_>>(),
+            ["x", "y", "z"],
+            "each link is one Link node, named by its words"
+        );
+        assert_eq!(before, after);
+    }
+
+    #[test]
+    fn a_click_on_a_link_is_reported_as_its_address() {
+        let ctx = egui::Context::default();
+        ctx.enable_accesskit();
+        let mut view = View::default();
+        let tree = paragraph(&["x"]);
+        let at = {
+            let mut out: Vec<Output> = Vec::new();
+            let update = ctx
+                .run(egui::RawInput::default(), |ctx| {
+                    egui::CentralPanel::default()
+                        .show(ctx, |ui| view.show(ui, &tree.root, &mut out));
+                })
+                .platform_output
+                .accesskit_update
+                .unwrap();
+            let bounds = update
+                .nodes
+                .iter()
+                .find(|(_, node)| node.role() == egui::accesskit::Role::Link)
+                .and_then(|(_, node)| node.bounds())
+                .unwrap();
+
+            egui::pos2(
+                ((bounds.x0 + bounds.x1) / 2.0) as f32,
+                ((bounds.y0 + bounds.y1) / 2.0) as f32,
+            )
+        };
+        let mut seen: Vec<Output> = Vec::new();
+        let button = |pressed| egui::Event::PointerButton {
+            pos: at,
+            button: egui::PointerButton::Primary,
+            pressed,
+            modifiers: egui::Modifiers::NONE,
+        };
+
+        for events in [
+            vec![egui::Event::PointerMoved(at)],
+            vec![button(true)],
+            vec![button(false)],
+        ] {
+            let _ = ctx.run(
+                egui::RawInput {
+                    events,
+                    ..Default::default()
+                },
+                |ctx| {
+                    egui::CentralPanel::default()
+                        .show(ctx, |ui| view.show(ui, &tree.root, &mut seen));
+                },
+            );
+        }
+
+        assert_eq!(seen, [Output::Link("/x".into())]);
+    }
+}

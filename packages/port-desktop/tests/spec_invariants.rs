@@ -82,7 +82,7 @@ fn violations(u: &TreeUpdate) -> Vec<String> {
         let named =
             n.label().is_some_and(|s| !s.is_empty()) || n.value().is_some_and(|s| !s.is_empty());
         match n.role() {
-            Role::CheckBox | Role::TextInput | Role::RadioGroup | Role::Table
+            Role::CheckBox | Role::TextInput | Role::RadioGroup | Role::Table | Role::Dialog
                 if !named && n.labelled_by().is_empty() =>
             {
                 v.push(format!("{id:?} {:?} has no accessible name", n.role()))
@@ -312,4 +312,48 @@ fn toggle_is_a_button_with_a_pressed_state_and_a_name() {
     assert_eq!(italic.toggled(), Some(accesskit::Toggled::False));
     let v = violations(&u);
     assert!(v.is_empty(), "{v:#?}");
+}
+
+fn with_dialog(label: Option<&str>) -> Tree {
+    let props = match label {
+        Some(label) => serde_json::json!({"open": true, "label": label}),
+        None => serde_json::json!({"open": true}),
+    };
+
+    serde_json::from_value(serde_json::json!({"format":"mesh-render","version":1,"root":{"type":"node","key":"c","component":"column","props":{},"events":{},"children":[
+      {"type":"node","key":"d","component":"dialog","props":props,"events":{},"children":[
+        {"type":"node","key":"b","component":"button","props":{"label":"OK"},"events":{},"children":[]}]}]}})).unwrap()
+}
+
+#[test]
+fn a_dialog_is_a_modal_dialog_with_a_name_and_its_content_inside_it() {
+    let u = drawn(&with_dialog(Some("Sure?")));
+
+    assert_eq!(violations(&u), Vec::<String>::new());
+
+    let dialogs = roles(&u, Role::Dialog);
+
+    assert_eq!(dialogs.len(), 1);
+    assert!(dialogs[0].is_modal(), "aria-modal");
+    assert_eq!(dialogs[0].label(), Some("Sure?"));
+
+    // the button is under the dialog in the tree
+    let dialog_id = u
+        .nodes
+        .iter()
+        .find(|(_, n)| n.role() == Role::Dialog)
+        .map(|(id, _)| *id)
+        .unwrap();
+
+    assert!(u
+        .nodes
+        .iter()
+        .any(|(id, n)| *id == dialog_id && !n.children().is_empty()));
+}
+
+#[test]
+fn a_dialog_with_no_name_would_be_caught() {
+    assert!(violations(&drawn(&with_dialog(None)))
+        .iter()
+        .any(|each| each.contains("Dialog has no accessible name")));
 }

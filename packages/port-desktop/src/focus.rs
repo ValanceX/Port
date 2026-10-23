@@ -15,6 +15,9 @@ pub struct Outline {
     children: HashMap<String, Vec<String>>,
     /// The nodes that take focus: a focusable component that is not disabled.
     takes: HashSet<String>,
+    /// The layers (dialogs and popovers) the application has open, and which of the nodes are dialogs.
+    open: HashSet<String>,
+    dialogs: HashSet<String>,
 }
 
 impl Outline {
@@ -47,6 +50,16 @@ impl Outline {
                 && props.get("disabled").and_then(Value::as_bool) != Some(true)
             {
                 into.takes.insert(key.clone());
+            }
+
+            if component == "dialog" {
+                into.dialogs.insert(key.clone());
+            }
+
+            if matches!(component.as_str(), "dialog" | "popover")
+                && props.get("open").and_then(Value::as_bool) == Some(true)
+            {
+                into.open.insert(key.clone());
             }
 
             for child in children {
@@ -92,6 +105,37 @@ impl Outline {
         }
 
         found
+    }
+
+    /// The key of the node that holds `key`, if it has one.
+    pub fn parent_of(&self, key: &str) -> Option<&str> {
+        self.parents.get(key).map(String::as_str)
+    }
+
+    /// Whether the node is a dialog.
+    pub fn is_dialog(&self, key: &str) -> bool {
+        self.dialogs.contains(key)
+    }
+
+    /// Whether the node is a layer the application has open.
+    pub fn is_open(&self, key: &str) -> bool {
+        self.open.contains(key)
+    }
+
+    /// Whether `key` is `ancestor` or under it.
+    pub fn is_within(&self, key: &str, ancestor: &str) -> bool {
+        let mut at = key;
+
+        loop {
+            if at == ancestor {
+                return true;
+            }
+
+            match self.parents.get(at) {
+                Some(parent) => at = parent,
+                None => return false,
+            }
+        }
     }
 
     /// Whether the node, or anything under it, takes focus.
