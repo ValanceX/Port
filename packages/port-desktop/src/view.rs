@@ -48,6 +48,17 @@ fn marked(
     response: &Response,
     props: &BTreeMap<String, Value>,
 ) {
+    marked_as(described, ui, response, response.id, props);
+}
+
+/// `marked`, for a node of the accessibility tree that is not the response's own (a group, whose radios are its children).
+fn marked_as(
+    described: &HashMap<String, String>,
+    ui: &Ui,
+    response: &Response,
+    node_id: egui::Id,
+    props: &BTreeMap<String, Value>,
+) {
     let invalid = props
         .get("invalid")
         .and_then(Value::as_bool)
@@ -68,7 +79,7 @@ fn marked(
     }
 
     if invalid || description.is_some() {
-        ui.ctx().accesskit_node_builder(response.id, |node| {
+        ui.ctx().accesskit_node_builder(node_id, |node| {
             if invalid {
                 node.set_invalid(egui::accesskit::Invalid::True);
             }
@@ -892,20 +903,29 @@ impl View {
                 "radiogroup" => {
                     let radios = radios_of(children);
                     let leaving = self.rove(ui, key, &radios, out);
-                    let response = ui.vertical(|ui| self.each(ui, children, out)).response;
+                    let group_id = ui.make_persistent_id(("radiogroup", key));
                     let name = props
                         .get("label")
                         .and_then(Value::as_str)
                         .map(str::to_owned);
 
-                    ui.ctx().accesskit_node_builder(response.id, |builder| {
+                    // The group is a node of the accessibility tree and its radios are its children (AccessKit: a radio group holds its radios).
+                    ui.ctx().accesskit_node_builder(group_id, |builder| {
                         builder.set_role(egui::accesskit::Role::RadioGroup);
 
                         if let Some(name) = name {
                             builder.set_label(name);
                         }
                     });
-                    marked(&self.described, ui, &response, props);
+
+                    let ctx = ui.ctx().clone();
+                    let response = ctx
+                        .with_accessibility_parent(group_id, || {
+                            ui.vertical(|ui| self.each(ui, children, out))
+                        })
+                        .response;
+
+                    marked_as(&self.described, ui, &response, group_id, props);
 
                     // Tab in a group leaves it: forward to the next widget drawn that takes focus.
                     if leaving == Some(Leaving::Forward) {
@@ -1352,6 +1372,7 @@ impl View {
                 ui.label(style.apply(RichText::new(text)));
             }
             Node::Node {
+                key,
                 component,
                 props,
                 children,
@@ -1386,8 +1407,42 @@ impl View {
                 }
                 "link" => {
                     let href = props.get("href").and_then(Value::as_str).unwrap_or("");
+                    let text = node.text();
 
-                    if ui.link(style.apply(RichText::new(node.text()))).clicked() {
+                    // A link keeps the id its key gives it, and the run of text keeps its wrapping (decision I21): the words are laid out as an ordinary label, as they were, and the link is a widget with
+                    // an id made from the key over the label's rectangle. The label itself is hidden from assistive technology, so the words are read once, as the link.
+                    let label = ui.label(
+                        style.apply(
+                            RichText::new(text.as_str())
+                                .color(ui.visuals().hyperlink_color)
+                                .underline(),
+                        ),
+                    );
+                    let response = ui.interact(
+                        label.rect,
+                        ui.id().with(("link", key)),
+                        egui::Sense::click(),
+                    );
+
+                    ui.ctx().accesskit_node_builder(label.id, |builder| {
+                        builder.set_hidden();
+                    });
+                    response.widget_info(|| WidgetInfo::labeled(WidgetType::Link, true, &text));
+
+                    if response.hovered() {
+                        ui.ctx().set_cursor_icon(egui::CursorIcon::PointingHand);
+                    }
+
+                    if response.has_focus() {
+                        ui.painter().rect_stroke(
+                            label.rect.expand(1.0),
+                            2.0,
+                            ui.visuals().selection.stroke,
+                            egui::StrokeKind::Outside,
+                        );
+                    }
+
+                    if response.clicked() {
                         out.push(Output::Link(href.to_owned()));
                     }
                 }
