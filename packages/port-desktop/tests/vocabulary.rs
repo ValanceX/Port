@@ -209,3 +209,22 @@ fn the_window_draws_real_screens_without_a_display() {
         );
     }
 }
+
+#[test]
+fn a_popover_has_a_mode_and_no_kind() {
+    let manifest: Value = serde_json::from_str(vocabulary::JSON).unwrap();
+    let props: Vec<&String> = manifest["components"]["popover"]["props"]
+        .as_object()
+        .unwrap()
+        .keys()
+        .collect();
+
+    assert!(props.iter().any(|name| *name == "mode"));
+    assert!(
+        !props.iter().any(|name| *name == "kind"),
+        "kind is the input type of a textfield"
+    );
+    assert!(manifest["components"]["textfield"]["props"]
+        .get("kind")
+        .is_some());
+}

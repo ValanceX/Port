@@ -14,7 +14,7 @@ const primitives: WebPrimitives = {
   popover: {
     element: "div",
     layer: "popover",
-    props: { open: layerProp("open"), anchor: layerProp("anchor"), placement: layerProp("placement"), kind: attribute("popover") },
+    props: { open: layerProp("open"), anchor: layerProp("anchor"), placement: layerProp("placement"), mode: attribute("popover") },
     events: { dismiss: layerDismiss },
   },
 };
@@ -126,8 +126,8 @@ describe("a modal dialog", () => {
 });
 
 describe("a popover", () => {
-  const make = (kind?: string) => (open: boolean) =>
-    page(button(3, "invoker", "invoker"), button(4, "elsewhere"), layer("popover", 2, { open, anchor: "invoker", placement: "bottom", ...(kind === undefined ? {} : { kind }) }, [button(10, "inside")]));
+  const make = (mode?: string) => (open: boolean) =>
+    page(button(3, "invoker", "invoker"), button(4, "elsewhere"), layer("popover", 2, { open, anchor: "invoker", placement: "bottom", ...(mode === undefined ? {} : { mode }) }, [button(10, "inside")]));
 
   it("auto: an outside click closes it as a dismissal, and Escape closes it with the reason escape", async () => {
     const container = mount();

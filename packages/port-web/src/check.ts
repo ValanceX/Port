@@ -315,7 +315,8 @@ export const checkTree = (tree: RenderTree, primitives: WebPrimitives): Plan => 
   const keys = new Set<string>();
   const plan = new Map<string, ReadonlyMap<string, Output>>();
 
-  const walk = (part: RenderNode | TextRun): void => {
+  // `inside` is the modal layer the part is in, if any
+  const walk = (part: RenderNode | TextRun, inside?: RenderNode): void => {
     if (keys.has(part.key)) {
       throw new WebRealizationError("duplicate-key", `the key ${part.key} appears twice in one tree`, part.key);
     }
@@ -369,7 +370,14 @@ export const checkTree = (tree: RenderTree, primitives: WebPrimitives): Plan => 
       }
     }
 
-    part.children.forEach(walk);
+    const modal = primitive?.layer === "modal";
+
+    // One modal at a time (decision I29): a second would need a stack of inert pages, which neither target keeps.
+    if (modal && inside !== undefined) {
+      throw new WebRealizationError("nested-modal", `<${part.component}> is a modal layer inside <${inside.component}>, another modal layer: a dialog inside a dialog is not supported, so open one at a time or put them side by side`, part.key);
+    }
+
+    part.children.forEach((child) => walk(child, modal ? part : inside));
   };
 
   walk(tree.root);

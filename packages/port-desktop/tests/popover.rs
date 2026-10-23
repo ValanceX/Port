@@ -17,7 +17,7 @@ fn button(key: &str, id: Option<&str>) -> Value {
     json!({"type": "node", "key": key, "component": "button", "props": props, "events": {"click": format!("click-{key}")}, "children": []})
 }
 
-fn screen(open: bool, kind: &str, placement: &str) -> Tree {
+fn screen(open: bool, mode: &str, placement: &str) -> Tree {
     // some lines above the invoker, so that there is room above it
     let above: Vec<Value> = (0..8).map(|n| json!({"type": "node", "key": format!("line{n}"), "component": "text", "props": {}, "events": {}, "children": [{"type": "text", "key": format!("t{n}"), "text": "a line"}]})).collect();
     let mut children = above;
@@ -25,7 +25,7 @@ fn screen(open: bool, kind: &str, placement: &str) -> Tree {
     children.extend([
         button("invoker", Some("invoker")),
         button("elsewhere", None),
-        json!({"type": "node", "key": "pop", "component": "popover", "props": {"open": open, "anchor": "invoker", "placement": placement, "kind": kind}, "events": {"dismiss": "dismiss"}, "children": [button("inside", None)]}),
+        json!({"type": "node", "key": "pop", "component": "popover", "props": {"open": open, "anchor": "invoker", "placement": placement, "mode": mode}, "events": {"dismiss": "dismiss"}, "children": [button("inside", None)]}),
     ]);
 
     serde_json::from_value(json!({"format": "mesh-render", "version": 1, "root": {"type": "node", "key": "page", "component": "column", "props": {}, "events": {}, "children": children}})).unwrap()

@@ -1396,6 +1396,20 @@ export const createWebPort = ({ container, primitives, report }: WebPortOptions)
 
           // The part is checked as a tree of its own would be: every prop and event realized, void elements, adjacent text.
           const plan = patch.node.type === "node" ? checkTree({ format: "mesh-render", version: 1, root: patch.node }, primitives) : new Map<string, ReadonlyMap<string, Output>>();
+
+          // One modal at a time (decision I29): the part, with a modal layer in it, is not put under another.
+          const holdsModal = (part: RenderNode | TextRun): RenderNode | undefined =>
+            part.type !== "node" ? undefined : own(primitives, part.component)?.layer === "modal" ? part : part.children.map(holdsModal).find((found) => found !== undefined);
+          const inner = holdsModal(patch.node);
+
+          for (let up: string | undefined = patch.parent; inner !== undefined && up !== undefined; up = shadowOf(up)?.parent) {
+            const outer = shadowOf(up);
+
+            if (outer?.kind === "node" && own(primitives, outer.component!)?.layer === "modal") {
+              throw new WebRealizationError("nested-modal", `${at} inserts <${inner.component}>, a modal layer, inside <${outer.component}>, another modal layer: a dialog inside a dialog is not supported, so open one at a time or put them side by side`, inner.key);
+            }
+          }
+
           const siblings = target.children;
           siblings.splice(patch.before === undefined ? siblings.length : siblings.indexOf(patch.before), 0, patch.node.key);
           shadowInsert(patch.node, patch.parent);

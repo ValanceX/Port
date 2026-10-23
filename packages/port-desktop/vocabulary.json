@@ -397,19 +397,19 @@
           },
           "required": false
         },
-        "kind": {
+        "label": {
+          "type": {
+            "kind": "string"
+          },
+          "required": false
+        },
+        "mode": {
           "type": {
             "kind": "enum",
             "values": [
               "auto",
               "manual"
             ]
-          },
-          "required": false
-        },
-        "label": {
-          "type": {
-            "kind": "string"
           },
           "required": false
         }

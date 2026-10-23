@@ -841,7 +841,7 @@ impl View {
                 // outside it, or Escape, asks to close; `manual` is closed only by the application. Opening does not move focus; closing returns it to the invoker when it was inside.
                 "popover" => {
                     let open = props.get("open").and_then(Value::as_bool).unwrap_or(false);
-                    let manual = props.get("kind").and_then(Value::as_str) == Some("manual");
+                    let manual = props.get("mode").and_then(Value::as_str) == Some("manual");
                     let id = ui.make_persistent_id(("popover", key));
 
                     if !open {

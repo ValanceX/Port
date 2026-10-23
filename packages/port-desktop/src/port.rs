@@ -17,6 +17,8 @@ pub enum PortError {
     UnsupportedFormat { format: String, version: u64 },
     /// `update` before anything was drawn (or after `unmount`).
     NotDrawn,
+    /// A dialog inside a dialog (decision I29): one modal layer at a time. The keys name the inner and the outer.
+    NestedModal { inner: String, outer: String },
 }
 
 impl PortError {
@@ -24,6 +26,7 @@ impl PortError {
         match self {
             PortError::UnsupportedFormat { .. } => "unsupported-format",
             PortError::NotDrawn => "not-drawn",
+            PortError::NestedModal { .. } => "nested-modal",
         }
     }
 }
@@ -33,6 +36,7 @@ impl std::fmt::Display for PortError {
         match self {
             PortError::UnsupportedFormat { format, version } => write!(f, "unsupported-format: this PORT reads {FORMAT} version {VERSION}, not {format} version {version}"),
             PortError::NotDrawn => write!(f, "not-drawn: nothing is drawn; draw a tree first"),
+            PortError::NestedModal { inner, outer } => write!(f, "nested-modal: the dialog {inner} is inside the dialog {outer}; a dialog inside a dialog is not supported, so open one at a time or put them side by side"),
         }
     }
 }
@@ -115,14 +119,38 @@ impl Port {
 }
 
 fn check(tree: &Tree) -> Result<(), PortError> {
-    if tree.format == FORMAT && tree.version == VERSION {
-        Ok(())
-    } else {
-        Err(PortError::UnsupportedFormat {
+    if tree.format != FORMAT || tree.version != VERSION {
+        return Err(PortError::UnsupportedFormat {
             format: tree.format.clone(),
             version: tree.version,
-        })
+        });
     }
+
+    fn nested(node: &Node, outer: Option<&str>) -> Result<(), PortError> {
+        let Node::Node {
+            key,
+            component,
+            children,
+            ..
+        } = node
+        else {
+            return Ok(());
+        };
+        let dialog = component == "dialog";
+
+        if let (true, Some(outer)) = (dialog, outer) {
+            return Err(PortError::NestedModal {
+                inner: key.clone(),
+                outer: outer.to_owned(),
+            });
+        }
+
+        children
+            .iter()
+            .try_for_each(|child| nested(child, if dialog { Some(key) } else { outer }))
+    }
+
+    nested(&tree.root, None)
 }
 
 /// Reading what is drawn, as a person would: for tests and tools, not part of the contract.
