@@ -15,13 +15,12 @@
 //!   own handler, and the vectors' components (`card`, `row`, `label`) and events (`press`, `select`,
 //!   `dismiss`) are not in its vocabulary. There is no function to run the cases against;
 //! - the program vectors with steps (`snippets`, `forwarder`, `passing`) are taken as trees, and their steps are held to the
-//!   same keyed-update law as the identity vectors (`program_steps_do_not_keep_identity_by_key`: four transitions fail,
-//!   listed exactly); `enums` is a tree it takes, and its `rejects` and `dispatches` cases are MESH's alone;
-//! - the `identity` vectors need a keyed update. `identity_is_not_kept_by_key` runs them where the Desktop
+//!   same keyed-update law as the identity vectors (`program_steps_keep_identity_by_key`); `enums` is a tree it takes, and its `rejects` and `dispatches` cases are MESH's alone;
+//! - the `identity` vectors need a keyed update. `identity_is_kept_by_key` runs them where the Desktop
 //!   draws: each node with a handler becomes a button named by its key, two frames are drawn in one egui
-//!   context, and a kept identity must have the same accessibility node id. The ones that fail are listed in
-//!   `NOT_KEPT_BY_KEY`; the list is asserted exactly, so fixing the Desktop (or breaking it further) fails
-//!   this test until the list is changed.
+//!   context, and a kept identity must have the same accessibility node id (decision I16: a widget's id
+//!   comes from its node's key, not its place). Before I16, 14 of the 19 vectors failed; a control shows the
+//!   comparison can fail (a different key is a different node).
 #![cfg(feature = "window")]
 
 use port_desktop::port::{inspect, Port};
@@ -117,25 +116,6 @@ fn the_values_text_run_is_readable() {
 
 // ---------------------------------------------------------------------------------------------------------
 
-/// The identity vectors the Desktop does not pass: the accessibility node of a kept identity changes with its
-/// position. Asserted exactly.
-const NOT_KEPT_BY_KEY: &[&str] = &[
-    "C10-same-label-different-identity",
-    "C12-reorder",
-    "C13-insert",
-    "C14-remove-middle",
-    "C15-remove-first",
-    "C18-string-versus-number",
-    "C2-insert",
-    "C22-handler-identity",
-    "C3-remove-middle",
-    "C4-remove-first",
-    "C5-reorder",
-    "C7-conditional-disappears",
-    "C8-conditional-reappears",
-    "C9-handler-identity",
-];
-
 /// The vector's tree in the Desktop's vocabulary: a node with a handler is a button named by its key (the name
 /// is how the node is found again), every other node a column.
 fn in_desktop_vocabulary(node: &Value) -> Value {
@@ -186,8 +166,17 @@ fn frames(trees: &[&Value]) -> Vec<BTreeMap<String, u64>> {
         .collect()
 }
 
+/// The labels (keys) of the buttons whose accessibility node id changed between two frames, though the key is in both.
+fn moved(before: &BTreeMap<String, u64>, after: &BTreeMap<String, u64>) -> Vec<String> {
+    before
+        .iter()
+        .filter(|(label, id)| after.get(*label).is_some_and(|now| now != *id))
+        .map(|(label, _)| label.clone())
+        .collect()
+}
+
 #[test]
-fn identity_is_not_kept_by_key() {
+fn identity_is_kept_by_key() {
     let mut failing = Vec::new();
     for (name, earlier, previous, next) in identity_vectors() {
         let all: Vec<&Value> = earlier.iter().chain([&previous, &next]).collect();
@@ -195,19 +184,63 @@ fn identity_is_not_kept_by_key() {
         let (before, after) = (&drawn[drawn.len() - 2], &drawn[drawn.len() - 1]);
         // A key in both trees is a kept identity here, except where a key returns after a gap (C8, C21: the
         // earlier tree's identity is not the previous one's).
-        let moved = before
-            .iter()
-            .filter(|(label, id)| after.get(*label).is_some_and(|now| now != *id))
-            .count();
-        if moved > 0 {
+        if !moved(before, after).is_empty() {
             failing.push(name);
         }
     }
     failing.sort();
-    assert_eq!(
-        failing, NOT_KEPT_BY_KEY,
-        "the vectors in which a kept identity changed its accessibility node id"
+    assert!(
+        failing.is_empty(),
+        "the vectors in which a kept identity changed its accessibility node id: {failing:?}"
     );
+}
+
+/// The comparison can fail: the same two buttons in the same places with other keys are other nodes, and the same keys in another
+/// order are the same nodes. (Before I16 the second half was the other way round: the places decided.)
+#[test]
+fn the_identity_comparison_tells_a_key_from_a_place() {
+    let button = |key: &str| json!({"type": "node", "key": key, "component": "button", "props": {"label": key}, "events": {"click": format!("h{key}")}, "children": []});
+    let column = |keys: &[&str]| json!({"format": "mesh-render", "version": 1, "root": {"type": "node", "key": "root", "component": "column", "props": {}, "events": {}, "children": keys.iter().map(|key| button(key)).collect::<Vec<_>>()}});
+    let render = |trees: &[Value]| {
+        let ctx = egui::Context::default();
+        ctx.enable_accesskit();
+        let mut view = View::default();
+        trees
+            .iter()
+            .map(|value| {
+                let tree = tree_of(value);
+                let mut out: Vec<Output> = Vec::new();
+                let update = ctx
+                    .run(egui::RawInput::default(), |ctx| {
+                        egui::CentralPanel::default()
+                            .show(ctx, |ui| view.show(ui, &tree.root, &mut out));
+                    })
+                    .platform_output
+                    .accesskit_update
+                    .expect("the accessibility tree");
+                update
+                    .nodes
+                    .iter()
+                    .filter(|(_, node)| node.role() == egui::accesskit::Role::Button)
+                    .map(|(id, node)| (node.label().unwrap().to_owned(), id.0))
+                    .collect::<BTreeMap<String, u64>>()
+            })
+            .collect::<Vec<_>>()
+    };
+
+    // The same keys, reordered: the same nodes.
+    let drawn = render(&[column(&["a", "b", "c"]), column(&["c", "a", "b"])]);
+    assert!(moved(&drawn[0], &drawn[1]).is_empty());
+
+    // Another key in the same place: another node (the label is the key here, so compare by place).
+    let other = render(&[column(&["a", "b"]), column(&["x", "y"])]);
+    let ids = |frame: &BTreeMap<String, u64>| {
+        frame
+            .values()
+            .copied()
+            .collect::<std::collections::BTreeSet<_>>()
+    };
+    assert!(ids(&other[0]).is_disjoint(&ids(&other[1])));
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -249,42 +282,20 @@ fn the_reader_and_the_port_take_every_tree_of_the_program_vectors() {
     assert_eq!(port.counts(), (trees.len(), trees.len()));
 }
 
-/// The step transitions of the program vectors in which a kept key changes its accessibility node id: asserted
-/// exactly, like [`NOT_KEPT_BY_KEY`]. `(directory, from step, to step)`.
-///
-/// These are reorders and removals in a repeat (`snippets` 0 to 1, `forwarder` 0 to 1 and 1 to 2, `passing` 0 to 1): a widget's
-/// egui id follows its position, so a row that moves is a new accessibility node, the Desktop's known difference from the identity
-/// law (the same reason as C5, C12 to C15 above). The ones that pass are the steps that only change values or add at the end.
-const STEPS_NOT_KEPT_BY_KEY: &[(&str, usize, usize)] = &[
-    ("snippets", 0, 1),
-    ("forwarder", 0, 1),
-    ("forwarder", 1, 2),
-    ("passing", 0, 1),
-];
-
 #[test]
-fn program_steps_do_not_keep_identity_by_key() {
+fn program_steps_keep_identity_by_key() {
     let mut failing: Vec<(String, usize, usize)> = Vec::new();
     for dir in PROGRAM_DIRS {
         let trees = program_trees(dir);
         for from in 0..trees.len() - 1 {
             let drawn = frames(&[&trees[from], &trees[from + 1]]);
-            let (before, after) = (&drawn[0], &drawn[1]);
-            let moved = before
-                .iter()
-                .filter(|(label, id)| after.get(*label).is_some_and(|now| now != *id))
-                .count();
-            if moved > 0 {
+            if !moved(&drawn[0], &drawn[1]).is_empty() {
                 failing.push((dir.to_string(), from, from + 1));
             }
         }
     }
-    let expected: Vec<(String, usize, usize)> = STEPS_NOT_KEPT_BY_KEY
-        .iter()
-        .map(|(dir, from, to)| (dir.to_string(), *from, *to))
-        .collect();
-    assert_eq!(
-        failing, expected,
-        "the step transitions in which a kept key changed its accessibility node id"
+    assert!(
+        failing.is_empty(),
+        "the step transitions in which a kept key changed its accessibility node id: {failing:?}"
     );
 }

@@ -78,6 +78,31 @@ fn marked(
     }
 }
 
+/// Draws in a scope whose widget ids come from `key` and nothing else (decision I16). egui gives a widget the id of its place: a child `Ui` seeds its automatic ids from its parent's counter, so
+/// `push_id` keeps `ui.id()` stable but not the ids of the buttons and boxes inside it, and a row that moves would be a new widget with a new accessibility node and no focus. A `Ui` made by
+/// `Ui::new` seeds them from its own id, so this makes one from the parent's id and the key, with what a child scope takes from its parent: its layout, style, clip, enabled state and room;
+/// the parent then accounts for the space it used, as `scope` does.
+fn keyed<R>(ui: &mut Ui, key: &str, add: impl FnOnce(&mut Ui) -> R) -> R {
+    let builder = egui::UiBuilder::new()
+        .layer_id(ui.layer_id())
+        .max_rect(ui.available_rect_before_wrap())
+        .layout(*ui.layout())
+        .style(ui.style().clone());
+    let mut child = Ui::new(ui.ctx().clone(), ui.id().with(("key", key)), builder);
+
+    child.set_clip_rect(ui.clip_rect());
+
+    if !ui.is_enabled() {
+        child.disable();
+    }
+
+    let result = add(&mut child);
+
+    ui.allocate_rect(child.min_rect(), egui::Sense::hover());
+
+    result
+}
+
 /// The kinds of image file the window decodes.
 const IMAGE_KINDS: [&str; 7] = ["png", "jpg", "jpeg", "gif", "bmp", "webp", "svg"];
 
@@ -144,8 +169,19 @@ impl View {
         self.block(ui, node, out);
     }
 
-    /// A node as a block: it takes the width and a line of its own.
+    /// A node as a block: it takes the width and a line of its own. Its widgets' ids come from its key (decision I16): a node that keeps its identity keeps its widget, its accessibility
+    /// node, its focus and whatever the toolkit remembers by id (a text field's cursor, a scroll position, an open section), wherever the tree puts it next frame.
     fn block(&mut self, ui: &mut Ui, node: &Node, out: &mut Vec<Output>) {
+        match node {
+            Node::Text { text, .. } => {
+                ui.label(text);
+            }
+            Node::Node { key, .. } => keyed(ui, key, |ui| self.draw(ui, node, out)),
+        }
+    }
+
+    /// A component node, drawn in the scope its key makes.
+    fn draw(&mut self, ui: &mut Ui, node: &Node, out: &mut Vec<Output>) {
         match node {
             Node::Text { text, .. } => {
                 ui.label(text);
@@ -296,7 +332,7 @@ impl View {
                     ctx.with_accessibility_parent(list_id, || {
                         ui.vertical(|ui| {
                             for (at, item) in children.iter().enumerate() {
-                                let item_id = list_id.with(("item", at));
+                                let item_id = list_id.with(("item", item.key()));
 
                                 ui.ctx().accesskit_node_builder(item_id, |builder| {
                                     builder.set_role(egui::accesskit::Role::ListItem);
@@ -304,31 +340,36 @@ impl View {
                                     builder.set_size_of_set(size);
                                 });
                                 ctx.with_accessibility_parent(item_id, || {
-                                    ui.horizontal_wrapped(|ui| {
-                                        no_gap(ui);
-                                        // The bullet or number is decoration: the item is its text alone. Hidden, so an assistive technology does not read "bullet" before it.
-                                        let marker = ui.label(if ordered {
-                                            format!("{}. ", at + 1)
-                                        } else {
-                                            "\u{2022} ".to_owned()
-                                        });
+                                    keyed(ui, item.key(), |ui| {
+                                        ui.horizontal_wrapped(|ui| {
+                                            no_gap(ui);
+                                            // The bullet or number is decoration: the item is its text alone. Hidden, so an assistive technology does not read "bullet" before it.
+                                            let marker = ui.label(if ordered {
+                                                format!("{}. ", at + 1)
+                                            } else {
+                                                "\u{2022} ".to_owned()
+                                            });
 
-                                        ui.ctx().accesskit_node_builder(marker.id, |builder| {
-                                            builder.set_hidden();
-                                        });
-                                        match item {
-                                            Node::Node {
-                                                component,
-                                                children,
-                                                ..
-                                            } if component == "listitem" => self.inline_children(
-                                                ui,
-                                                children,
-                                                out,
-                                                Style::default(),
-                                            ),
-                                            other => self.inline(ui, other, out, Style::default()),
-                                        }
+                                            ui.ctx().accesskit_node_builder(marker.id, |builder| {
+                                                builder.set_hidden();
+                                            });
+                                            match item {
+                                                Node::Node {
+                                                    component,
+                                                    children,
+                                                    ..
+                                                } if component == "listitem" => self
+                                                    .inline_children(
+                                                        ui,
+                                                        children,
+                                                        out,
+                                                        Style::default(),
+                                                    ),
+                                                other => {
+                                                    self.inline(ui, other, out, Style::default())
+                                                }
+                                            }
+                                        })
                                     });
                                 });
                             }
@@ -791,7 +832,7 @@ impl View {
         ctx.with_accessibility_parent(table_id, || {
             egui::Grid::new(table_id).striped(true).show(ui, |ui| {
                 for (at, (_, row)) in rows.iter().enumerate() {
-                    let row_id = table_id.with(("row", at));
+                    let row_id = table_id.with(("row", row.key()));
 
                     ui.ctx().accesskit_node_builder(row_id, |builder| {
                         builder.set_role(egui::accesskit::Role::Row);
@@ -827,7 +868,7 @@ impl View {
         else {
             return;
         };
-        let cell_id = row_id.with(("cell", column));
+        let cell_id = row_id.with(("cell", cell.key()));
         let role = match component.as_str() {
             "columnheader" => egui::accesskit::Role::ColumnHeader,
             "rowheader" => egui::accesskit::Role::RowHeader,
@@ -859,7 +900,9 @@ impl View {
 
         // Not wrapped: inside a grid a wrapping layout is given the column's width from before this cell was drawn, which breaks a header word in two ("Orde" "r").
         ctx.with_accessibility_parent(cell_id, || {
-            ui.horizontal(|ui| self.inline_children(ui, children, out, style));
+            keyed(ui, cell.key(), |ui| {
+                ui.horizontal(|ui| self.inline_children(ui, children, out, style))
+            });
         });
     }
 
@@ -1085,3 +1128,144 @@ pub const REALIZED_CONTENT: &[&str] = &[
     "emphasis",
     "link",
 ];
+
+/// The spike behind decision I16: what egui remembers by id (a scroll position, whether a section is open, which text field has focus) follows a node's key when the scope is `keyed`, and
+/// follows its place when it is not. egui 0.31.1 seeds the automatic ids of a child `Ui` from its parent's counter, so `push_id` keeps the child's own id but not the ids inside it.
+#[cfg(test)]
+mod identity_spike {
+    use super::keyed;
+    use egui::{CentralPanel, CollapsingHeader, Context, RawInput, ScrollArea, Ui};
+
+    /// Runs one frame whose content is `add`.
+    fn frame(ctx: &Context, add: impl FnMut(&mut Ui)) {
+        let mut add = add;
+
+        let _ = ctx.run(RawInput::default(), |ctx| {
+            CentralPanel::default().show(ctx, |ui| add(ui));
+        });
+    }
+
+    /// `(key, scroll offset)` of one scroll area for each key in order, in a frame; `force` is the key whose offset this frame sets.
+    fn scrolls(
+        ctx: &Context,
+        order: &[&str],
+        force: Option<&str>,
+        by_key: bool,
+    ) -> Vec<(String, f32)> {
+        let mut seen = Vec::new();
+
+        frame(ctx, |ui| {
+            for (place, key) in order.iter().enumerate() {
+                let mut show = |ui: &mut Ui| {
+                    // Not keyed: what egui does by default is the same id for every area of a `Ui`, so the control names them by their place, as a list drawn by index would.
+                    let mut area = ScrollArea::vertical().max_height(40.0);
+
+                    if !by_key {
+                        area = area.id_salt(place);
+                    }
+
+                    if force == Some(*key) {
+                        area = area.vertical_scroll_offset(50.0);
+                    }
+
+                    let shown = area.show(ui, |ui| ui.allocate_space(egui::vec2(10.0, 200.0)));
+
+                    seen.push((key.to_string(), shown.state.offset.y));
+                };
+
+                if by_key {
+                    keyed(ui, key, show);
+                } else {
+                    show(ui);
+                }
+            }
+        });
+
+        seen
+    }
+
+    #[test]
+    fn a_scroll_position_follows_the_key_and_not_the_place() {
+        for (by_key, expected) in [
+            (true, [("b", 50.0), ("a", 0.0)]),
+            (false, [("b", 0.0), ("a", 50.0)]),
+        ] {
+            let ctx = Context::default();
+
+            // Two frames: the second area is scrolled in the first, and then the two change places.
+            scrolls(&ctx, &["a", "b"], Some("b"), by_key);
+            scrolls(&ctx, &["a", "b"], None, by_key);
+
+            let after = scrolls(&ctx, &["b", "a"], None, by_key);
+
+            assert_eq!(
+                after,
+                expected
+                    .iter()
+                    .map(|(key, offset)| (key.to_string(), *offset))
+                    .collect::<Vec<_>>(),
+                "keyed: {by_key}"
+            );
+        }
+    }
+
+    /// Which keys have an open section, after the sections were laid in `order`; `open` is the key forced open in this frame.
+    fn sections(
+        ctx: &Context,
+        order: &[&str],
+        open: Option<&str>,
+        by_key: bool,
+    ) -> Vec<(String, bool)> {
+        let mut seen = Vec::new();
+
+        frame(ctx, |ui| {
+            for (place, key) in order.iter().enumerate() {
+                let mut show = |ui: &mut Ui| {
+                    // The same title for both: the id must come from the key, not from what the section says (the control names them by their place).
+                    let mut header = CollapsingHeader::new("section")
+                        .open(open.map(|forced| forced == *key).filter(|forced| *forced));
+
+                    if !by_key {
+                        header = header.id_salt(place);
+                    }
+
+                    let shown = header.show(ui, |ui| ui.label("inside"));
+
+                    seen.push((key.to_string(), shown.body_response.is_some()));
+                };
+
+                if by_key {
+                    keyed(ui, key, show);
+                } else {
+                    show(ui);
+                }
+            }
+        });
+
+        seen
+    }
+
+    #[test]
+    fn an_open_section_follows_the_key_and_not_the_place() {
+        for (by_key, expected) in [
+            (true, [("b", true), ("a", false)]),
+            (false, [("b", false), ("a", true)]),
+        ] {
+            let ctx = Context::default();
+
+            sections(&ctx, &["a", "b"], Some("b"), by_key);
+            sections(&ctx, &["a", "b"], None, by_key);
+
+            let after = sections(&ctx, &["b", "a"], None, by_key);
+
+            assert_eq!(
+                after,
+                expected
+                    .iter()
+                    .map(|(key, open)| (key.to_string(), *open))
+                    .collect::<Vec<_>>(),
+                "keyed: {by_key}"
+            );
+        }
+    }
+}

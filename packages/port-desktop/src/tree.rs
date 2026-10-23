@@ -25,6 +25,13 @@ pub enum Node {
 }
 
 impl Node {
+    /// The node's key: its identity across renders.
+    pub fn key(&self) -> &str {
+        match self {
+            Node::Text { key, .. } | Node::Node { key, .. } => key,
+        }
+    }
+
     /// The text of a node and everything under it: a button's label.
     pub fn text(&self) -> String {
         match self {
