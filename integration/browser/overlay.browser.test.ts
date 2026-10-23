@@ -6,7 +6,7 @@ import { attribute, createWebPort, layerDismiss, layerProp, type WebPort, type W
 import { userEvent } from "@vitest/browser/context";
 import { afterEach, describe, expect, it } from "vitest";
 
-import vectors from "../../overlays/dialog-modal.vectors.json";
+import vectors from "../../overlays/dialog-modal.vectors.json" with { type: "json" };
 
 interface Step {
   readonly focus?: string;

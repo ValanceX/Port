@@ -1,0 +1,24 @@
+{
+  "repository": "https://github.com/web-platform-tests/wpt",
+  "commit": "30c8fa729a746472239a3ef1dc5728a96a0e4f38",
+  "note": "The specification subset of web-platform-tests that corresponds to what the Web PORT relies on of the platform, run in a reference browser as a check on the reference implementation, not as a gate on it (Bet 2, Bet 9): a failure here is the browser's defect against its specification, recorded in expected.json with what it means for the PORT, never a case this repository excuses. Files are fetched at the pinned commit by fetch.mjs and never copied into the tree.",
+  "tests": {
+    "html/semantics/interactive-elements/the-dialog-element/dialog-showModal.html": "showModal(): the dialog is shown modally, with its steps and errors (the PORT shows an open layer with it)",
+    "html/semantics/interactive-elements/the-dialog-element/dialog-close.html": "close(): hides the dialog and fires close (the PORT hides a closed layer with it)",
+    "html/semantics/interactive-elements/the-dialog-element/dialog-close-event.html": "the close event: fired once, after the dialog is hidden (the PORT tells a close it did from one the browser did)",
+    "html/semantics/interactive-elements/the-dialog-element/dialog-cancel-events.html": "the cancel event: fired for a close request, cancelable (the PORT reports dismiss and refuses it)",
+    "html/semantics/interactive-elements/the-dialog-element/dialog-cancel-preventDefault.html": "cancel's preventDefault keeps the dialog open (a controlled dialog the application keeps open)",
+    "html/semantics/interactive-elements/the-dialog-element/dialog-canceling.html": "close requests without user activation between them: the second is not cancelable (the PORT draws the dialog again)",
+    "html/semantics/interactive-elements/the-dialog-element/dialog-inert.html": "a modal dialog makes the rest of the document inert (the first rule of the pattern)",
+    "html/semantics/interactive-elements/the-dialog-element/dialog-focusing-steps-inert.html": "the dialog focusing steps skip what is inert",
+    "html/semantics/interactive-elements/the-dialog-element/dialog-open-2.html": "the open attribute: a dialog written open is not modal (the server-rendered upgrade)",
+    "html/semantics/interactive-elements/the-dialog-element/dialog-focusability.html": "what the dialog focusing steps focus",
+    "html/semantics/popovers/popover-close-request.html": "a close request closes the topmost popover",
+    "dom/nodes/moveBefore/focus-preserve.html": "moveBefore keeps focus and selection (what the PORT's own focus recipe does where it is absent or wrong)",
+    "dom/nodes/moveBefore/focus-within.html": "moveBefore and :focus-within",
+    "dom/nodes/moveBefore/modal-dialog.html": "moveBefore of an element in a modal dialog",
+    "dom/nodes/moveBefore/fire-focusin-focusout.html": "moveBefore fires no focus events (the PORT does not report the ones of its own moves)",
+    "html/semantics/interactive-elements/the-dialog-element/child-sequential-focus.html": "sequential focus inside a dialog (Tab among its children)"
+  },
+  "not-run": "popover-attribute-basic.html (mostly popover=hint and attribute-change reentrancy, which the PORT does not use), popover-focus.html (autofocus and invoker activation semantics the PORT leaves to the browser) and popover-events.html (its completion depends on timing this harness does not give it) were tried and left out; the PORT's own use of toggle is in integration/browser/layer.browser.test.ts. The tests that need testdriver's Actions are not in the subset."
+}
