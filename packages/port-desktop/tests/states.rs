@@ -35,7 +35,9 @@ fn fills(shapes: &[egui::epaint::ClippedShape]) -> Vec<egui::Color32> {
     }
     let mut found = Vec::new();
 
-    shapes.iter().for_each(|clipped| walk(&clipped.shape, &mut found));
+    shapes
+        .iter()
+        .for_each(|clipped| walk(&clipped.shape, &mut found));
 
     found
 }
@@ -56,7 +58,10 @@ impl Window {
         let full = self.ctx.run(
             egui::RawInput {
                 time: Some(self.time),
-                screen_rect: Some(egui::Rect::from_min_size(egui::Pos2::ZERO, egui::vec2(400.0, 300.0))),
+                screen_rect: Some(egui::Rect::from_min_size(
+                    egui::Pos2::ZERO,
+                    egui::vec2(400.0, 300.0),
+                )),
                 events,
                 ..Default::default()
             },

@@ -4,6 +4,19 @@ All notable changes to PORT are recorded here. The project follows [Semantic Ver
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-10-23 (prepared, not yet released; the crate is 0.6.0, tag `desktop-v0.6.0`)
+
+A minor release of the two npm packages and of the Desktop PORT crate: **layers (WP6b of the Valance direction work)**: a modal dialog and a popover on both targets. Additive: nothing an application wrote before changes. See the [v0.12 release notes](./docs/releases/v0.12.md).
+
+### Added
+
+- `@valancex/port-web`: **`WebPrimitive.layer`** (`"modal"` or `"popover"`), with the prop kind **`layerProp("open" | "anchor" | "placement")`** and the event realization **`layerDismiss`** (`raised: true`: the PORT raises it, the platform does not). A modal layer is a `<dialog>` shown with `showModal()`: server HTML writes `open` (it paints before any script), hydration upgrades it to modal, focus stays inside (Tab and Shift+Tab wrap, decision I20), the page behind is inert, and focus returns to the invoker (by key; else the layer's parent) when it closes. A popover is an element with the `popover` attribute shown with `showPopover()`, placed at its anchor by CSS anchor positioning where the browser has it. Escape and an outside press report a `close` the application may refuse: a layer the browser closes against the app's `open` is reopened.
+- `@valancex/port-web`: table checks for layers (one `open` role, `modal` only on `<dialog>`, no anchor or placement on a modal, a `raised` event only on a layer).
+- `@valancex/port-web`: the Authoring Practices' modal dialog rows, quoted into `overlays/apg-dialog-modal.source.json` and generated into 33 vectors (`overlays/dialog-modal.vectors.json`), run in Chromium; and a subset of the web-platform-tests for the dialog and popover elements and for focus, run in Chromium at a pinned commit (`integration/wpt`, `pnpm --filter integration test:wpt`), with its seven expected failures named.
+- `@valancex/port-desktop-vocabulary`: **`dialog`** (`open`, `label`; the event `dismiss`) and **`popover`** (`open`, `anchor`, `placement`, `kind`; the event `dismiss`), and `button` takes **`id`** (what a popover's `anchor` names). Twenty-two components, an eighth event verb.
+- `valancex-port-desktop` 0.6.0: a **dialog** is egui's `Modal` (the backdrop blocks the pointer, focus is limited to the modal layer) with initial focus, Tab and Shift+Tab wrap, Escape, and focus return to the invoker; a **popover** is an `Area` at its anchor's rect (`auto` closes on an outside press or Escape, `manual` never). A radio group's radios are children of its node in the accessibility tree, and an inline link has an id made from its key (decision I21). A themed `button` is `hovered` and `pressed` for the theme's state rules (decision I22).
+- `valancex-port-desktop`: tests read the accessibility tree with AccessKit's own consumer (`accesskit_consumer`) for the radio group's and the modal's keys.
+
 ## [0.11.0] - 2026-10-23 (prepared, not yet released; the crate is 0.5.0, tag `desktop-v0.5.0`)
 
 A minor release of the two npm packages and of the Desktop PORT crate: **PORT behavior (WP6 of the Valance direction work)**. Additive: nothing an application wrote before changes, except where noted. See the [v0.11 release notes](./docs/releases/v0.11.md).
