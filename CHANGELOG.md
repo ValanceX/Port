@@ -4,6 +4,32 @@ All notable changes to PORT are recorded here. The project follows [Semantic Ver
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-10-23 (prepared, not yet released; the crate is 0.5.0, tag `desktop-v0.5.0`)
+
+A minor release of the two npm packages and of the Desktop PORT crate: **PORT behavior (WP6 of the Valance direction work)**. Additive: nothing an application wrote before changes, except where noted. See the [v0.11 release notes](./docs/releases/v0.11.md).
+
+### Added
+
+- `@valancex/port-web`: **focus follows identity** (I2, I12). After every `draw`, `update` and `patch`, focus and a text field's selection (with its direction) stay with the part they were in, by key; a part that is gone hands focus to what follows it, then what precedes it, then what holds it. The focus and blur events of the PORT's own restoring are not reported.
+- `@valancex/port-web`: **`focus(key)`** (I13), the host's request, a call after the patches, not a command: focuses the part or the first thing in it that takes focus, and says whether it did.
+- `@valancex/port-web`: **`WebPrimitive.group`**: the DOM's own grouping. A radio carries `name` made from its radiogroup's key (the key in server HTML, verified by hydration; the mount's own in the browser for every port after a document's first), so a group is one tab stop with the arrow keys, and two groups or two mounts never share one.
+- `@valancex/port-web`: **`elementWhen(name)`**, a prop kind that chooses the element: `true` makes it `name` (a list's `ordered` makes `ol`). Server HTML has the chosen tag, hydration verifies it, and when the prop changes the PORT replaces the element, which takes the old one's children (each keeps its DOM node), props and place.
+- `valancex-port-desktop` 0.5.0: **widget ids come from node keys** (I16). A component node is drawn in a `Ui` made from the parent's id and its key (egui seeds a child's automatic ids from its parent's counter, so `push_id` is not enough). All 19 identity vectors and the 4 program step transitions that moved an accessibility node now keep it; focus stays with a field when fields change places; list items, table rows and cells are named by their keys. The spike (a scroll position, an open section) is in `view.rs`.
+- `valancex-port-desktop`: **focus follows identity** (a field, button, toggle, checkbox or radio that leaves the tree hands focus to its heir), the host protocol's **`focus` message** (additive: protocol 1; an older window ignores it), and `Port::focus`.
+- `valancex-port-desktop`: **roving focus in a radio group** (the APG radio group keys): one tab stop (the checked radio, else the first), the arrows move focus and choose, wrapping, Tab and Shift+Tab leave. The radio is drawn as egui's own with the group's sense, because egui's cannot skip Tab.
+
+### Changed
+
+- `@valancex/port-web`'s peer range admits MESH 0.15 (each line run), and `@valancex/mesh-conformance` is `^0.15.0`.
+- `valancex-port-desktop`'s tests: `identity_is_not_kept_by_key` and `program_steps_do_not_keep_identity_by_key` (which listed the failures exactly) are `identity_is_kept_by_key` and `program_steps_keep_identity_by_key`, with a control that tells a key from a place.
+- The Desktop theme fixture is the default theme with `text` reserving a line (`min-size`).
+
+
+### Added
+
+- **A theme for the window.** The host protocol's `appearance` message takes an optional `theme`: resolved values (colors, lengths in points) for the seven primitives of the portable core, by mode, sent once and kept (additive: protocol 1, no new number). The window applies a recipe's fill, text color, border, radius, padding, gap, least size and type size, a `button`'s `intent` and `size`, the `invalid` state and the viewport class, in the toolkit's light or dark mode; what it cannot apply (elevation, opacity, outline, hover, press and focus styles) is not sent. A theme it cannot read is reported on stderr and the window keeps its own look. `valancex-port-desktop`: `theme` module, `Session::theme`, `View::set_theme`; tests `theme.rs` (the wire contract, with the default theme as a fixture) and `themed.rs` (the toolkit's shapes and layout read back).
+- `@valancex/port-desktop-vocabulary`: `button` takes `intent` (`neutral`, `primary`, `danger`) and `size` (`sm`, `md`, `lg`), both optional. Without a theme they change nothing.
+
 ## [0.10.0] - 2026-10-18 (prepared, not yet released; the crate is 0.4.0, tag `desktop-v0.4.0`)
 
 A minor release of the two npm packages that share one version, and of the Desktop PORT crate. **`@valancex/port-desktop-vocabulary` grows to twenty components**, additively: nothing an application wrote before changes. **`@valancex/port-web`'s peer range now admits MESH 0.13 and 0.14.** See the [v0.10 release notes](./docs/releases/v0.10.md).

@@ -15,7 +15,7 @@ import type { Plan } from "./check.js";
 import type { PropRealization, WebPrimitive, WebPrimitives } from "./primitives.js";
 import type { Output } from "./realize.js";
 
-import { COMPONENT_ATTRIBUTE, UNKNOWN_COMPONENT_ELEMENT, checkTree, own, validatePrimitives } from "./check.js";
+import { COMPONENT_ATTRIBUTE, UNKNOWN_COMPONENT_ELEMENT, checkTree, elementOf, groupKeyOf, own, validatePrimitives } from "./check.js";
 import { WebRealizationError } from "./error.js";
 import { isUnrealizable, realizeProp } from "./realize.js";
 
@@ -136,6 +136,12 @@ export interface WebPort {
    */
   inspect(key: string): Node | undefined;
   /**
+   * Moves keyboard focus to the part `key` names, or to the first thing inside it that can take focus (a `column` holding a field is asked to focus the field).
+   * Returns whether focus is now in that part. It is a request to the platform, not state: the host calls it after the patches that drew the part are applied
+   * (a form asks for its first invalid field), and nothing is promised for a key that is not drawn (false). Tier 2.
+   */
+  focus(key: string): boolean;
+  /**
    * Removes what was drawn. Nothing is reported after this. Safe to call
    * twice or before anything was drawn. The PORT stays usable: `draw` (or
    * `hydrate`) draws a tree again, while `update` and `patch` refuse with
@@ -162,7 +168,8 @@ interface DrawnNode {
   /** Undefined for a component the PORT doesn't know. */
   readonly primitive: WebPrimitive | undefined;
   readonly parent: DrawnNode | undefined;
-  readonly dom: Element;
+  /** The element that realizes the node: replaced, by a new one that takes its children, when the prop that chooses the element changes. */
+  dom: Element;
   /** What each prop's slot holds, as realized. A prop with no entry is absent. */
   outputs: ReadonlyMap<string, Output>;
   /**
@@ -224,6 +231,8 @@ const writeProp = (node: DrawnNode, realization: PropRealization, output: Output
       }
 
       return;
+    case "element":
+      return; // the element was chosen when it was made
     case "text-property":
     case "property":
       slots(element)[realization.name] = "text" in output ? output.text : "native" in output ? output.native : node.initial.get(realization.name);
@@ -309,12 +318,17 @@ const sameOutput = (a: Output, b: Output): boolean =>
 // tree. Pure reads: it never changes the DOM.
 
 /** The attributes the client writes for `node`, by name, with the mismatch class each belongs to. */
-const expectedAttributes = (node: RenderNode, primitive: WebPrimitive | undefined, plan: Plan): ReadonlyArray<readonly [name: string, value: string, cls: HydrationMismatchClass]> => {
+const expectedAttributes = (node: RenderNode, primitive: WebPrimitive | undefined, plan: Plan, group: string | undefined): ReadonlyArray<readonly [name: string, value: string, cls: HydrationMismatchClass]> => {
   if (primitive === undefined) {
     return [[COMPONENT_ATTRIBUTE, node.component, "component"]];
   }
 
   const expected: Array<readonly [string, string, HydrationMismatchClass]> = Object.entries(primitive.attributes ?? {}).map(([name, value]) => [name, value, "attribute"] as const);
+
+  // The group's attribute, as the server writes it: the group's key, before the browser makes it the mount's own.
+  if (group !== undefined) {
+    expected.push([primitive.group!.attribute, group, "attribute"]);
+  }
 
   for (const [name, output] of plan.get(node.key) ?? []) {
     const realization = own(primitive.props, name)!;
@@ -338,8 +352,31 @@ const describeNode = (found: Node | undefined): string =>
 /** Whether a text run has a server node: an empty one has none, since HTML can't express it. */
 const serialized = (part: RenderNode | TextRun): boolean => part.type === "node" || part.text !== "";
 
+/** The drawn nodes above `node`, nearest first. */
+function* ancestors(node: DrawnNode | undefined): Generator<DrawnNode> {
+  for (let at = node; at !== undefined; at = at.parent) {
+    yield at;
+  }
+}
+
+/** How many ports a document has had: the first one's groups are named by the keys alone (as the server wrote them), every later one's are made its own. */
+const mounts = new WeakMap<Document, number>();
+
 export const createWebPort = ({ container, primitives, report }: WebPortOptions): WebPort => {
   const doc = container.ownerDocument;
+  const mounted = mounts.get(doc) ?? 0;
+
+  mounts.set(doc, mounted + 1);
+
+  /** Prefixes the key of a group: nothing for the document's first port, and the port's own number for the others, so two mounts of one tree in one document never share a group. */
+  const scope = mounted === 0 ? "" : `m${mounted}:`;
+  const groupOf = (node: DrawnNode, parent: DrawnNode | undefined): void => {
+    const key = groupKeyOf(node.primitive, ancestors(parent));
+
+    if (key !== undefined) {
+      node.dom.setAttribute(node.primitive!.group!.attribute, scope + key);
+    }
+  };
   const applicable = validatePrimitives(primitives);
   const types = new Set(Array.from(applicable.values(), (byType) => [...byType.keys()]).flat());
   /** The drawn node each drawn element realizes. Only what is drawn is in it. */
@@ -361,6 +398,10 @@ export const createWebPort = ({ container, primitives, report }: WebPortOptions)
   // gives at most one report.
 
   const interact = (event: Event): void => {
+    if (restoring && (event.type === "focus" || event.type === "blur" || event.type === "focusin" || event.type === "focusout")) {
+      return;
+    }
+
     let at = event.target as Node | null;
     let interacted: DrawnNode | undefined;
 
@@ -449,7 +490,7 @@ export const createWebPort = ({ container, primitives, report }: WebPortOptions)
     }
 
     const primitive = own(primitives, part.component);
-    const node = record(part, parent, doc.createElement(primitive?.element ?? UNKNOWN_COMPONENT_ELEMENT), plan);
+    const node = record(part, parent, doc.createElement(primitive === undefined ? UNKNOWN_COMPONENT_ELEMENT : elementOf(primitive, plan.get(part.key))), plan);
 
     if (primitive === undefined) {
       // Shown, not dropped: its children are still realized inside it.
@@ -459,6 +500,8 @@ export const createWebPort = ({ container, primitives, report }: WebPortOptions)
       for (const [name, value] of Object.entries(primitive.attributes ?? {})) {
         node.dom.setAttribute(name, value);
       }
+
+      groupOf(node, parent);
 
       for (const realization of Object.values(primitive.props ?? {})) {
         if (hasPropertySlot(realization)) {
@@ -481,6 +524,46 @@ export const createWebPort = ({ container, primitives, report }: WebPortOptions)
     return node;
   };
 
+  /**
+   * Makes the element of `node` the one its realized props choose, when it is not that: a new element takes the old one's place and children (each child keeps its DOM node and its
+   * state), the primitive's constants, the group, and every prop of `outputs`. Reports nothing: the same node is drawn, in another element.
+   */
+  const reelement = (node: DrawnNode, outputs: ReadonlyMap<string, Output>): void => {
+    const primitive = node.primitive;
+
+    if (primitive === undefined || elementOf(primitive, outputs) === node.dom.localName) {
+      return;
+    }
+
+    const previous = node.dom;
+    const fresh = doc.createElement(elementOf(primitive, outputs));
+
+    for (const [name, value] of Object.entries(primitive.attributes ?? {})) {
+      fresh.setAttribute(name, value);
+    }
+
+    nodeOf.delete(previous);
+    node.dom = fresh;
+    nodeOf.set(fresh, node);
+    node.initial.clear();
+
+    for (const realization of Object.values(primitive.props ?? {})) {
+      if (hasPropertySlot(realization)) {
+        node.initial.set(realization.name, slots(fresh)[realization.name]);
+      }
+    }
+
+    groupOf(node, node.parent);
+    fresh.append(...Array.from(previous.childNodes));
+    previous.replaceWith(fresh);
+
+    for (const [name, output] of outputs) {
+      writeProp(node, own(primitive.props, name)!, output);
+    }
+
+    node.outputs = outputs;
+  };
+
   /** Brings `old` to `next` in place when they're the same part, or replaces it. Returns what is drawn now. */
   const patch = (old: Drawn, next: RenderNode | TextRun, parent: DrawnNode | undefined, plan: Plan): Drawn => {
     if (old.kind === "text" && next.type === "text" && old.key === next.key) {
@@ -496,6 +579,8 @@ export const createWebPort = ({ container, primitives, report }: WebPortOptions)
       const outputs = plan.get(next.key) ?? new Map<string, Output>();
 
       if (old.primitive !== undefined) {
+        reelement(old, outputs);
+
         for (const name of new Set([...old.outputs.keys(), ...outputs.keys()])) {
           const after = outputs.get(name) ?? ABSENT;
 
@@ -573,7 +658,7 @@ export const createWebPort = ({ container, primitives, report }: WebPortOptions)
   // Hydration, in two phases. Verify reads the whole server DOM and changes
   // nothing; only if every node matches does adopt change anything.
 
-  const verify = (part: RenderNode | TextRun, found: Node | undefined, plan: Plan): HydrationMismatch | undefined => {
+  const verify = (part: RenderNode | TextRun, found: Node | undefined, plan: Plan, parents: ReadonlyArray<RenderNode> = []): HydrationMismatch | undefined => {
     const mismatch = (cls: HydrationMismatchClass, expected: string, actual: string): HydrationMismatch =>
       ({ class: cls, key: part.key, expected, found: actual });
 
@@ -584,14 +669,14 @@ export const createWebPort = ({ container, primitives, report }: WebPortOptions)
     }
 
     const primitive = own(primitives, part.component);
-    const tag = primitive?.element ?? UNKNOWN_COMPONENT_ELEMENT;
+    const tag = primitive === undefined ? UNKNOWN_COMPONENT_ELEMENT : elementOf(primitive, plan.get(part.key));
 
     if (found === undefined || found.nodeType !== ELEMENT_NODE || (found as Element).localName !== tag || (found as Element).namespaceURI !== HTML_NAMESPACE) {
       return mismatch("element", `<${tag}>`, describeNode(found));
     }
 
     const element = found as Element;
-    const expected = expectedAttributes(part, primitive, plan);
+    const expected = expectedAttributes(part, primitive, plan, groupKeyOf(primitive, [...parents].reverse()));
 
     for (const [name, value, cls] of expected) {
       const actual = element.getAttribute(name);
@@ -619,7 +704,7 @@ export const createWebPort = ({ container, primitives, report }: WebPortOptions)
     }
 
     for (const [index, child] of children.entries()) {
-      const found = verify(child, nodes[index], plan);
+      const found = verify(child, nodes[index], plan, [...parents, part]);
 
       if (found !== undefined) {
         return found;
@@ -652,11 +737,13 @@ export const createWebPort = ({ container, primitives, report }: WebPortOptions)
     if (node.primitive !== undefined) {
       const primitive = node.primitive;
 
+      groupOf(node, parent);
+
       // The initial value is a fresh element's, never the adopted element's,
       // whose state the server's markup or the user may have changed.
       for (const realization of Object.values(primitive.props ?? {})) {
         if (hasPropertySlot(realization)) {
-          node.initial.set(realization.name, slots(probe(primitive.element))[realization.name]);
+          node.initial.set(realization.name, slots(probe(dom.localName))[realization.name]);
         }
       }
 
@@ -709,7 +796,108 @@ export const createWebPort = ({ container, primitives, report }: WebPortOptions)
     return node;
   };
 
-  const port: Omit<WebPort, typeof Symbol.dispose> = {
+  // -------------------------------------------------------------------------
+  // Focus follows identity (I2, I12). A browser drops focus from an element that is moved (`insertBefore`) or removed, and puts it on the body; the person
+  // did nothing, so the PORT puts it back: by key, with the selection of a text field, and when the focused part is gone on what follows it, then what
+  // precedes it, then what holds it. While it does, the focus events its own moves make are not interactions and are not reported.
+
+  let restoring = false;
+
+  /** The drawn node the focused element belongs to, if focus is inside the container. */
+  const focusedPart = (): DrawnNode | undefined => {
+    const active = doc.activeElement;
+
+    for (let at: Node | null = active; at !== null && at !== container; at = at.parentNode) {
+      const found = nodeOf.get(at);
+
+      if (found !== undefined) {
+        return found;
+      }
+    }
+
+    return undefined;
+  };
+
+  /** Focuses `part`, or the first part under it (in document order) that takes focus. */
+  const focusWithin = (part: Drawn): boolean => {
+    if (part.kind === "text") {
+      return false;
+    }
+
+    (part.dom as HTMLElement).focus?.({ preventScroll: true });
+
+    if (doc.activeElement === part.dom) {
+      return true;
+    }
+
+    return part.children.some(focusWithin);
+  };
+
+  /** Where focus goes when `at` is gone: what follows it, what precedes it (nearest first), then what holds it. */
+  const heirs = (at: DrawnNode): ReadonlyArray<string> => {
+    const keys: string[] = [at.key];
+
+    for (let node: DrawnNode | undefined = at; node !== undefined; node = node.parent) {
+      const siblings = node.parent?.children ?? [];
+      const index = siblings.indexOf(node);
+
+      if (node === at) {
+        keys.push(...siblings.slice(index + 1).map((each) => each.key), ...siblings.slice(0, index).reverse().map((each) => each.key));
+      } else {
+        keys.push(node.key);
+      }
+    }
+
+    return keys;
+  };
+
+  const keepingFocus = <T,>(run: () => T): T => {
+    const was = focusedPart();
+
+    if (was === undefined) {
+      return run();
+    }
+
+    const field = was.dom as Element & { selectionStart?: number | null; selectionEnd?: number | null; selectionDirection?: string | null; setSelectionRange?: (start: number, end: number, direction?: "forward" | "backward" | "none") => void };
+    let selection: [number, number, string | null] | undefined;
+
+    try {
+      if (field.selectionStart != null && field.selectionEnd != null) {
+        selection = [field.selectionStart, field.selectionEnd, field.selectionDirection ?? null];
+      }
+    } catch { /* a field with no selection (a number input) */ }
+
+    const order = heirs(was);
+    const before = doc.activeElement;
+
+    restoring = true;
+
+    try {
+      const result = run();
+
+      if (doc.activeElement === before && before?.isConnected) {
+        return result;
+      }
+
+      for (const key of order) {
+        const part = byKey.get(key);
+
+        if (part !== undefined && focusWithin(part)) {
+          if (key === was.key && selection !== undefined) {
+            try { field.setSelectionRange?.(selection[0], selection[1], (selection[2] ?? "none") as "forward" | "backward" | "none"); } catch { /* as above */ }
+          }
+
+          break;
+        }
+      }
+
+      return result;
+    } finally {
+      restoring = false;
+    }
+  };
+
+  const plain: Omit<WebPort, typeof Symbol.dispose> = {
     draw(tree) {
       drawChecked(tree, checkTree(tree, primitives));
     },
@@ -1007,6 +1195,8 @@ export const createWebPort = ({ container, primitives, report }: WebPortOptions)
                 outputs.set(step.name, step.output);
               }
 
+              reelement(node, outputs);
+
               if (!sameOutput(node.outputs.get(step.name) ?? ABSENT, step.output)) {
                 writeProp(node, step.realization, step.output);
               }
@@ -1024,6 +1214,12 @@ export const createWebPort = ({ container, primitives, report }: WebPortOptions)
 
     inspect(key) {
       return byKey.get(key)?.dom;
+    },
+
+    focus(key) {
+      const part = byKey.get(key);
+
+      return part !== undefined && focusWithin(part);
     },
 
     hydrate(tree) {
@@ -1070,6 +1266,13 @@ export const createWebPort = ({ container, primitives, report }: WebPortOptions)
       drawn = undefined;
       byKey.clear();
     },
+  };
+
+  const port: Omit<WebPort, typeof Symbol.dispose> = {
+    ...plain,
+    draw: (tree) => keepingFocus(() => plain.draw(tree)),
+    update: (tree) => keepingFocus(() => plain.update(tree)),
+    patch: (patches) => keepingFocus(() => plain.patch(patches)),
   };
 
   // Where the platform has `Symbol.dispose`, `using port = ...` unmounts at the end of the block.

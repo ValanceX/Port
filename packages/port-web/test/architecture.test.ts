@@ -49,9 +49,9 @@ describe("port-web's boundaries", () => {
       return Number(alternative.split(".")[1]);
     });
 
-    // 0.6 is the minimum supported; each later line PORT was run against is listed, with no gap (0.6 through 0.14). `scripts/check-mesh-range.mjs` runs this suite against each line the range lists, so a line is added here only
+    // 0.6 is the minimum supported; each later line PORT was run against is listed, with no gap (0.6 through 0.15). `scripts/check-mesh-range.mjs` runs this suite against each line the range lists, so a line is added here only
     // with a run (CI's `mesh-range` job).
-    expect(minors).toEqual([6, 7, 8, 9, 10, 11, 12, 13, 14]);
+    expect(minors).toEqual([6, 7, 8, 9, 10, 11, 12, 13, 14, 15]);
   });
 
   it("uses no browser globals: every DOM object comes from the container's document", () => {
@@ -124,11 +124,11 @@ describe("the public API surface", () => {
   });
 
   it("the client entry: the Web PORT, the realization table's helpers, and its error", () => {
-    expect(Object.keys(client).sort()).toEqual(["UNKNOWN_COMPONENT_ELEMENT", "WebRealizationError", "attribute", "booleanAttribute", "controlled", "controlledBoolean", "createWebPort", "property", "textProperty"]);
+    expect(Object.keys(client).sort()).toEqual(["UNKNOWN_COMPONENT_ELEMENT", "WebRealizationError", "attribute", "booleanAttribute", "controlled", "controlledBoolean", "createWebPort", "elementWhen", "property", "textProperty"]);
   });
 
   it("the server entry: realizeHtml, the realization table's helpers, and the same error", () => {
-    expect(Object.keys(server).sort()).toEqual(["WebRealizationError", "attribute", "booleanAttribute", "controlled", "controlledBoolean", "property", "realizeHtml", "textProperty"]);
+    expect(Object.keys(server).sort()).toEqual(["WebRealizationError", "attribute", "booleanAttribute", "controlled", "controlledBoolean", "elementWhen", "property", "realizeHtml", "textProperty"]);
     expect(server.WebRealizationError).toBe(client.WebRealizationError);
   });
 });

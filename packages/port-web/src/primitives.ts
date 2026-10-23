@@ -34,6 +34,13 @@ export interface WebPrimitive {
    * in the tree with no entry here is an error.
    */
   readonly events?: Readonly<Record<string, EventRealization>>;
+  /**
+   * The group the element belongs to by the DOM's own grouping, which the platform's keyboard behavior is built on (the arrow keys among radios and their one tab stop need one `name`).
+   * The element carries `attribute`, whose value is made from the key of its nearest ancestor drawn as the component `within`; an element with no such ancestor carries none. The value is
+   * the PORT's, never the tree's: it is the key (in server HTML), made unique to the mount in the browser, so two mounts in one document, or two groups, never share a group. A constant
+   * or a prop cannot claim the same attribute.
+   */
+  readonly group?: { readonly within: string; readonly attribute: string };
 }
 
 /**
@@ -74,6 +81,11 @@ export interface WebPrimitive {
  *   value unchanged, as a custom element's own property may; lists,
  *   records and `null` are realized natively only here). Absent leaves it
  *   at the element's own initial value.
+ * - `element`: a boolean that chooses the element itself, not a slot of it: `true` makes the
+ *   primitive's element the one `name` says (a list's `ordered` makes `ol`), `false` or absent
+ *   leaves the primitive's own `element`. The prop is in HTML (the tag server HTML has), and
+ *   when it changes the PORT replaces the element: the new element takes the old one's
+ *   children (each keeps its DOM node), its props and its place. See `elementWhen`.
  */
 export type PropRealization =
   | { readonly kind: "attribute"; readonly name: string }
@@ -81,7 +93,8 @@ export type PropRealization =
   | { readonly kind: "controlled"; readonly name: string }
   | { readonly kind: "boolean-attribute"; readonly name: string }
   | { readonly kind: "controlled-boolean"; readonly name: string }
-  | { readonly kind: "property"; readonly name: string; readonly holds: PropertyKind };
+  | { readonly kind: "property"; readonly name: string; readonly holds: PropertyKind }
+  | { readonly kind: "element"; readonly name: string };
 
 /** The kind of value a native DOM property holds exactly. */
 export type PropertyKind = "boolean" | "number" | "value";
@@ -134,6 +147,9 @@ export const controlledBoolean = (name: string): PropRealization => ({ kind: "co
 
 /** A boolean attribute, realized natively by presence. `{ kind: "boolean-attribute", name }`. */
 export const booleanAttribute = (name: string): PropRealization => ({ kind: "boolean-attribute", name });
+
+/** A boolean prop that makes the primitive's element `name` when it is `true`. `{ kind: "element", name }`. */
+export const elementWhen = (name: string): PropRealization => ({ kind: "element", name });
 
 /** A DOM property holding `holds` natively. `{ kind: "property", name, holds }`. */
 export const property = (name: string, holds: PropertyKind): PropRealization => ({ kind: "property", name, holds });

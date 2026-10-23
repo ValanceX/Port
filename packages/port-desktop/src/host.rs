@@ -1,6 +1,7 @@
 //! The host protocol: how a composer in another process (an engine running the application) drives this PORT. One JSON object per line, in both directions. It carries the PORT's operations out
 //! and the PORT's reports back, and nothing else: the PORT never sees a command, a state or a route. The protocol is specified in `docs/architecture/2026-10-14-port-desktop.md`.
 use crate::port::{Port, PortError, Report};
+use crate::theme::Theme;
 use crate::tree::Tree;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -34,6 +35,13 @@ pub enum FromEngine {
     /// How the application asks the window to look: `light`, `dark` or `system` (the person's own). The window is the host's, so this is the application's word, not a template's.
     Appearance {
         appearance: String,
+        /// The look the host gives the window (the theme, resolved): sent once, with the first `appearance`, and kept. Absent: the window keeps its own look.
+        #[serde(default)]
+        theme: Option<Value>,
+    },
+    /// Focus the part `key` names, or the first thing in it that takes focus (decision I13). A request, not a command; nothing is answered. An older window does not know the message and ignores it.
+    Focus {
+        key: String,
     },
     /// The answer to `CloseRequested`: when not allowed (unsaved edits), the window stays open.
     #[serde(rename = "closeAnswer")]
@@ -111,6 +119,10 @@ pub struct Session {
     pub title: Option<String>,
     /// How the engine asked the window to look (`light`, `dark`, `system`), as it last said it.
     pub appearance: Option<String>,
+    /// The theme the engine gave the window, as it last gave it.
+    pub theme: Option<Arc<Theme>>,
+    /// Why the theme the engine gave could not be read, if it could not: the window keeps its own look and says so on the error stream.
+    pub theme_problem: Option<String>,
     /// The engine said the window may not close yet (unsaved edits); cleared by the next screen it sends.
     pub close_refused: bool,
 }
@@ -132,8 +144,23 @@ impl Session {
                 Ok(()) => self.close_refused = false,
                 Err(error) => return Applied::Refused(error),
             },
+            FromEngine::Focus { key } => {
+                self.port.focus(&key);
+            }
             FromEngine::Title { title } => self.title = Some(title),
-            FromEngine::Appearance { appearance } => self.appearance = Some(appearance),
+            FromEngine::Appearance { appearance, theme } => {
+                self.appearance = Some(appearance);
+
+                if let Some(given) = theme {
+                    match Theme::parse(given) {
+                        Ok(read) => {
+                            self.theme = Some(Arc::new(read));
+                            self.theme_problem = None;
+                        }
+                        Err(problem) => self.theme_problem = Some(problem),
+                    }
+                }
+            }
             FromEngine::CloseAnswer { allowed } => self.close_refused = !allowed,
             FromEngine::Unmount => {
                 self.port.unmount();

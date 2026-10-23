@@ -8,7 +8,8 @@ fn the_engine_asks_for_an_appearance_and_the_session_keeps_it() {
     assert_eq!(
         message,
         FromEngine::Appearance {
-            appearance: "dark".into()
+            appearance: "dark".into(),
+            theme: None
         }
     );
 
@@ -48,4 +49,38 @@ fn the_window_tells_the_engine_how_wide_it_is() {
     let line = serde_json::to_string(&ToEngine::Resize { width: 812 }).unwrap();
 
     assert_eq!(line, r#"{"op":"resize","width":812}"#);
+}
+
+#[test]
+fn the_engine_asks_for_focus_by_key_and_the_port_keeps_the_request_for_the_window() {
+    let message = parse(r#"{"op":"focus","key":"kAAAAAAAAAAAAAAAAAAAAA2"}"#).expect("a message");
+
+    assert_eq!(
+        message,
+        FromEngine::Focus {
+            key: "kAAAAAAAAAAAAAAAAAAAAA2".into()
+        }
+    );
+
+    let mut session = Session::default();
+    let tree = parse(
+        r#"{"op":"draw","tree":{"format":"mesh-render","version":1,"root":{"type":"node","key":"kAAAAAAAAAAAAAAAAAAAAA1","component":"column","props":{},"events":{},"children":[{"type":"node","key":"kAAAAAAAAAAAAAAAAAAAAA2","component":"button","props":{},"events":{},"children":[]}]}}}"#,
+    )
+    .expect("a message");
+
+    // before anything is drawn there is nothing to focus: the request is not kept
+    session.apply(message.clone());
+    assert_eq!(session.port.take_focus_request(), None);
+
+    session.apply(tree);
+    session.apply(message);
+    assert_eq!(
+        session.port.take_focus_request().as_deref(),
+        Some("kAAAAAAAAAAAAAAAAAAAAA2")
+    );
+    assert_eq!(session.port.take_focus_request(), None, "taken once");
+
+    // a key that is not drawn is not a request
+    assert!(!session.port.focus("nobody"));
+    assert_eq!(session.port.take_focus_request(), None);
 }

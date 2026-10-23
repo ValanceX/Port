@@ -52,8 +52,10 @@ An engine in another process (the application, in JavaScript or anything else) d
 | `{"op":"draw","tree":RenderTree}` | The contract's `draw`. |
 | `{"op":"update","tree":RenderTree}` | The contract's `update`. |
 | `{"op":"unmount"}` | The contract's `unmount`; the window closes. |
-| `{"op":"appearance","appearance":"light"\|"dark"\|"system"}` | How the application asks the window to look; `system` (the default, when it never asks) follows the person's own. |
+| `{"op":"appearance","appearance":"light"\|"dark"\|"system","theme":Theme}` | How the application asks the window to look; `system` (the default, when it never asks) follows the person's own. `theme` is optional and sent once, with the first `appearance`: the look the host gives the window (below). A later `appearance` without one leaves the theme the window has. |
 | `{"op":"closeAnswer","allowed":true\|false}` | The answer to `closeRequested`. When allowed the engine is ending and `unmount` follows. |
+
+**The theme** (added after protocol 1 was first written; additive, so the number is unchanged: a window that does not know the field ignores it, and an engine that sends none leaves the window its own look). It is resolved data, not tokens or recipes: `{"version":1,"name":"default","defaults":{"intent":"neutral","size":"md"},"modes":{"light":{"button":{"base":{…},"variants":{"intent":{"primary":{…}}},"states":{…},"when":{"viewport:compact":{…}}}}}}`. A style has `background` and `text` (`#rrggbb[aa]`), `border` (`"none"` or `{width,color}`), `radius`, `padding` (top, right, bottom, left), `gap`, `minSize`, `fontSize`, `fontWeight`, all in points. The window lays, for a primitive, its `base`, then the variant the template wrote (else the default), then the states it is in (`invalid`, `disabled`), then the `viewport` class that holds (under 600 points compact, 600 to 839 medium, 840 and up expanded), over the toolkit's own look, in the mode of the toolkit's theme (`light` or `dark`). What the window cannot apply (elevation, opacity, outline, hover, press and focus styles, the high-contrast mode) the host does not send, and says in its coverage report. A theme the window cannot read (another `version`, a malformed value) is reported on the error stream and the window keeps its own look.
 
 | PORT to engine | Meaning |
 |---|---|

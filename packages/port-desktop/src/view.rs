@@ -1,11 +1,14 @@
 //! Realizing the vocabulary with egui. Every component of `vocabulary.json` becomes a widget; what the person does comes back as reports. A component this PORT does not know is drawn as a visible
 //! marker with its children, never dropped (an unknown component is the composer's to notice).
 use crate::field::Field;
+use crate::focus::{Asking, Outline};
 use crate::port::Report;
+use crate::theme::{self, Border, Theme};
 use crate::tree::Node;
 use egui::{Button, Response, RichText, TextEdit, Ui, WidgetInfo, WidgetType};
 use serde_json::Value;
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeMap, HashMap, HashSet};
+use std::sync::Arc;
 
 /// What the person did in a frame.
 #[derive(Debug, Clone, PartialEq)]
@@ -76,6 +79,176 @@ fn marked(
     }
 }
 
+/// What the window knows about keyboard focus between frames (decisions I2, I10, I13).
+#[derive(Default)]
+struct Focusing {
+    /// What the window has been asked for focus.
+    asking: Asking,
+    /// The key of the widget that has focus in this frame so far, and the one that had it in the last: when that node is gone, focus goes to its heir.
+    focused: Option<String>,
+    had: Option<String>,
+    /// The shape of the last frame's tree.
+    outline: Outline,
+    /// The widget that took focus-order place last in this frame, so Shift+Tab out of a group has somewhere to go.
+    last: Option<egui::Id>,
+    /// The radios of the groups drawn this frame, and the one of each that is the tab stop (roving focus).
+    members: HashSet<String>,
+    stops: HashSet<String>,
+    /// Tab left a group with nowhere to go on to: the frame's end wraps it.
+    wrapping: Option<Leaving>,
+}
+
+impl Focusing {
+    /// A widget that takes focus has been drawn for `key`: gives it focus when it was asked for, and remembers that it has it.
+    fn widget(&mut self, key: &str, response: &Response) {
+        if self.asking.is_for(key) {
+            response.request_focus();
+        }
+
+        if response.has_focus() {
+            self.focused = Some(key.to_owned());
+        }
+
+        self.last = Some(response.id);
+    }
+}
+
+/// Which way the person pressed Tab in a group.
+#[derive(Debug, PartialEq, Clone, Copy)]
+enum Leaving {
+    Forward,
+    Back,
+}
+
+/// The radios of a group in order: its children, and what a `label` in it holds.
+fn radios_of(children: &[Node]) -> Vec<&Node> {
+    let mut found = Vec::new();
+
+    for child in children {
+        if let Node::Node {
+            component,
+            children,
+            ..
+        } = child
+        {
+            match component.as_str() {
+                "radio" => found.push(child),
+                "label" => found.extend(radios_of(children)),
+                _ => {}
+            }
+        }
+    }
+
+    found
+}
+
+/// A radio button: the toolkit's own (`egui::RadioButton`), except that it is reached by Tab only when it is the `tab_stop` of its group, which the toolkit's cannot be told. A radio that is not
+/// the stop still senses clicks and is given focus by the arrow keys of the group.
+fn radio_button(ui: &mut Ui, checked: bool, text: &str, tab_stop: bool) -> Response {
+    let spacing = ui.spacing();
+    let icon_width = spacing.icon_width;
+    let icon_spacing = spacing.icon_spacing;
+    let (galley, mut desired_size) = if text.is_empty() {
+        (None, egui::vec2(icon_width, 0.0))
+    } else {
+        let extra = egui::vec2(icon_width + icon_spacing, 0.0);
+        let galley = egui::WidgetText::from(text).into_galley(
+            ui,
+            None,
+            ui.available_width() - extra.x,
+            egui::TextStyle::Button,
+        );
+        let size = (extra + galley.size()).max(spacing.interact_size);
+
+        (Some(galley), size)
+    };
+
+    desired_size = desired_size.max(egui::Vec2::splat(ui.spacing().interact_size.y));
+    desired_size.y = desired_size.y.max(icon_width);
+
+    let sense = if tab_stop {
+        egui::Sense::click()
+    } else {
+        egui::Sense::CLICK
+    };
+    let (rect, response) = ui.allocate_exact_size(desired_size, sense);
+
+    response.widget_info(|| {
+        WidgetInfo::selected(
+            WidgetType::RadioButton,
+            ui.is_enabled(),
+            checked,
+            galley.as_ref().map_or("", |galley| galley.text()),
+        )
+    });
+
+    if ui.is_rect_visible(rect) {
+        let visuals = ui.style().interact(&response);
+        let (small, big) = ui.spacing().icon_rectangles(rect);
+        let painter = ui.painter();
+
+        painter.add(egui::epaint::CircleShape {
+            center: big.center(),
+            radius: big.width() / 2.0 + visuals.expansion,
+            fill: visuals.bg_fill,
+            stroke: visuals.bg_stroke,
+        });
+
+        if checked {
+            painter.add(egui::epaint::CircleShape {
+                center: small.center(),
+                radius: small.width() / 3.0,
+                fill: visuals.fg_stroke.color,
+                stroke: Default::default(),
+            });
+        }
+
+        if let Some(galley) = galley {
+            let at = egui::pos2(
+                rect.min.x + icon_width + icon_spacing,
+                rect.center().y - 0.5 * galley.size().y,
+            );
+
+            ui.painter().galley(at, galley, visuals.text_color());
+        }
+    }
+
+    response
+}
+
+/// Whether a component is a widget that takes keyboard focus (an inline link does too, and is not followed here).
+fn takes_focus(component: &str) -> bool {
+    matches!(
+        component,
+        "button" | "toggle" | "checkbox" | "textfield" | "radio"
+    )
+}
+
+/// Draws in a scope whose widget ids come from `key` and nothing else (decision I16). egui gives a widget the id of its place: a child `Ui` seeds its automatic ids from its parent's counter, so
+/// `push_id` keeps `ui.id()` stable but not the ids of the buttons and boxes inside it, and a row that moves would be a new widget with a new accessibility node and no focus. A `Ui` made by
+/// `Ui::new` seeds them from its own id, so this makes one from the parent's id and the key, with what a child scope takes from its parent: its layout, style, clip, enabled state and room;
+/// the parent then accounts for the space it used, as `scope` does.
+fn keyed<R>(ui: &mut Ui, key: &str, add: impl FnOnce(&mut Ui) -> R) -> R {
+    let builder = egui::UiBuilder::new()
+        .layer_id(ui.layer_id())
+        .max_rect(ui.available_rect_before_wrap())
+        .layout(*ui.layout())
+        .style(ui.style().clone());
+    let mut child = Ui::new(ui.ctx().clone(), ui.id().with(("key", key)), builder);
+
+    child.set_clip_rect(ui.clip_rect());
+
+    if !ui.is_enabled() {
+        child.disable();
+    }
+
+    let result = add(&mut child);
+
+    ui.allocate_rect(child.min_rect(), egui::Sense::hover());
+
+    result
+}
+
 /// The kinds of image file the window decodes.
 const IMAGE_KINDS: [&str; 7] = ["png", "jpg", "jpeg", "gif", "bmp", "webp", "svg"];
 
@@ -99,17 +272,121 @@ pub struct View {
     described: HashMap<String, String>,
     /// The caption of the `label` being drawn: the one control inside it takes it as its visible text and its accessible name.
     caption: Option<String>,
+    /// The theme the engine gave the window, resolved: what each primitive of the portable core looks like. Absent: the toolkit's own look.
+    theme: Option<Arc<Theme>>,
+    /// The key of the widget that had focus in the last frame, and the shape of that frame's tree: when the node is gone, focus goes to its heir (decision I2).
+    focus: Focusing,
+    /// The roving tab stop of each radio group, by the group's key (decision I10: one tab stop, the arrows move it).
+    roving: HashMap<String, Roving>,
+}
+
+/// Which radio of a group is its tab stop, and which was the checked one when that was last looked at (the stop follows the application's choice when it changes).
+#[derive(Default)]
+struct Roving {
+    stop: Option<String>,
+    checked: Option<String>,
 }
 
 impl View {
+    /// The theme the engine gave the window (or none).
+    pub fn set_theme(&mut self, theme: Option<Arc<Theme>>) {
+        self.theme = theme;
+    }
+
+    /// What the theme says of a primitive in the window as it is now: its mode is the toolkit's (light or dark) and its viewport is the window's width. Nothing when there is no theme.
+    fn themed(
+        &self,
+        ui: &Ui,
+        primitive: &str,
+        props: &BTreeMap<String, Value>,
+        states: &[&str],
+    ) -> theme::Style {
+        let Some(theme) = &self.theme else {
+            return theme::Style::default();
+        };
+        let mode = if ui.visuals().dark_mode {
+            "dark"
+        } else {
+            "light"
+        };
+        let given = |name: &str| props.get(name).and_then(Value::as_str).map(str::to_owned);
+
+        theme.style(
+            mode,
+            primitive,
+            &given,
+            states,
+            ui.ctx().screen_rect().width(),
+        )
+    }
+
     pub fn show(&mut self, ui: &mut Ui, node: &Node, out: &mut Vec<Output>) {
         self.described.clear();
         gather(node, &mut self.described);
+
+        // A node that has focus and is gone from this frame's tree hands it on; one that only moved keeps it by its id (decision I16).
+        let now = Outline::of(node);
+
+        self.focus.had = self.focus.focused.take();
+        self.focus.members.clear();
+        self.focus.stops.clear();
+        self.focus.last = None;
+
+        if let Some(gone) = self.focus.had.clone().filter(|key| !now.contains(key)) {
+            if let Some(heir) = self.focus.outline.heir(&gone, &now) {
+                self.focus.asking.ask(&heir);
+            }
+        }
+
         self.block(ui, node, out);
+
+        // Tab went on from the last (or back from the first) widget that takes focus: it wraps, as the toolkit's own does.
+        let unmet = self.focus.asking.end_frame();
+
+        if let Some(wrapping) = self.focus.wrapping.take() {
+            let reachable =
+                |key: &str| !self.focus.members.contains(key) || self.focus.stops.contains(key);
+            let order = now.in_order(&reachable);
+            let target = match wrapping {
+                Leaving::Forward if unmet => order.first(),
+                Leaving::Back => order.last(),
+                _ => None,
+            };
+
+            if let Some(target) = target {
+                self.focus.asking.ask(target);
+            }
+        }
+
+        self.focus.outline = now;
     }
 
-    /// A node as a block: it takes the width and a line of its own.
+    /// Asks for focus on the part `key` names, or the first thing in it that takes focus, in the next frame drawn (decision I13). Nothing is reported.
+    pub fn focus(&mut self, key: &str) {
+        self.focus.asking.ask(key);
+    }
+
+    /// A node as a block: it takes the width and a line of its own. Its widgets' ids come from its key (decision I16): a node that keeps its identity keeps its widget, its accessibility
+    /// node, its focus and whatever the toolkit remembers by id (a text field's cursor, a scroll position, an open section), wherever the tree puts it next frame.
     fn block(&mut self, ui: &mut Ui, node: &Node, out: &mut Vec<Output>) {
+        match node {
+            Node::Text { text, .. } => {
+                ui.label(text);
+            }
+            Node::Node { key, component, .. } => {
+                let seeking = self.focus.asking.enter(key, takes_focus(component));
+
+                keyed(ui, key, |ui| self.draw(ui, node, out));
+
+                if seeking {
+                    self.focus.asking.leave();
+                }
+            }
+        }
+    }
+
+    /// A component node, drawn in the scope its key makes.
+    fn draw(&mut self, ui: &mut Ui, node: &Node, out: &mut Vec<Output>) {
         match node {
             Node::Text { text, .. } => {
                 ui.label(text);
@@ -122,17 +399,34 @@ impl View {
                 children,
             } => match component.as_str() {
                 "column" => {
-                    ui.vertical(|ui| self.each(ui, children, out));
+                    let gap = self.themed(ui, "column", props, &[]).gap;
+
+                    ui.scope(|ui| {
+                        if let Some(gap) = gap {
+                            ui.spacing_mut().item_spacing.y = gap;
+                        }
+                        ui.vertical(|ui| self.each(ui, children, out));
+                    });
                 }
                 "row" => {
-                    ui.horizontal_wrapped(|ui| self.each(ui, children, out));
+                    let gap = self.themed(ui, "row", props, &[]).gap;
+
+                    ui.scope(|ui| {
+                        if let Some(gap) = gap {
+                            ui.spacing_mut().item_spacing = egui::vec2(gap, gap);
+                        }
+                        ui.horizontal_wrapped(|ui| self.each(ui, children, out));
+                    });
                 }
                 "heading" => {
-                    let size = match props.get("level").and_then(Value::as_u64) {
-                        Some(2) => 20.0,
-                        Some(3) => 17.0,
-                        _ => 26.0,
-                    };
+                    let themed = self.themed(ui, "heading", props, &[]);
+                    let size = themed.font_size.unwrap_or(
+                        match props.get("level").and_then(Value::as_u64) {
+                            Some(2) => 20.0,
+                            Some(3) => 17.0,
+                            _ => 26.0,
+                        },
+                    );
 
                     let level = match props.get("level").and_then(Value::as_u64) {
                         Some(level @ 1..=6) => level as usize,
@@ -151,12 +445,23 @@ impl View {
                     ctx.with_accessibility_parent(id, || {
                         ui.horizontal_wrapped(|ui| {
                             no_gap(ui);
-                            self.inline_children(ui, children, out, Style::heading(size));
+                            self.inline_children(
+                                ui,
+                                children,
+                                out,
+                                Style::heading(size).themed(&themed),
+                            );
                         });
                     });
                 }
                 "text" => {
-                    ui.label(node.text());
+                    let themed = self.themed(ui, "text", props, &[]);
+
+                    ui.label(
+                        Style::default()
+                            .themed(&themed)
+                            .apply(RichText::new(node.text())),
+                    );
                 }
                 "paragraph" => {
                     let id = ui.make_persistent_id(("paragraph", key));
@@ -232,7 +537,7 @@ impl View {
                     ctx.with_accessibility_parent(list_id, || {
                         ui.vertical(|ui| {
                             for (at, item) in children.iter().enumerate() {
-                                let item_id = list_id.with(("item", at));
+                                let item_id = list_id.with(("item", item.key()));
 
                                 ui.ctx().accesskit_node_builder(item_id, |builder| {
                                     builder.set_role(egui::accesskit::Role::ListItem);
@@ -240,31 +545,36 @@ impl View {
                                     builder.set_size_of_set(size);
                                 });
                                 ctx.with_accessibility_parent(item_id, || {
-                                    ui.horizontal_wrapped(|ui| {
-                                        no_gap(ui);
-                                        // The bullet or number is decoration: the item is its text alone. Hidden, so an assistive technology does not read "bullet" before it.
-                                        let marker = ui.label(if ordered {
-                                            format!("{}. ", at + 1)
-                                        } else {
-                                            "\u{2022} ".to_owned()
-                                        });
+                                    keyed(ui, item.key(), |ui| {
+                                        ui.horizontal_wrapped(|ui| {
+                                            no_gap(ui);
+                                            // The bullet or number is decoration: the item is its text alone. Hidden, so an assistive technology does not read "bullet" before it.
+                                            let marker = ui.label(if ordered {
+                                                format!("{}. ", at + 1)
+                                            } else {
+                                                "\u{2022} ".to_owned()
+                                            });
 
-                                        ui.ctx().accesskit_node_builder(marker.id, |builder| {
-                                            builder.set_hidden();
-                                        });
-                                        match item {
-                                            Node::Node {
-                                                component,
-                                                children,
-                                                ..
-                                            } if component == "listitem" => self.inline_children(
-                                                ui,
-                                                children,
-                                                out,
-                                                Style::default(),
-                                            ),
-                                            other => self.inline(ui, other, out, Style::default()),
-                                        }
+                                            ui.ctx().accesskit_node_builder(marker.id, |builder| {
+                                                builder.set_hidden();
+                                            });
+                                            match item {
+                                                Node::Node {
+                                                    component,
+                                                    children,
+                                                    ..
+                                                } if component == "listitem" => self
+                                                    .inline_children(
+                                                        ui,
+                                                        children,
+                                                        out,
+                                                        Style::default(),
+                                                    ),
+                                                other => {
+                                                    self.inline(ui, other, out, Style::default())
+                                                }
+                                            }
+                                        })
                                     });
                                 });
                             }
@@ -298,9 +608,19 @@ impl View {
                         .and_then(Value::as_bool)
                         .unwrap_or(false);
 
-                    let response = ui.add_enabled(enabled, Button::new(node.text()));
+                    let themed = self.themed(
+                        ui,
+                        "button",
+                        props,
+                        if enabled { &[] } else { &["disabled"] },
+                    );
+                    let label = Style::default()
+                        .themed(&themed)
+                        .apply(RichText::new(node.text()));
+                    let response = themed_button(ui, enabled, Button::new(label), &themed);
 
                     named(&response, WidgetType::Button, props, enabled, None, None);
+                    self.focus.widget(key, &response);
 
                     if response.clicked() {
                         report(events, "click", None, out);
@@ -327,6 +647,7 @@ impl View {
                     response.widget_info(move || {
                         WidgetInfo::selected(WidgetType::Button, enabled, pressed, &name)
                     });
+                    self.focus.widget(key, &response);
 
                     if response.clicked() {
                         report(events, "change", Some(Value::Bool(!pressed)), out);
@@ -334,6 +655,8 @@ impl View {
                 }
                 // A group of radios: the options in a column, the group named for assistive technology by its `label`. It has no events; its radios raise them.
                 "radiogroup" => {
+                    let radios = radios_of(children);
+                    let leaving = self.rove(ui, key, &radios, out);
                     let response = ui.vertical(|ui| self.each(ui, children, out)).response;
                     let name = props
                         .get("label")
@@ -348,6 +671,12 @@ impl View {
                         }
                     });
                     marked(&self.described, ui, &response, props);
+
+                    // Tab in a group leaves it: forward to the next widget drawn that takes focus.
+                    if leaving == Some(Leaving::Forward) {
+                        self.focus.asking.seek_next();
+                        self.focus.wrapping = Some(Leaving::Forward);
+                    }
                 }
                 // A live region (decision A13): the text inside is the message. `status` is polite and `alert` assertive, both atomic, which is what `role=status` and `role=alert` imply in ARIA;
                 // egui sets neither role, so the PORT does. The region is a node even with nothing in it, because a region has to exist before its text changes to be announced.
@@ -391,7 +720,27 @@ impl View {
                         .and_then(Value::as_str)
                         .or(caption.as_deref())
                         .unwrap_or("");
-                    let response = ui.add_enabled(enabled, egui::RadioButton::new(checked, text));
+                    // In a group only the tab stop is reached by Tab; the arrows move the stop (APG radio group pattern, decision I10).
+                    let in_group = self.focus.members.contains(key);
+                    let tab_stop = !in_group || self.focus.stops.contains(key);
+                    let response = ui
+                        .add_enabled_ui(enabled, |ui| radio_button(ui, checked, text, tab_stop))
+                        .inner;
+
+                    if in_group && response.has_focus() {
+                        // Tab and the arrows are the group's while one of its radios has focus: egui must not spend them moving focus by itself.
+                        ui.memory_mut(|memory| {
+                            memory.set_focus_lock_filter(
+                                response.id,
+                                egui::EventFilter {
+                                    tab: true,
+                                    horizontal_arrows: true,
+                                    vertical_arrows: true,
+                                    escape: false,
+                                },
+                            )
+                        });
+                    }
 
                     named(
                         &response,
@@ -401,6 +750,7 @@ impl View {
                         Some(checked),
                         caption.as_deref(),
                     );
+                    self.focus.widget(key, &response);
 
                     if response.clicked() && !checked {
                         let value = props.get("value").and_then(Value::as_str).unwrap_or("");
@@ -455,7 +805,16 @@ impl View {
 
                     // The engine owns the value: the new value is reported, and the box shows what comes back. A value, not a flip: the same report twice is the same state.
                     let caption = self.caption.take();
-                    let response = ui.checkbox(&mut checked, caption.as_deref().unwrap_or(""));
+                    let themed = self.themed(ui, "checkbox", props, &[]);
+                    let response = ui
+                        .scope(|ui| {
+                            // the box is as large as the theme says (its minimum size)
+                            if let Some(size) = themed.min_size {
+                                ui.spacing_mut().icon_width = size;
+                            }
+                            ui.checkbox(&mut checked, caption.as_deref().unwrap_or(""))
+                        })
+                        .inner;
 
                     named(
                         &response,
@@ -466,6 +825,7 @@ impl View {
                         caption.as_deref(),
                     );
                     marked(&self.described, ui, &response, props);
+                    self.focus.widget(key, &response);
 
                     if response.changed() {
                         report(events, "change", Some(Value::Bool(checked)), out);
@@ -473,6 +833,13 @@ impl View {
                 }
                 "textfield" => {
                     let shown = props.get("value").and_then(Value::as_str).unwrap_or("");
+                    let invalid = props.get("invalid").and_then(Value::as_bool) == Some(true);
+                    let themed = self.themed(
+                        ui,
+                        "textfield",
+                        props,
+                        if invalid { &["invalid"] } else { &[] },
+                    );
                     let hint = props
                         .get("placeholder")
                         .and_then(Value::as_str)
@@ -493,11 +860,13 @@ impl View {
 
                     // `kind="password"` masks what is shown; every other kind is plain text here.
                     let masked = props.get("kind").and_then(Value::as_str) == Some("password");
-                    let response = ui.add(
+                    let response = themed_field(
+                        ui,
                         TextEdit::singleline(&mut field.buffer)
                             .hint_text(hint)
                             .password(masked)
                             .desired_width(240.0),
+                        &themed,
                     );
 
                     named(
@@ -509,6 +878,7 @@ impl View {
                         caption.as_deref(),
                     );
                     marked(&self.described, ui, &response, props);
+                    self.focus.widget(key, &response);
 
                     if let Some(caption) = captioned {
                         if caption.clicked() {
@@ -561,6 +931,115 @@ impl View {
                 }
             },
         }
+    }
+
+    /// The roving focus of a radio group (the APG radio group pattern, decision I10). One radio is the group's tab stop: the checked one, else the first that is enabled; Tab reaches the group at
+    /// it and leaves the group from it. While a radio of the group has focus, the arrow keys move focus to the next or previous radio (wrapping), and choose it, which reports `select`
+    /// as a click on it would. Returns which way the person pressed Tab, if they did.
+    fn rove(
+        &mut self,
+        ui: &mut Ui,
+        group: &str,
+        radios: &[&Node],
+        out: &mut Vec<Output>,
+    ) -> Option<Leaving> {
+        let enabled: Vec<&Node> = radios
+            .iter()
+            .copied()
+            .filter(|radio| !radio.bool_prop("disabled"))
+            .collect();
+        let checked = enabled
+            .iter()
+            .find(|radio| radio.bool_prop("checked"))
+            .map(|radio| radio.key().to_owned());
+        let roving = self.roving.entry(group.to_owned()).or_default();
+
+        // The stop follows the application's choice when that changes, and is the first radio when nothing is chosen.
+        if roving.checked != checked {
+            roving.checked = checked.clone();
+
+            if checked.is_some() {
+                roving.stop = checked.clone();
+            }
+        }
+
+        if !roving
+            .stop
+            .as_ref()
+            .is_some_and(|stop| enabled.iter().any(|radio| radio.key() == stop))
+        {
+            roving.stop = checked.or_else(|| enabled.first().map(|radio| radio.key().to_owned()));
+        }
+
+        for radio in radios {
+            self.focus.members.insert(radio.key().to_owned());
+        }
+
+        let mut leaving = None;
+        let at = self
+            .focus
+            .had
+            .as_ref()
+            .and_then(|key| enabled.iter().position(|radio| radio.key() == key));
+
+        if let Some(at) = at {
+            let step = ui.input_mut(|input| {
+                use egui::{Key, Modifiers};
+
+                if input.consume_key(Modifiers::NONE, Key::ArrowDown)
+                    || input.consume_key(Modifiers::NONE, Key::ArrowRight)
+                {
+                    Some(1)
+                } else if input.consume_key(Modifiers::NONE, Key::ArrowUp)
+                    || input.consume_key(Modifiers::NONE, Key::ArrowLeft)
+                {
+                    Some(enabled.len() - 1)
+                } else {
+                    None
+                }
+            });
+
+            if let Some(step) = step {
+                let target = enabled[(at + step) % enabled.len()];
+
+                roving.stop = Some(target.key().to_owned());
+                self.focus.asking.ask(target.key());
+
+                if !target.bool_prop("checked") {
+                    if let Node::Node { props, events, .. } = target {
+                        let value = props.get("value").and_then(Value::as_str).unwrap_or("");
+
+                        report(events, "select", Some(Value::String(value.to_owned())), out);
+                    }
+                }
+            }
+
+            let tab = ui.input_mut(|input| {
+                use egui::{Key, Modifiers};
+
+                if input.consume_key(Modifiers::NONE, Key::Tab) {
+                    Some(Leaving::Forward)
+                } else if input.consume_key(Modifiers::SHIFT, Key::Tab) {
+                    Some(Leaving::Back)
+                } else {
+                    None
+                }
+            });
+
+            match tab {
+                Some(Leaving::Back) => match self.focus.last {
+                    Some(before) => ui.memory_mut(|memory| memory.request_focus(before)),
+                    None => self.focus.wrapping = Some(Leaving::Back),
+                },
+                other => leaving = other,
+            }
+        }
+
+        if let Some(stop) = &self.roving[group].stop {
+            self.focus.stops.insert(stop.clone());
+        }
+
+        leaving
     }
 
     fn each(&mut self, ui: &mut Ui, children: &[Node], out: &mut Vec<Output>) {
@@ -700,7 +1179,7 @@ impl View {
         ctx.with_accessibility_parent(table_id, || {
             egui::Grid::new(table_id).striped(true).show(ui, |ui| {
                 for (at, (_, row)) in rows.iter().enumerate() {
-                    let row_id = table_id.with(("row", at));
+                    let row_id = table_id.with(("row", row.key()));
 
                     ui.ctx().accesskit_node_builder(row_id, |builder| {
                         builder.set_role(egui::accesskit::Role::Row);
@@ -736,7 +1215,7 @@ impl View {
         else {
             return;
         };
-        let cell_id = row_id.with(("cell", column));
+        let cell_id = row_id.with(("cell", cell.key()));
         let role = match component.as_str() {
             "columnheader" => egui::accesskit::Role::ColumnHeader,
             "rowheader" => egui::accesskit::Role::RowHeader,
@@ -768,7 +1247,9 @@ impl View {
 
         // Not wrapped: inside a grid a wrapping layout is given the column's width from before this cell was drawn, which breaks a header word in two ("Orde" "r").
         ctx.with_accessibility_parent(cell_id, || {
-            ui.horizontal(|ui| self.inline_children(ui, children, out, style));
+            keyed(ui, cell.key(), |ui| {
+                ui.horizontal(|ui| self.inline_children(ui, children, out, style))
+            });
         });
     }
 
@@ -784,6 +1265,12 @@ struct Style {
     strong: bool,
     italic: bool,
     size: Option<f32>,
+    color: Option<egui::Color32>,
+}
+
+/// A hex color of the theme as the toolkit's.
+fn paint(text: &str) -> Option<egui::Color32> {
+    theme::color(text).map(|[r, g, b, a]| egui::Color32::from_rgba_unmultiplied(r, g, b, a))
 }
 
 impl Style {
@@ -795,7 +1282,25 @@ impl Style {
         }
     }
 
+    /// This style with what the theme says of the primitive laid over it: its size, its color and whether its weight is a strong one.
+    fn themed(mut self, themed: &theme::Style) -> Style {
+        if let Some(size) = themed.font_size {
+            self.size = Some(size);
+        }
+        if let Some(weight) = themed.font_weight {
+            self.strong = weight >= 600;
+        }
+        if let Some(color) = themed.text.as_deref().and_then(paint) {
+            self.color = Some(color);
+        }
+
+        self
+    }
+
     fn apply(self, mut text: RichText) -> RichText {
+        if let Some(color) = self.color {
+            text = text.color(color);
+        }
         if self.strong {
             text = text.strong();
         }
@@ -807,6 +1312,96 @@ impl Style {
         }
         text
     }
+}
+
+/// A button drawn as the theme says: its fill, its text (already in the label), its border, its radius, its padding and its least size. What the theme does not say stays the toolkit's.
+fn themed_button(
+    ui: &mut Ui,
+    enabled: bool,
+    mut button: Button,
+    themed: &theme::Style,
+) -> Response {
+    if let Some(fill) = themed.background.as_deref().and_then(paint) {
+        button = button.fill(fill);
+    }
+    match &themed.border {
+        Some(Border::Stroke { width, color }) => {
+            if let Some(color) = paint(color) {
+                button = button.stroke(egui::Stroke::new(*width, color));
+            }
+        }
+        Some(Border::Keyword(_)) => button = button.stroke(egui::Stroke::NONE),
+        None => {}
+    }
+    if let Some(radius) = themed.radius {
+        button = button.corner_radius(radius);
+    }
+    if let Some(size) = themed.min_size {
+        button = button.min_size(egui::vec2(size, size));
+    }
+
+    ui.scope(|ui| {
+        if let Some([top, right, bottom, left]) = themed.padding {
+            ui.spacing_mut().button_padding =
+                egui::vec2((left + right) / 2.0, (top + bottom) / 2.0);
+        }
+        ui.add_enabled(enabled, button)
+    })
+    .inner
+}
+
+/// A text field drawn as the theme says: its fill, its text, its border (the toolkit draws it from the widget visuals, so they are set for the field only), its radius, its padding and its least size.
+fn themed_field(ui: &mut Ui, mut field: TextEdit, themed: &theme::Style) -> Response {
+    if let Some(fill) = themed.background.as_deref().and_then(paint) {
+        field = field.background_color(fill);
+    }
+    if let Some(color) = themed.text.as_deref().and_then(paint) {
+        field = field.text_color(color);
+    }
+    if let Some(size) = themed.font_size {
+        field = field.font(egui::FontId::proportional(size));
+    }
+    if let Some([top, right, bottom, left]) = themed.padding {
+        field = field.margin(egui::Margin {
+            left: left.round() as i8,
+            right: right.round() as i8,
+            top: top.round() as i8,
+            bottom: bottom.round() as i8,
+        });
+    }
+    if let Some(size) = themed.min_size {
+        field = field.min_size(egui::vec2(0.0, size));
+    }
+
+    ui.scope(|ui| {
+        let stroke = match &themed.border {
+            Some(Border::Stroke { width, color }) => {
+                paint(color).map(|color| egui::Stroke::new(*width, color))
+            }
+            Some(Border::Keyword(_)) => Some(egui::Stroke::NONE),
+            None => None,
+        };
+        let radius = themed
+            .radius
+            .map(|radius| egui::CornerRadius::same(radius.round().clamp(0.0, 255.0) as u8));
+        let widgets = &mut ui.visuals_mut().widgets;
+
+        for state in [
+            &mut widgets.inactive,
+            &mut widgets.hovered,
+            &mut widgets.active,
+        ] {
+            if let Some(stroke) = stroke {
+                state.bg_stroke = stroke;
+            }
+            if let Some(radius) = radius {
+                state.corner_radius = radius;
+            }
+        }
+
+        ui.add(field)
+    })
+    .inner
 }
 
 /// Runs of text sit against each other: the text carries its own spaces.
@@ -880,3 +1475,144 @@ pub const REALIZED_CONTENT: &[&str] = &[
     "emphasis",
     "link",
 ];
+
+/// The spike behind decision I16: what egui remembers by id (a scroll position, whether a section is open, which text field has focus) follows a node's key when the scope is `keyed`, and
+/// follows its place when it is not. egui 0.31.1 seeds the automatic ids of a child `Ui` from its parent's counter, so `push_id` keeps the child's own id but not the ids inside it.
+#[cfg(test)]
+mod identity_spike {
+    use super::keyed;
+    use egui::{CentralPanel, CollapsingHeader, Context, RawInput, ScrollArea, Ui};
+
+    /// Runs one frame whose content is `add`.
+    fn frame(ctx: &Context, add: impl FnMut(&mut Ui)) {
+        let mut add = add;
+
+        let _ = ctx.run(RawInput::default(), |ctx| {
+            CentralPanel::default().show(ctx, |ui| add(ui));
+        });
+    }
+
+    /// `(key, scroll offset)` of one scroll area for each key in order, in a frame; `force` is the key whose offset this frame sets.
+    fn scrolls(
+        ctx: &Context,
+        order: &[&str],
+        force: Option<&str>,
+        by_key: bool,
+    ) -> Vec<(String, f32)> {
+        let mut seen = Vec::new();
+
+        frame(ctx, |ui| {
+            for (place, key) in order.iter().enumerate() {
+                let mut show = |ui: &mut Ui| {
+                    // Not keyed: what egui does by default is the same id for every area of a `Ui`, so the control names them by their place, as a list drawn by index would.
+                    let mut area = ScrollArea::vertical().max_height(40.0);
+
+                    if !by_key {
+                        area = area.id_salt(place);
+                    }
+
+                    if force == Some(*key) {
+                        area = area.vertical_scroll_offset(50.0);
+                    }
+
+                    let shown = area.show(ui, |ui| ui.allocate_space(egui::vec2(10.0, 200.0)));
+
+                    seen.push((key.to_string(), shown.state.offset.y));
+                };
+
+                if by_key {
+                    keyed(ui, key, show);
+                } else {
+                    show(ui);
+                }
+            }
+        });
+
+        seen
+    }
+
+    #[test]
+    fn a_scroll_position_follows_the_key_and_not_the_place() {
+        for (by_key, expected) in [
+            (true, [("b", 50.0), ("a", 0.0)]),
+            (false, [("b", 0.0), ("a", 50.0)]),
+        ] {
+            let ctx = Context::default();
+
+            // Two frames: the second area is scrolled in the first, and then the two change places.
+            scrolls(&ctx, &["a", "b"], Some("b"), by_key);
+            scrolls(&ctx, &["a", "b"], None, by_key);
+
+            let after = scrolls(&ctx, &["b", "a"], None, by_key);
+
+            assert_eq!(
+                after,
+                expected
+                    .iter()
+                    .map(|(key, offset)| (key.to_string(), *offset))
+                    .collect::<Vec<_>>(),
+                "keyed: {by_key}"
+            );
+        }
+    }
+
+    /// Which keys have an open section, after the sections were laid in `order`; `open` is the key forced open in this frame.
+    fn sections(
+        ctx: &Context,
+        order: &[&str],
+        open: Option<&str>,
+        by_key: bool,
+    ) -> Vec<(String, bool)> {
+        let mut seen = Vec::new();
+
+        frame(ctx, |ui| {
+            for (place, key) in order.iter().enumerate() {
+                let mut show = |ui: &mut Ui| {
+                    // The same title for both: the id must come from the key, not from what the section says (the control names them by their place).
+                    let mut header = CollapsingHeader::new("section")
+                        .open(open.map(|forced| forced == *key).filter(|forced| *forced));
+
+                    if !by_key {
+                        header = header.id_salt(place);
+                    }
+
+                    let shown = header.show(ui, |ui| ui.label("inside"));
+
+                    seen.push((key.to_string(), shown.body_response.is_some()));
+                };
+
+                if by_key {
+                    keyed(ui, key, show);
+                } else {
+                    show(ui);
+                }
+            }
+        });
+
+        seen
+    }
+
+    #[test]
+    fn an_open_section_follows_the_key_and_not_the_place() {
+        for (by_key, expected) in [
+            (true, [("b", true), ("a", false)]),
+            (false, [("b", false), ("a", true)]),
+        ] {
+            let ctx = Context::default();
+
+            sections(&ctx, &["a", "b"], Some("b"), by_key);
+            sections(&ctx, &["a", "b"], None, by_key);
+
+            let after = sections(&ctx, &["b", "a"], None, by_key);
+
+            assert_eq!(
+                after,
+                expected
+                    .iter()
+                    .map(|(key, open)| (key.to_string(), *open))
+                    .collect::<Vec<_>>(),
+                "keyed: {by_key}"
+            );
+        }
+    }
+}
