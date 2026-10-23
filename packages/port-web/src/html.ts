@@ -12,7 +12,7 @@ import type { RenderNode, RenderTree, TextRun } from "@valancex/mesh-runtime";
 import type { WebPrimitives } from "./primitives.js";
 import type { Plan } from "./check.js";
 
-import { COMPONENT_ATTRIBUTE, UNKNOWN_COMPONENT_ELEMENT, VOID_ELEMENTS, checkTree, own, validatePrimitives } from "./check.js";
+import { COMPONENT_ATTRIBUTE, UNKNOWN_COMPONENT_ELEMENT, VOID_ELEMENTS, checkTree, groupKeyOf, own, validatePrimitives } from "./check.js";
 import { WebRealizationError } from "./error.js";
 
 // Elements whose content HTML parsing doesn't give back as a tree of nodes
@@ -43,7 +43,7 @@ const escape = (text: string, escapes: Readonly<Record<string, string>>, key: st
   return text.replace(/[&<>"\r]/g, (character) => escapes[character] ?? character);
 };
 
-const attributesOf = (node: RenderNode, primitives: WebPrimitives, plan: Plan): string => {
+const attributesOf = (node: RenderNode, primitives: WebPrimitives, plan: Plan, parents: ReadonlyArray<RenderNode>): string => {
   const primitive = own(primitives, node.component);
   const attributes: Array<readonly [name: string, value: string | undefined]> = [];
 
@@ -52,6 +52,12 @@ const attributesOf = (node: RenderNode, primitives: WebPrimitives, plan: Plan): 
   } else {
     for (const [name, value] of Object.entries(primitive.attributes ?? {})) {
       attributes.push([name, value]);
+    }
+
+    const group = groupKeyOf(primitive, [...parents].reverse());
+
+    if (group !== undefined) {
+      attributes.push([primitive.group!.attribute, group]);
     }
 
     for (const [name, output] of plan.get(node.key) ?? []) {
@@ -99,7 +105,7 @@ export const realizeHtml = (tree: RenderTree, primitives: WebPrimitives): string
 
   const plan = checkTree(tree, primitives);
 
-  const write = (part: RenderNode | TextRun): string => {
+  const write = (part: RenderNode | TextRun, parents: ReadonlyArray<RenderNode> = []): string => {
     if (part.type === "text") {
       // An empty run writes nothing: hydration re-creates its node.
       return escape(part.text, TEXT_ESCAPES, part.key);
@@ -111,7 +117,7 @@ export const realizeHtml = (tree: RenderTree, primitives: WebPrimitives): string
       throw new WebRealizationError("unserializable-element", `<${part.component}> is realized as <${element}>, whose content HTML parsing wouldn't give back as the tree says`, part.key);
     }
 
-    const start = `<${element}${attributesOf(part, primitives, plan)}>`;
+    const start = `<${element}${attributesOf(part, primitives, plan, parents)}>`;
 
     if (VOID_ELEMENTS.has(element)) {
       return start;
@@ -120,7 +126,7 @@ export const realizeHtml = (tree: RenderTree, primitives: WebPrimitives): string
     const first = part.children[0];
     const newline = LEADING_NEWLINE_DROPPED.has(element) && first?.type === "text" && first.text.startsWith("\n") ? "\n" : "";
 
-    return `${start}${newline}${part.children.map(write).join("")}</${element}>`;
+    return `${start}${newline}${part.children.map((child) => write(child, [...parents, part])).join("")}</${element}>`;
   };
 
   return write(tree.root);

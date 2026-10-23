@@ -34,6 +34,13 @@ export interface WebPrimitive {
    * in the tree with no entry here is an error.
    */
   readonly events?: Readonly<Record<string, EventRealization>>;
+  /**
+   * The group the element belongs to by the DOM's own grouping, which the platform's keyboard behavior is built on (the arrow keys among radios and their one tab stop need one `name`).
+   * The element carries `attribute`, whose value is made from the key of its nearest ancestor drawn as the component `within`; an element with no such ancestor carries none. The value is
+   * the PORT's, never the tree's: it is the key (in server HTML), made unique to the mount in the browser, so two mounts in one document, or two groups, never share a group. A constant
+   * or a prop cannot claim the same attribute.
+   */
+  readonly group?: { readonly within: string; readonly attribute: string };
 }
 
 /**

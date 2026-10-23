@@ -12,7 +12,7 @@
  */
 
 import type { RenderNode, RenderTree, TextRun } from "@valancex/mesh-runtime";
-import type { PropRealization, WebPrimitives } from "./primitives.js";
+import type { PropRealization, WebPrimitive, WebPrimitives } from "./primitives.js";
 import type { Output } from "./realize.js";
 
 import { WebRealizationError } from "./error.js";
@@ -130,6 +130,23 @@ export const validatePrimitives = (primitives: WebPrimitives): Applicable => {
       attributes.set(name, "one of its constant attributes");
     }
 
+    // The group attribute: the platform's own grouping, named once and claimed once.
+    if (primitive.group !== undefined) {
+      const { within, attribute } = primitive.group as { readonly within?: unknown; readonly attribute?: unknown };
+
+      if (typeof within !== "string" || within === "" || typeof attribute !== "string" || !ATTRIBUTE_NAME.test(attribute) || attribute.startsWith("on") || URL_ATTRIBUTES.has(attribute)) {
+        throw invalid(component, "has a group that doesn't name a component it is within and a lowercase attribute (not an event handler or a URL slot) to carry the group");
+      }
+
+      const other = attributes.get(attribute);
+
+      if (other !== undefined) {
+        throw invalid(component, `has the group attribute "${attribute}", which ${other} already is`);
+      }
+
+      attributes.set(attribute, "its group attribute");
+    }
+
     // A DOM event type may realize several events only if no interaction can be two of them: each is made by a key, and no two are made by the same one (Enter and Escape on a field, both
     // `keydown`). An event with no key is made by every interaction of its type, so it shares the type with none.
     const byType = new Map<string, Array<string>>();
@@ -157,6 +174,24 @@ export const validatePrimitives = (primitives: WebPrimitives): Applicable => {
   }
 
   return applicable;
+};
+
+/**
+ * The key of the group an element of `primitive` is in: the key of the nearest of `parents` (nearest first) drawn as the component the group is within. Nothing when the
+ * primitive has no group, or none of its ancestors is that component.
+ */
+export const groupKeyOf = (primitive: WebPrimitive | undefined, parents: Iterable<{ readonly component: string; readonly key: string }>): string | undefined => {
+  if (primitive?.group === undefined) {
+    return undefined;
+  }
+
+  for (const parent of parents) {
+    if (parent.component === primitive.group.within) {
+      return parent.key;
+    }
+  }
+
+  return undefined;
 };
 
 // ---------------------------------------------------------------------------
