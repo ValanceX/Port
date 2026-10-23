@@ -149,6 +149,11 @@ impl eframe::App for App {
             closing = true;
         }
 
+        // The host's request for focus (decision I13), once the screen it was made for is applied.
+        if let Some(key) = self.session.port.take_focus_request() {
+            self.view.focus(&key);
+        }
+
         egui::CentralPanel::default().show(ctx, |ui| {
             egui::ScrollArea::vertical().show(ui, |ui| {
                 if self.session.close_refused {

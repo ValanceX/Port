@@ -1,6 +1,7 @@
 //! Realizing the vocabulary with egui. Every component of `vocabulary.json` becomes a widget; what the person does comes back as reports. A component this PORT does not know is drawn as a visible
 //! marker with its children, never dropped (an unknown component is the composer's to notice).
 use crate::field::Field;
+use crate::focus::{Asking, Outline};
 use crate::port::Report;
 use crate::theme::{self, Border, Theme};
 use crate::tree::Node;
@@ -78,6 +79,25 @@ fn marked(
     }
 }
 
+/// A widget that takes focus has been drawn for `key`: gives it focus when it was asked for, and remembers that it has it.
+fn focusing(asking: &mut Asking, focused: &mut Option<String>, key: &str, response: &Response) {
+    if asking.is_for(key) {
+        response.request_focus();
+    }
+
+    if response.has_focus() {
+        *focused = Some(key.to_owned());
+    }
+}
+
+/// Whether a component is a widget that takes keyboard focus (an inline link does too, and is not followed here).
+fn takes_focus(component: &str) -> bool {
+    matches!(
+        component,
+        "button" | "toggle" | "checkbox" | "textfield" | "radio"
+    )
+}
+
 /// Draws in a scope whose widget ids come from `key` and nothing else (decision I16). egui gives a widget the id of its place: a child `Ui` seeds its automatic ids from its parent's counter, so
 /// `push_id` keeps `ui.id()` stable but not the ids of the buttons and boxes inside it, and a row that moves would be a new widget with a new accessibility node and no focus. A `Ui` made by
 /// `Ui::new` seeds them from its own id, so this makes one from the parent's id and the key, with what a child scope takes from its parent: its layout, style, clip, enabled state and room;
@@ -128,6 +148,11 @@ pub struct View {
     caption: Option<String>,
     /// The theme the engine gave the window, resolved: what each primitive of the portable core looks like. Absent: the toolkit's own look.
     theme: Option<Arc<Theme>>,
+    /// The key of the widget that had focus in the last frame, and the shape of that frame's tree: when the node is gone, focus goes to its heir (decision I2).
+    focused: Option<String>,
+    outline: Outline,
+    /// What the window has been asked for focus (decision I13).
+    asking: Asking,
 }
 
 impl View {
@@ -166,7 +191,24 @@ impl View {
     pub fn show(&mut self, ui: &mut Ui, node: &Node, out: &mut Vec<Output>) {
         self.described.clear();
         gather(node, &mut self.described);
+
+        // A node that has focus and is gone from this frame's tree hands it on; one that only moved keeps it by its id (decision I16).
+        let now = Outline::of(node);
+
+        if let Some(gone) = self.focused.take().filter(|key| !now.contains(key)) {
+            if let Some(heir) = self.outline.heir(&gone, &now) {
+                self.asking.ask(&heir);
+            }
+        }
+
         self.block(ui, node, out);
+        self.asking.end_frame();
+        self.outline = now;
+    }
+
+    /// Asks for focus on the part `key` names, or the first thing in it that takes focus, in the next frame drawn (decision I13). Nothing is reported.
+    pub fn focus(&mut self, key: &str) {
+        self.asking.ask(key);
     }
 
     /// A node as a block: it takes the width and a line of its own. Its widgets' ids come from its key (decision I16): a node that keeps its identity keeps its widget, its accessibility
@@ -176,7 +218,15 @@ impl View {
             Node::Text { text, .. } => {
                 ui.label(text);
             }
-            Node::Node { key, .. } => keyed(ui, key, |ui| self.draw(ui, node, out)),
+            Node::Node { key, component, .. } => {
+                let seeking = self.asking.enter(key, takes_focus(component));
+
+                keyed(ui, key, |ui| self.draw(ui, node, out));
+
+                if seeking {
+                    self.asking.leave();
+                }
+            }
         }
     }
 
@@ -415,6 +465,7 @@ impl View {
                     let response = themed_button(ui, enabled, Button::new(label), &themed);
 
                     named(&response, WidgetType::Button, props, enabled, None, None);
+                    focusing(&mut self.asking, &mut self.focused, key, &response);
 
                     if response.clicked() {
                         report(events, "click", None, out);
@@ -441,6 +492,7 @@ impl View {
                     response.widget_info(move || {
                         WidgetInfo::selected(WidgetType::Button, enabled, pressed, &name)
                     });
+                    focusing(&mut self.asking, &mut self.focused, key, &response);
 
                     if response.clicked() {
                         report(events, "change", Some(Value::Bool(!pressed)), out);
@@ -515,6 +567,7 @@ impl View {
                         Some(checked),
                         caption.as_deref(),
                     );
+                    focusing(&mut self.asking, &mut self.focused, key, &response);
 
                     if response.clicked() && !checked {
                         let value = props.get("value").and_then(Value::as_str).unwrap_or("");
@@ -589,6 +642,7 @@ impl View {
                         caption.as_deref(),
                     );
                     marked(&self.described, ui, &response, props);
+                    focusing(&mut self.asking, &mut self.focused, key, &response);
 
                     if response.changed() {
                         report(events, "change", Some(Value::Bool(checked)), out);
@@ -641,6 +695,7 @@ impl View {
                         caption.as_deref(),
                     );
                     marked(&self.described, ui, &response, props);
+                    focusing(&mut self.asking, &mut self.focused, key, &response);
 
                     if let Some(caption) = captioned {
                         if caption.clicked() {

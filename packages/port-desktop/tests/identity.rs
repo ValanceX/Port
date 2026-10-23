@@ -116,27 +116,93 @@ fn focus_stays_with_the_field_when_the_fields_change_places() {
     );
 }
 
+/// Focus on `key` in `tree`, by clicking it, then one frame of `after`: who has focus.
+fn after_removal(before: &[&str], focused: &str, after: &[&str]) -> Option<String> {
+    let ctx = egui::Context::default();
+    ctx.enable_accesskit();
+    let mut view = View::default();
+    let (_, fields) = frame(&ctx, &mut view, &tree(before));
+
+    click(&ctx, &mut view, &tree(before), fields[focused]);
+    assert_eq!(
+        frame(&ctx, &mut view, &tree(before)).0.as_deref(),
+        Some(focused)
+    );
+
+    frame(&ctx, &mut view, &tree(after)).0
+}
+
 #[test]
-fn focus_does_not_pass_to_the_field_that_takes_the_place_of_one_removed() {
+fn a_removed_field_hands_focus_to_what_follows_it_then_what_precedes_it() {
+    // c follows b in the tree that had b, and y is in b's place in the tree that has not: focus goes by the tree's order, not by the place
+    assert_eq!(
+        after_removal(&["a", "b", "c"], "b", &["a", "y", "c"]).as_deref(),
+        Some("c")
+    );
+    assert_eq!(
+        after_removal(&["a", "b"], "b", &["a"]).as_deref(),
+        Some("a")
+    );
+    assert_eq!(
+        after_removal(&["a"], "a", &[]),
+        None,
+        "nothing left to take it"
+    );
+}
+
+#[test]
+fn the_host_asks_for_focus_by_key() {
     let ctx = egui::Context::default();
     ctx.enable_accesskit();
     let mut view = View::default();
 
-    let (_, fields) = frame(&ctx, &mut view, &tree(&["a", "b", "c"]));
+    frame(&ctx, &mut view, &tree(&["a", "b", "c"]));
+    view.focus("c");
 
-    click(&ctx, &mut view, &tree(&["a", "b", "c"]), fields["b"]);
     assert_eq!(
         frame(&ctx, &mut view, &tree(&["a", "b", "c"])).0.as_deref(),
-        Some("b")
+        Some("c")
+    );
+    // a request is for the frame after it: a later frame does not take focus back
+    assert_eq!(
+        frame(&ctx, &mut view, &tree(&["a", "b", "c"])).0.as_deref(),
+        Some("c")
     );
 
-    let (focused, _) = frame(&ctx, &mut view, &tree(&["a", "c"]));
-
-    assert_ne!(
-        focused.as_deref(),
-        Some("c"),
-        "c is in b's place now, and is not b"
+    // a key that is not drawn asks for nothing, and is not kept for a node that comes later
+    view.focus("nobody");
+    assert_eq!(
+        frame(&ctx, &mut view, &tree(&["a", "b", "c"])).0.as_deref(),
+        Some("c")
     );
+    assert_eq!(
+        frame(&ctx, &mut view, &tree(&["a", "nobody", "c"]))
+            .0
+            .as_deref(),
+        Some("c")
+    );
+}
+
+#[test]
+fn a_request_for_a_part_that_holds_fields_focuses_the_first_of_them() {
+    let ctx = egui::Context::default();
+    ctx.enable_accesskit();
+    let mut view = View::default();
+    let grouped: Tree = serde_json::from_value(json!({
+        "format": "mesh-render", "version": 1,
+        "root": {"type": "node", "key": "root", "component": "column", "props": {}, "events": {}, "children": [
+            field("a"),
+            {"type": "node", "key": "group", "component": "column", "props": {}, "events": {}, "children": [
+                {"type": "node", "key": "note", "component": "text", "props": {}, "events": {}, "children": [{"type": "text", "key": "t", "text": "note"}]},
+                field("b"), field("c")
+            ]}
+        ]}
+    })).unwrap();
+
+    frame(&ctx, &mut view, &grouped);
+    view.focus("group");
+
+    assert_eq!(frame(&ctx, &mut view, &grouped).0.as_deref(), Some("b"));
 }
 
 /// A list's items and a table's rows are nodes of the accessibility tree too, and they are named by the key of the node they draw (I16), not by their place.

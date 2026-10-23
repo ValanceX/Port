@@ -45,6 +45,8 @@ pub struct Port {
     tree: Option<Tree>,
     draws: usize,
     updates: usize,
+    /// The key the host asked focus for, until the window takes the request.
+    asked: Option<String>,
 }
 
 impl Port {
@@ -69,6 +71,32 @@ impl Port {
         self.tree = Some(tree);
         self.updates += 1;
         Ok(())
+    }
+
+    /// The host asks for focus on the part `key` names (decision I13): a request to the platform after the tree that has the part is applied, not a command and not state. `true` when
+    /// the part is drawn; the window then focuses it, or the first thing in it that takes focus. Nothing is reported either way.
+    pub fn focus(&mut self, key: &str) -> bool {
+        fn has(node: &Node, key: &str) -> bool {
+            match node {
+                Node::Text { .. } => false,
+                Node::Node {
+                    key: own, children, ..
+                } => own == key || children.iter().any(|child| has(child, key)),
+            }
+        }
+
+        let drawn = self.tree.as_ref().is_some_and(|tree| has(&tree.root, key));
+
+        if drawn {
+            self.asked = Some(key.to_owned());
+        }
+
+        drawn
+    }
+
+    /// The request the window has not taken yet. For the window.
+    pub fn take_focus_request(&mut self) -> Option<String> {
+        self.asked.take()
     }
 
     /// Remove the realization. Safe to call twice and before anything was drawn; the PORT stays usable.

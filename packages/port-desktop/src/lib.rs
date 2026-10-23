@@ -4,6 +4,7 @@
 //! The pieces, from the contract outward: [`tree`] (the input), [`port`] (draw, update, unmount, reports), [`host`] (driving it from an engine in another process), [`vocabulary`] (the components a
 //! template may write) and, with the `window` feature, [`view`] and [`app`] (the egui window).
 pub mod field;
+pub mod focus;
 pub mod host;
 pub mod port;
 pub mod reload;

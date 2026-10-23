@@ -39,6 +39,10 @@ pub enum FromEngine {
         #[serde(default)]
         theme: Option<Value>,
     },
+    /// Focus the part `key` names, or the first thing in it that takes focus (decision I13). A request, not a command; nothing is answered. An older window does not know the message and ignores it.
+    Focus {
+        key: String,
+    },
     /// The answer to `CloseRequested`: when not allowed (unsaved edits), the window stays open.
     #[serde(rename = "closeAnswer")]
     CloseAnswer {
@@ -140,6 +144,9 @@ impl Session {
                 Ok(()) => self.close_refused = false,
                 Err(error) => return Applied::Refused(error),
             },
+            FromEngine::Focus { key } => {
+                self.port.focus(&key);
+            }
             FromEngine::Title { title } => self.title = Some(title),
             FromEngine::Appearance { appearance, theme } => {
                 self.appearance = Some(appearance);
