@@ -246,3 +246,21 @@ fn the_consumer_sees_focus_stay_inside_a_modal_dialog_and_come_back() {
     assert_eq!(reader.named(Role::Dialog), Vec::<String>::new());
     assert_eq!(reader.focus(), ("opener".into(), true));
 }
+
+#[test]
+fn the_consumer_sees_a_popover_as_a_named_group_while_it_is_open() {
+    let mut reader = Reader::new();
+    let popover = |open: bool| {
+        tree(vec![
+            serde_json::from_value(json!({"type": "node", "key": "anchor", "component": "button", "props": {"label": "Menu", "id": "menu"}, "events": {}, "children": []})).unwrap(),
+            json!({"type": "node", "key": "tip", "component": "popover", "props": {"open": open, "anchor": "menu", "label": "Details"}, "events": {"dismiss": "dismiss"}, "children": [button("inside")]}),
+        ])
+    };
+
+    reader.settle(&popover(false));
+    assert_eq!(reader.named(Role::Group), Vec::<String>::new());
+    reader.settle(&popover(true));
+    assert_eq!(reader.named(Role::Group), ["Details"]);
+    reader.settle(&popover(false));
+    assert_eq!(reader.named(Role::Group), Vec::<String>::new());
+}

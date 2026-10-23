@@ -890,7 +890,7 @@ impl View {
                         .show(&ctx, |ui| {
                             egui::Frame::popup(ui.style()).show(ui, |ui| {
                                 ui.ctx().accesskit_node_builder(id, |builder| {
-                                    builder.set_role(egui::accesskit::Role::GenericContainer);
+                                    builder.set_role(egui::accesskit::Role::Group);
 
                                     if let Some(name) = name {
                                         builder.set_label(name);
