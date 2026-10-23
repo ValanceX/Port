@@ -454,7 +454,7 @@ export const createWebPort = ({ container, primitives, report }: WebPortOptions)
     }
   };
 
-  /** When Escape was last pressed in the container: what tells a popover the person closed with Escape from one they clicked away from. */
+  /** When Escape was last pressed in the document (focus may be nowhere in the container: a key goes to the focused element): what tells a popover the person closed with Escape from one they clicked away from. */
   const noteEscape = (event: Event): void => {
     if ((event as KeyboardEvent).key === "Escape") {
       escapeAt = performance.now();
@@ -472,9 +472,9 @@ export const createWebPort = ({ container, primitives, report }: WebPortOptions)
       }
 
       if (on) {
-        container.addEventListener("keydown", noteEscape, true);
+        container.ownerDocument.addEventListener("keydown", noteEscape, true);
       } else {
-        container.removeEventListener("keydown", noteEscape, true);
+        container.ownerDocument.removeEventListener("keydown", noteEscape, true);
       }
 
       listening = on;

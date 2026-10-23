@@ -146,6 +146,17 @@ describe("a popover", () => {
     expect(state.reported).toEqual(["outside", "escape"]);
   });
 
+  it("auto: Escape is a dismissal with the reason escape also when focus is nowhere in the page's container", async () => {
+    const container = mount();
+    const { state } = app(container, make(), { open: true });
+
+    (document.activeElement as HTMLElement | null)?.blur();
+    expect(document.activeElement).toBe(document.body);
+    await userEvent.keyboard("{Escape}");
+    await wait(50);
+    expect(state.reported).toEqual(["escape"]);
+  });
+
   it("manual: an outside click does not close it and is not a dismissal", async () => {
     const container = mount();
     const { state } = app(container, make("manual"), { open: true });
