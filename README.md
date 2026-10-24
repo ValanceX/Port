@@ -63,7 +63,9 @@ Both PORTs are checked against MESH's conformance vectors (values, events, node 
 
 The two npm packages share one version and are released together (one `v*` tag); the Desktop PORT crate has its own tag (`desktop-v*`). Newest first; the [changelog](./CHANGELOG.md) and the [release notes](./docs/releases) have the detail.
 
-**v0.12.0 (prepared 2026-10-23; crate 0.6.0 prepared):** layers: a modal dialog and a popover on both targets (`layer`, `layerProp`, `layerDismiss` on the Web; `dialog` and `popover` on the Desktop), the Authoring Practices' modal rows as 33 generated vectors on both, a subset of the web-platform-tests in Chromium, and the theme's `hovered` and `pressed` on the Desktop button. See the [release notes](./docs/releases/v0.12.md).
+**v0.13.0 (prepared 2026-10-24; the crate stays 0.6.0):** the MESH runtime peer range of `@valancex/port-web` admits MESH 0.16, run against it (435 tests); no API or behavior change. See the [release notes](./docs/releases/v0.13.md).
+
+**v0.12.0 (published 2026-10-24; crate 0.6.0):** layers: a modal dialog and a popover on both targets (`layer`, `layerProp`, `layerDismiss` on the Web; `dialog` and `popover` on the Desktop), the Authoring Practices' modal rows as 33 generated vectors on both, a subset of the web-platform-tests in Chromium, and the theme's `hovered` and `pressed` on the Desktop button. See the [release notes](./docs/releases/v0.12.md).
 
 **v0.11.0 (released 2026-10-23; crate 0.5.0 released):** PORT behavior: focus follows identity and `focus(key)` on the Web; `group` (radios are one group) and `elementWhen` (a list's element chosen by `ordered`); on the Desktop, widget ids from node keys (all identity vectors pass), focus follows identity, the host's `focus` message and roving focus in a radio group. See the [release notes](./docs/releases/v0.11.md).
 
