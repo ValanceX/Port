@@ -49,9 +49,9 @@ describe("port-web's boundaries", () => {
       return Number(alternative.split(".")[1]);
     });
 
-    // 0.6 is the minimum supported; each later line PORT was run against is listed, with no gap (0.6 through 0.16). `scripts/check-mesh-range.mjs` runs this suite against each line the range lists, so a line is added here only
+    // 0.6 is the minimum supported; each later line PORT was run against is listed, with no gap (0.6 through 0.17). `scripts/check-mesh-range.mjs` runs this suite against each line the range lists, so a line is added here only
     // with a run (CI's `mesh-range` job).
-    expect(minors).toEqual([6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]);
+    expect(minors).toEqual([6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]);
   });
 
   it("uses no browser globals: every DOM object comes from the container's document", () => {
