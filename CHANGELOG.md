@@ -4,6 +4,10 @@ All notable changes to PORT are recorded here. The project follows [Semantic Ver
 
 ## [Unreleased]
 
+## [0.14.0] - 2026-10-24 (prepared, not yet released; the crate stays 0.6.0)
+
+A minor release of the two npm packages, which share one version: **the MESH runtime peer range of `@valancex/port-web` admits 0.17** (`^0.6.0 || … || ^0.16.0 || ^0.17.0`), so the newest set installs together once MESH 0.17 is published. No API or behavior change; the Web PORT's 435 tests were run against MESH 0.17.0 (`scripts/check-mesh-range.mjs` now installs from `MESH_PACK_DIR` for a version that is not published yet). See the [v0.14 release notes](./docs/releases/v0.14.md).
+
 ## [0.13.0] - 2026-10-24 (prepared, not yet released; the crate stays 0.6.0)
 
 A minor release of the two npm packages, which share one version: **the MESH runtime peer range of `@valancex/port-web` admits 0.16** (`^0.6.0 || … || ^0.15.0 || ^0.16.0`). MESH 0.16 is published and 0.12's range stopped at 0.15, so the newest published set did not install together (the budgets' installability check, Valance Bet 3). No API or behavior change. The line was run, not only listed: `scripts/check-mesh-range.mjs 0.16.0` ran the Web PORT's 435 tests against MESH 0.16.0 with the 0.16 conformance vectors. See the [v0.13 release notes](./docs/releases/v0.13.md).
