@@ -3,7 +3,7 @@
 import type { RenderNode, RenderTree } from "@valancex/mesh-runtime";
 
 import { attribute, createWebPort, layerDismiss, layerProp, type WebPort, type WebPrimitives } from "@valancex/port-web";
-import { userEvent } from "@vitest/browser/context";
+import { userEvent } from "vitest/browser";
 import { afterEach, describe, expect, it } from "vitest";
 
 import vectors from "../../overlays/dialog-modal.vectors.json" with { type: "json" };

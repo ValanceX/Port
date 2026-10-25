@@ -18,7 +18,7 @@
     "test": "pnpm -r run test"
   },
   "devDependencies": {
-    "typescript": "^5.6.0",
-    "@valancex/mesh-conformance": "^0.16.0"
+    "typescript": "^7.0.2",
+    "@valancex/mesh-conformance": "^0.17.0"
   }
 }

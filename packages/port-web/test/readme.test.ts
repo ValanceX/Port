@@ -2,7 +2,7 @@
 // doesn't define (`render`, `next`, `port`, `document`...): this test supplies them, and a sample that uses any
 // other name fails with a ReferenceError, so a sample can't drift into inventing one.
 import { readFileSync } from "node:fs";
-import ts from "typescript";
+import { stripTypeScriptTypes } from "node:module";
 import { describe, expect, it } from "vitest";
 
 import * as web from "../src/index.js";
@@ -23,8 +23,10 @@ const run = async (sample: string, scope: Record<string, unknown>, tail = ""): P
 
     return `const {${names}} = __modules[${JSON.stringify(specifier)}];`;
   });
-  const js = ts.transpileModule(`${body}\n${tail}`, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext } }).outputText;
   const names = Object.keys(scope);
+  // Node strips the types (TypeScript 7 has no `transpileModule`). It parses a module, where a sample's own
+  // `return` is not allowed, so the sample is stripped as the body of a function and that function is called.
+  const js = `${stripTypeScriptTypes(`async function __sample(__modules, ${names.join(", ")}) {\n${body}\n${tail}\n}`)}\nreturn __sample(__modules, ${names.join(", ")});`;
 
   return new AsyncFunction("__modules", ...names, js)(modules, ...names.map((name) => scope[name]));
 };
