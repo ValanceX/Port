@@ -10,6 +10,11 @@ on:
   # The release workflow runs all of CI on the tagged commit first.
   workflow_call:
 
+# A newer push to a branch or pull request supersedes the run in progress. A tag (a release) is never cancelled.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref_type == 'branch' }}
+
 jobs:
   check:
     runs-on: ubuntu-latest
@@ -18,11 +23,11 @@ jobs:
       matrix:
         node: [22, 24]
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
         with:
-          version: 10
-      - uses: actions/setup-node@v4
+          version: 12
+      - uses: actions/setup-node@v7
         with:
           node-version: ${{ matrix.node }}
           cache: pnpm
@@ -35,11 +40,11 @@ jobs:
   mesh-range:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
         with:
-          version: 10
-      - uses: actions/setup-node@v4
+          version: 12
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
@@ -58,12 +63,12 @@ jobs:
         shell: bash
         working-directory: packages/port-desktop
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       # MESH's conformance vectors come from their package (decision Q2): tests/conformance.rs reads them from node_modules.
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
-          version: 10
-      - uses: actions/setup-node@v4
+          version: 12
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
       - name: Install the conformance vectors
@@ -72,7 +77,7 @@ jobs:
       - name: No copy of the vectors, and the package is new enough
         working-directory: .
         run: node scripts/check-conformance.mjs
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: |
             ~/.cargo/registry

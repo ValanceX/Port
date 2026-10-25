@@ -3,7 +3,7 @@
 import type { RenderNode, RenderTree } from "@valancex/mesh-runtime";
 
 import { attribute, controlledBoolean, createWebPort, type WebPrimitives } from "@valancex/port-web";
-import { userEvent } from "@vitest/browser/context";
+import { userEvent } from "vitest/browser";
 import { afterEach, describe, expect, it } from "vitest";
 
 const primitives: WebPrimitives = {

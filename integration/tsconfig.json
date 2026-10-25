@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "types": ["node", "@vitest/browser/providers/playwright"],
+    "types": ["node", "@vitest/browser-playwright"],
     "target": "ES2022",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",

@@ -15,7 +15,7 @@ import { init } from "@valancex/mesh-runtime";
 import wasmUrl from "@valancex/mesh-runtime/mesh-runtime.wasm?url";
 import * as Nexus from "@valancex/nexus";
 import { attribute, booleanAttribute } from "@valancex/port-web";
-import { userEvent } from "@vitest/browser/context";
+import { userEvent } from "vitest/browser";
 import { Chunk, Clock, Effect, Exit, Fiber, Layer, Option, Schema, Stream } from "effect";
 import { beforeAll, describe, expect, inject, it } from "vitest";
 
