@@ -10,6 +10,7 @@ import * as server from "../src/server.js";
 const src = new URL("../src/", import.meta.url);
 const files = readdirSync(src).filter((file) => file.endsWith(".ts"));
 const sources = files.map((file) => [file, readFileSync(new URL(file, src), "utf8")] as const);
+const byFileOf = (file: string): string => sources.find(([name]) => name === file)![1];
 const manifest = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")) as Record<string, Record<string, string> | undefined>;
 
 // The source without comments or string and template literals, so prose can't match.
@@ -115,12 +116,20 @@ describe("the server entry's boundaries", () => {
   });
 });
 
-// The public surface: the client and server entries, and nothing else. The
+// The public surface: the client and server entries, the native hatch's types, and nothing else. The
 // shared checks, value realization, HTML escaping and hydration's
 // verification are internal.
 describe("the public API surface", () => {
-  it("the package exposes only its two entries", () => {
-    expect(Object.keys((manifest["exports"] ?? {}) as Record<string, unknown>)).toEqual([".", "./server", "./package.json"]);
+  it("the package exposes only its two entries, and the native hatch's subpath", () => {
+    expect(Object.keys((manifest["exports"] ?? {}) as Record<string, unknown>)).toEqual([".", "./server", "./native", "./package.json"]);
+  });
+
+  // Leaving the portable layer is visible in the import: the hatch's types are only at `@valancex/port-web/native`, and it has no run-time code.
+  it("the native entry: types only, and the client and server entries don't name it", async () => {
+    expect(Object.keys(await import("../src/native.js"))).toEqual([]);
+    expect(importsOf(byFileOf("native.ts"))).toEqual([]);
+    expect(importsOf(byFileOf("index.ts")).map(({ specifier }) => specifier)).not.toContain("./native.js");
+    expect(importsOf(byFileOf("server.ts")).map(({ specifier }) => specifier)).not.toContain("./native.js");
   });
 
   it("the client entry: the Web PORT, the realization table's helpers, and its error", () => {

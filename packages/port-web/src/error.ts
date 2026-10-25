@@ -14,6 +14,8 @@ export type WebRealizationCode =
   | "unrealizable-children"
   /** Two parts of one tree share a key. MESH guarantees this never happens. */
   | "duplicate-key"
+  /** A node of an `opaque` primitive has children, in a tree or by a patch's insert: its content is the native hatch's, not the tree's. Provisional, with the hatch. */
+  | "opaque-children"
   /** A modal layer inside another modal layer (a dialog inside a dialog). One modal at a time. */
   | "nested-modal"
   /** `update` was called with nothing drawn. */

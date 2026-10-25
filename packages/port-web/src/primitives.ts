@@ -48,6 +48,12 @@ export interface WebPrimitive {
    * asks to close it. A layer the browser closes while the application still has it open is drawn again. A popover's `popover` attribute is its prop's (`"auto"` or `"manual"`) or `"auto"`.
    */
   readonly layer?: "modal" | "popover";
+  /**
+   * The element's content is not the tree's: a node of this primitive has no children (a tree or a patch that gives it any is refused, `opaque-children`), the server writes it
+   * empty, hydration doesn't verify what is inside it, and the PORT never touches what is. It is for the native hatch (`@valancex/port-web/native`), whose callback then owns the
+   * content. A layer can't be opaque. Provisional, Web only, not part of contract version 1.
+   */
+  readonly opaque?: true;
 }
 
 /**

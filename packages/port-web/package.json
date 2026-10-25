@@ -23,6 +23,10 @@
       "types": "./dist/server.d.ts",
       "default": "./dist/server.js"
     },
+    "./native": {
+      "types": "./dist/native.d.ts",
+      "default": "./dist/native.js"
+    },
     "./package.json": "./package.json"
   },
   "types": "./dist/index.d.ts",

@@ -4,6 +4,11 @@ All notable changes to PORT are recorded here. The project follows [Semantic Ver
 
 ## [Unreleased]
 
+### Added
+
+- `@valancex/port-web`: **the native hatch** (Tier 3, **Provisional**, Web only, not in contract version 1; Valance north-star refinements B6). `createWebPort` takes `native`, a callback per component, typed from the new subpath **`@valancex/port-web/native`** (`Native`, `NativeSetup`; types only). It gets each drawn element of that primitive and `{ key }`, nothing that reports or dispatches, and runs once the element is in the document, after `draw`, an insert by `update` or `patch`, and `hydrate`. Its cleanup runs at the end of the call that removes or replaces the element, or of `draw` or `unmount`, after focus has been handed off. The server takes no `native`. At the end of every `update` and `patch` the PORT writes back every slot it owns on a hatched element. A primitive marked **`opaque: true`** has no tree children (refused with the new code **`opaque-children`**); the server writes it empty and hydration leaves its content unverified. A layer can't be opaque (`invalid-primitives`). See the package README, "Leaving the portable layer".
+- Scorecard audits touched (Valance `docs/NORTH_STAR_SCORECARD.md`): **H1** (a documented way down to the platform) F at the 2026-10-19 baseline (partial hatches documented by A10) → P: the hatch exists and is documented; **H2** (the hatch cannot corrupt framework state) – → P: it is imported from its own subpath, gets no report or dispatch, and the PORT re-asserts what it owns (tested).
+
 ## [0.14.0] - 2026-10-24 (prepared, not yet released; the crate stays 0.6.0)
 
 A minor release of the two npm packages, which share one version: **the MESH runtime peer range of `@valancex/port-web` admits 0.17** (`^0.6.0 || … || ^0.16.0 || ^0.17.0`), so the newest set installs together once MESH 0.17 is published. No API or behavior change; the Web PORT's 435 tests were run against MESH 0.17.0 (`scripts/check-mesh-range.mjs` now installs from `MESH_PACK_DIR` for a version that is not published yet). See the [v0.14 release notes](./docs/releases/v0.14.md).

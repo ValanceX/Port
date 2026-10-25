@@ -140,6 +140,10 @@ export const validatePrimitives = (primitives: WebPrimitives): Applicable => {
       names.set(realization.name, `its prop \`${prop}\``);
     }
 
+    if (primitive.opaque !== undefined && (primitive.opaque !== true || primitive.layer !== undefined)) {
+      throw invalid(component, primitive.opaque === true ? "is a layer and opaque: the PORT shows, hides and keeps focus in a layer's content, so it can't be the native hatch's" : "has an `opaque` that isn't `true`");
+    }
+
     if (primitive.layer !== undefined) {
       if (primitive.layer !== "modal" && primitive.layer !== "popover") {
         throw invalid(component, "has a layer that is neither modal nor popover");
@@ -367,6 +371,10 @@ export const checkTree = (tree: RenderTree, primitives: WebPrimitives): Plan => 
 
       if (part.children.length > 0 && VOID_ELEMENTS.has(elementOf(primitive, outputs))) {
         throw new WebRealizationError("unrealizable-children", `<${part.component}> has children, but is realized as <${elementOf(primitive, outputs)}>, which can't hold any`, part.key);
+      }
+
+      if (part.children.length > 0 && primitive.opaque === true) {
+        throw new WebRealizationError("opaque-children", `<${part.component}> has children, but is opaque: its content is the native hatch's, not the tree's`, part.key);
       }
     }
 

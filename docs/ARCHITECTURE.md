@@ -49,7 +49,7 @@ A PORT:
 - *(direction, not built)* describes its own capabilities (for example `retained-rendering`). PORT is the authority on what its target can guarantee, so MESH never needs an encyclopedia of platforms. Nothing consumes such a description yet, so no format exists (audit U4);
 - *(direction, not built)* realizes style semantics in the target's own styling system, always explicitly (e.g. under `@target linux`), never by pretending every target styles alike. render-v1 carries no style or accessibility information yet (audit U1, U2);
 - should be **inspectable**: a developer should eventually be able to see what a PORT did with a given element (which target object it became, which optimizations applied) rather than treating it as an opaque engine;
-- *(direction, not built)* may offer **explicit escape hatches** down to target primitives and native APIs, clearly marked as leaving the portable layer. Only partial hatches exist today: see [Leaving the portable layer](../packages/port-web/README.md#leaving-the-portable-layer).
+- *(built: Provisional, Web)* offers **explicit escape hatches** down to target primitives and native APIs, clearly marked as leaving the portable layer: the Web PORT's `native` option, typed from `@valancex/port-web/native`, with `opaque` primitives. It gets no way to report, and the PORT writes back what it owns, so state stays the application's. A Desktop parallel waits for evidence ([ROADMAP](./ROADMAP.md) §2.8). See [Leaving the portable layer](../packages/port-web/README.md#leaving-the-portable-layer).
 
 ## What PORT is not
 
