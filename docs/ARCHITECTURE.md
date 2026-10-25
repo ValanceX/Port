@@ -2,6 +2,8 @@
 
 This document covers PORT's part of the Valance design: what it's responsible for, what it deliberately stays out of, and the rules that keep it that way. The sibling repos, [NEXUS](https://github.com/ValanceX/Nexus) and [MESH](https://github.com/ValanceX/Mesh), each have their own architecture doc. For the big picture, start at the [ValanceX organization page](https://github.com/ValanceX).
 
+**Glossary:** words that mean different things across the Valance repos (`scope`, `Host`, `start`, `instance`) are defined in the shared [Glossary](https://github.com/ValanceX/Valance/blob/main/docs/understand/glossary.md).
+
 ## The short version
 
 > **Valance defines what an application means. PORT determines how that meaning is realized on a target.**
