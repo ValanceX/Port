@@ -405,6 +405,13 @@ export const createWebPort = ({ container, primitives, report, native }: WebPort
     }
   };
   const applicable = validatePrimitives(primitives);
+
+  // A native callback is for a primitive of the table, as a function: a name the table doesn't have (a typo) would otherwise do nothing, silently.
+  for (const [component, setup] of Object.entries(native ?? {})) {
+    if (own(primitives, component) === undefined || typeof setup !== "function") {
+      throw new WebRealizationError("invalid-primitives", `<${component}> has a native callback, but ${typeof setup !== "function" ? "it isn't a function" : "the table has no such primitive"}`);
+    }
+  }
   const types = new Set(Array.from(applicable.values(), (byType) => [...byType.keys()]).flat());
   /** The drawn node each drawn element realizes. Only what is drawn is in it. */
   const nodeOf = new WeakMap<Node, DrawnNode>();
@@ -1368,13 +1375,23 @@ export const createWebPort = ({ container, primitives, report, native }: WebPort
     }
   };
 
-  /** Runs one call of the PORT, then settles the native hatch, whether or not the call threw. */
+  /** Runs one call of the PORT, then settles the native hatch, whether or not the call threw. The call's own error (a refusal, `patch-failed`) wins over a callback's. */
   const settled = <T,>(run: () => T): T => {
+    let result: T;
+
     try {
-      return run();
-    } finally {
-      settleNative();
+      result = run();
+    } catch (error) {
+      try {
+        settleNative();
+      } catch { /* the call's error is the one to report */ }
+
+      throw error;
     }
+
+    settleNative();
+
+    return result;
   };
 
   const plain: Omit<WebPort, typeof Symbol.dispose> = {

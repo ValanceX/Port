@@ -5,7 +5,7 @@ import type { Native } from "../src/native.js";
 
 import { describe, expect, it } from "vitest";
 
-import { attribute, booleanAttribute, createWebPort, elementWhen, layerProp, property, WebRealizationError, type WebPrimitives } from "../src/index.js";
+import { attribute, booleanAttribute, createWebPort, elementWhen, layerProp, property, textProperty, WebRealizationError, type WebPrimitives } from "../src/index.js";
 import { realizeHtml } from "../src/server.js";
 
 import { dom, handler, key, node, reports, text, tree } from "./support.js";
@@ -78,6 +78,34 @@ describe("the native callback runs after the element exists", () => {
 
     expect(port.hydrate(page(chart(2)))).toEqual({ adopted: true });
     expect(seen).toEqual([server]);
+  });
+
+  it("after hydration draws afresh on a mismatch: an opaque element's wrong attribute is still verified", () => {
+    const html = realizeHtml(page(chart(2)), primitives).replace('aria-label="Sales"', 'aria-label="Old"');
+    const { container } = parse(html);
+    const seen: Element[] = [];
+    const port = createWebPort({ container, primitives, report: () => {}, native: { chart: (element) => { seen.push(element); } } });
+    const result = port.hydrate(page(chart(2)));
+
+    expect(result).toMatchObject({ adopted: false, mismatch: { class: "attribute", key: key(2) } });
+    expect(seen).toEqual([port.inspect(key(2))]);
+    expect(seen[0]!.getAttribute("aria-label")).toBe("Sales");
+  });
+
+  it("is refused, with invalid-primitives, for a name the table has no primitive for, or when it isn't a function", () => {
+    const code = (native: Native): string | undefined => {
+      try {
+        createWebPort({ container: dom().container, primitives, report: () => {}, native });
+      } catch (error) {
+        return `${(error as WebRealizationError).code}: ${(error as Error).message}`;
+      }
+
+      return undefined;
+    };
+
+    expect(code({ chrat: () => {} })).toMatch(/^invalid-primitives: <chrat>/);
+    expect(code({ chart: "no" as never })).toMatch(/^invalid-primitives: <chart>/);
+    expect(code({ chart: () => {} })).toBeUndefined();
   });
 
   it("not for a component it doesn't name, and nothing it does is reported", () => {
@@ -167,6 +195,21 @@ describe("its cleanup runs before what ends the element", () => {
   });
 });
 
+describe("a call's own error", () => {
+  it("wins over a cleanup's: patch-failed is what the call throws, and the cleanup still ran", () => {
+    const { container } = dom();
+    const ran: string[] = [];
+    const table: WebPrimitives = { ...primitives, field: { element: "input", props: { amount: textProperty("valueAsNumber") } } };
+    const port = createWebPort({ container, primitives: table, report: () => {}, native: { chart: () => () => { ran.push("cleanup"); throw new Error("cleanup threw"); } } });
+
+    port.draw(page(chart(2), node(3, "field")));
+
+    // Removing the chart owes its cleanup; then a DOM setter throws (a text input has no valueAsNumber to set).
+    expect(() => port.patch({ format: "mesh-render-patch", version: 1, patches: [{ op: "remove", key: key(2) }, { op: "setProp", key: key(3), prop: "amount", value: "x" }] })).toThrow(expect.objectContaining({ code: "patch-failed" }));
+    expect(ran).toEqual(["cleanup"]);
+  });
+});
+
 describe("state stays authoritative", () => {
   it("the PORT re-asserts every slot it owns on its next write, by update and by patch", () => {
     const { port } = setup({
@@ -235,7 +278,7 @@ describe("an opaque primitive", () => {
     const html = realizeHtml(page(chart(2), row(5)), primitives);
     expect(html).toContain('<div aria-label="Sales" role="img"></div>');
 
-    // What the page put inside the chart before hydration (a server-side chart, a placeholder) is not verified, not adopted, and not removed.
+    // What the page put inside the chart before hydration (a server-side chart, a placeholder) is left in place, unverified.
     const { container } = parse(html.replace('role="img"></div>', 'role="img"><canvas></canvas>loading</div>'));
     const port = createWebPort({ container, primitives, report: () => {} });
 
