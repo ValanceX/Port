@@ -24,6 +24,15 @@ describe("the opt-in Web vocabulary", () => {
     }
   });
 
+  it("realizes only props and events its manifest declares", () => {
+    for (const [name, primitive] of Object.entries(vocabulary)) {
+      const declared = vocabularyManifest.components[name as keyof typeof vocabularyManifest.components] as { props: Record<string, unknown>; events: Record<string, unknown> };
+
+      for (const prop of Object.keys(primitive.props ?? {})) expect(declared.props, `${name}.${prop}`).toHaveProperty(prop);
+      for (const event of Object.keys(primitive.events ?? {})) expect(declared.events, `${name}.${event}`).toHaveProperty(event);
+    }
+  });
+
   it("is accepted by createWebPort and renders each primitive", () => {
     const { window, container } = dom();
     const { report, calls: seen } = reports();

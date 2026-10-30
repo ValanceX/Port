@@ -8,11 +8,11 @@ import { describe, expect, it } from "vitest";
 import * as mesh from "@valancex/mesh-runtime";
 import * as web from "../src/index.js";
 import * as server from "../src/server.js";
-import { dom, handler, node, read, readJson, slicePrimitives, sliceProgram, text, tree } from "./support.js";
+import * as vocabulary from "../src/vocabulary.js";
+import { dom, handler, node, program, text, tree } from "./support.js";
 
 const AsyncFunction = Object.getPrototypeOf(async () => {}).constructor as new (...args: Array<string>) => (...values: Array<unknown>) => Promise<unknown>;
-// The composer sample imports the vocabulary, but its program is the slice's (`page`, `avatar`), which the portable core has no words for: here the import is the slice's table (vocabulary.test.ts runs the real one).
-const modules: Record<string, unknown> = { "@valancex/mesh-runtime": mesh, "@valancex/port-web": web, "@valancex/port-web/server": server, "@valancex/port-web/vocabulary": { vocabulary: slicePrimitives } };
+const modules: Record<string, unknown> = { "@valancex/mesh-runtime": mesh, "@valancex/port-web": web, "@valancex/port-web/server": server, "@valancex/port-web/vocabulary": vocabulary };
 
 const blocks = [...readFileSync(new URL("../README.md", import.meta.url), "utf8").matchAll(/```ts\n([\s\S]*?)\n```/g)].map((match) => match[1]!);
 
@@ -50,7 +50,10 @@ describe("the package README's samples", () => {
 
     window.document.body.innerHTML = '<div id="app"></div>';
     const app = window.document.querySelector("#app")!;
-    const scope = { document: window.document, program: await sliceProgram(), manifest: read("components.json"), primitives: slicePrimitives, snapshot: readJson("snapshots/first.json"), next: readJson("snapshots/second.json") };
+    // A core-only screen (column, text, button), so the sample runs with the real vocabulary.
+    const manifest = JSON.stringify({ version: 1, types: {}, components: { ...Object.fromEntries(["column", "text", "button"].map((name) => [name, vocabulary.vocabularyManifest.components[name as "column"]])), hello: { props: {}, events: {}, commands: { refresh: { parameters: [] } }, scope: { name: { kind: "string" } } } } });
+    const compiled = await program({ hello: "<column><text>{name}</text><button on.click={refresh()}>Refresh</button></column>" }, "hello", manifest);
+    const scope = { document: window.document, program: compiled, manifest, snapshot: { name: "Ada Lovelace" }, next: { name: "Ada King" } };
 
     // Without its last line, to see what the container holds; with it, the container is empty.
     await run(blocks[0]!.replace("composer.close();", "return composer;"), scope);
