@@ -120,8 +120,8 @@ describe("the server entry's boundaries", () => {
 // shared checks, value realization, HTML escaping and hydration's
 // verification are internal.
 describe("the public API surface", () => {
-  it("the package exposes only its two entries, and the native hatch's subpath", () => {
-    expect(Object.keys((manifest["exports"] ?? {}) as Record<string, unknown>)).toEqual([".", "./server", "./native", "./package.json"]);
+  it("the package exposes only its two entries, the native hatch's subpath, and the opt-in vocabulary", () => {
+    expect(Object.keys((manifest["exports"] ?? {}) as Record<string, unknown>)).toEqual([".", "./server", "./native", "./vocabulary", "./package.json"]);
   });
 
   // Leaving the portable layer is visible in the import: the hatch's types are only at `@valancex/port-web/native`, and it has no run-time code.

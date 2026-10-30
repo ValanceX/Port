@@ -27,6 +27,10 @@
       "types": "./dist/native.d.ts",
       "default": "./dist/native.js"
     },
+    "./vocabulary": {
+      "types": "./dist/vocabulary.d.ts",
+      "default": "./dist/vocabulary.js"
+    },
     "./package.json": "./package.json"
   },
   "types": "./dist/index.d.ts",

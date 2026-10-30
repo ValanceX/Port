@@ -11,7 +11,8 @@ import * as server from "../src/server.js";
 import { dom, handler, node, read, readJson, slicePrimitives, sliceProgram, text, tree } from "./support.js";
 
 const AsyncFunction = Object.getPrototypeOf(async () => {}).constructor as new (...args: Array<string>) => (...values: Array<unknown>) => Promise<unknown>;
-const modules: Record<string, unknown> = { "@valancex/mesh-runtime": mesh, "@valancex/port-web": web, "@valancex/port-web/server": server };
+// The composer sample imports the vocabulary, but its program is the slice's (`page`, `avatar`), which the portable core has no words for: here the import is the slice's table (vocabulary.test.ts runs the real one).
+const modules: Record<string, unknown> = { "@valancex/mesh-runtime": mesh, "@valancex/port-web": web, "@valancex/port-web/server": server, "@valancex/port-web/vocabulary": { vocabulary: slicePrimitives } };
 
 const blocks = [...readFileSync(new URL("../README.md", import.meta.url), "utf8").matchAll(/```ts\n([\s\S]*?)\n```/g)].map((match) => match[1]!);
 

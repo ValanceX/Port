@@ -7,12 +7,13 @@ Tier 1 (**Provisional**): show snapshots, receive intents. `composeWebPort` driv
 ```ts
 import { openScreen } from "@valancex/mesh-runtime";
 import { composeWebPort } from "@valancex/port-web";
+import { vocabulary } from "@valancex/port-web/vocabulary";
 
 const screen = openScreen({ program, model: manifest });
 const composer = composeWebPort({
   screen,
   container: document.querySelector("#app")!,
-  primitives,   // as below; every other PORT option (`native` too) passes through
+  primitives: vocabulary,   // opt-in: column, row, heading, text, button, checkbox, textfield; or your own table, as below; every other PORT option (`native` too) passes through
   onIntent: (intent) => { /* run the application's command */ },
 });
 
