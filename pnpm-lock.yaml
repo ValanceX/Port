@@ -68,8 +68,8 @@ importers:
         specifier: ^0.17.0
         version: 0.17.0
       '@valancex/mesh-runtime':
-        specifier: ^0.17.0
-        version: 0.17.0
+        specifier: file:../../local-packs/valancex-mesh-runtime-0.17.0.tgz
+        version: file:local-packs/valancex-mesh-runtime-0.17.0.tgz
       jsdom:
         specifier: ^30.1.3
         version: 30.1.3
@@ -609,12 +609,13 @@ packages:
     resolution: {integrity: sha512-csbh6Gpm2vcvU3c2ed+EehPTWn3AeOVtummcajXcs09WCXCc8NXUY7BBWpmyNdteBziQJPqf5VExUhoZIerApw==}
     engines: {node: '>=22'}
 
-  '@valancex/mesh-runtime@0.17.0':
-    resolution: {integrity: sha512-d2q/QzyCeCWp8SdQerQFb8P0jKrTc0WkbKGvTJ3ND6T3RV6SbxHLv5xjBj2jst3tt+zEw3oKO8vY7mZc1PdG+Q==}
-    engines: {node: '>=22'}
-
   '@valancex/mesh-runtime@0.6.0':
     resolution: {integrity: sha512-haovWIo58s9DA1SRwdla2a0QWRRa4CcQCW3QcdRjEo6V0NSeLd4zmfyhXWbJE6vb3QYfq57Tfuj/1pJbPbnTzg==}
+    engines: {node: '>=22'}
+
+  '@valancex/mesh-runtime@file:local-packs/valancex-mesh-runtime-0.17.0.tgz':
+    resolution: {integrity: sha512-MTraO6L86xkICSadLJGyabNSaF/29KYGCozSX0ZPN8sG90yJLwG+khQUh5EfO2DpDZIsN4x0icIzx9bj8LmIsg==, tarball: file:local-packs/valancex-mesh-runtime-0.17.0.tgz}
+    version: 0.17.0
     engines: {node: '>=22'}
 
   '@valancex/nexus@0.8.1':
@@ -1306,9 +1307,9 @@ snapshots:
 
   '@valancex/mesh-conformance@0.17.0': {}
 
-  '@valancex/mesh-runtime@0.17.0': {}
-
   '@valancex/mesh-runtime@0.6.0': {}
+
+  '@valancex/mesh-runtime@file:local-packs/valancex-mesh-runtime-0.17.0.tgz': {}
 
   '@valancex/nexus@0.8.1':
     dependencies:
