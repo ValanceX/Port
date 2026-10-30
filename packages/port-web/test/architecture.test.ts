@@ -132,8 +132,8 @@ describe("the public API surface", () => {
     expect(importsOf(byFileOf("server.ts")).map(({ specifier }) => specifier)).not.toContain("./native.js");
   });
 
-  it("the client entry: the Web PORT, the realization table's helpers, and its error", () => {
-    expect(Object.keys(client).sort()).toEqual(["UNKNOWN_COMPONENT_ELEMENT", "WebRealizationError", "attribute", "booleanAttribute", "controlled", "controlledBoolean", "createWebPort", "elementWhen", "layerDismiss", "layerProp", "property", "textProperty"]);
+  it("the client entry: the Web PORT, its composer helper, the realization table's helpers, and its error", () => {
+    expect(Object.keys(client).sort()).toEqual(["UNKNOWN_COMPONENT_ELEMENT", "WebRealizationError", "attribute", "booleanAttribute", "composeWebPort", "controlled", "controlledBoolean", "createWebPort", "elementWhen", "layerDismiss", "layerProp", "property", "textProperty"]);
   });
 
   it("the server entry: realizeHtml, the realization table's helpers, and the same error", () => {

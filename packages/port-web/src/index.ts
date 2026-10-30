@@ -6,6 +6,8 @@
  * @packageDocumentation
  */
 
+export { composeWebPort } from "./compose.js";
+export type { ComposeOptions, ComposedScreen, WebComposer } from "./compose.js";
 export { createWebPort, UNKNOWN_COMPONENT_ELEMENT } from "./port.js";
 export type { HydrationMismatch, HydrationMismatchClass, HydrationResult, RenderPatch, RenderPatches, Report, WebPort, WebPortOptions } from "./port.js";
 export { attribute, booleanAttribute, controlled, controlledBoolean, elementWhen, layerDismiss, layerProp, property, textProperty } from "./primitives.js";

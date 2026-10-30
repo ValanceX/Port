@@ -2,6 +2,27 @@
 
 The Web PORT: realizes MESH render trees as DOM, keeps each node's DOM identity across updates, and reports what the user does as handler identifiers and payloads. It is the Web binding of the [PORT contract](../../docs/CONTRACT.md). **Version 0.9.0 is released and changes nothing here** (the package moves with `@valancex/port-desktop-vocabulary`, so one tag publishes both). See the [release notes](../../docs/releases) and [API stability](../../docs/stability.md).
 
+Tier 1 (**Provisional**): show snapshots, receive intents. `composeWebPort` drives the PORT from a Mesh screen (`openScreen` in `@valancex/mesh-runtime`), so you never choose `draw` or `patch`, and never release a render:
+
+```ts
+import { openScreen } from "@valancex/mesh-runtime";
+import { composeWebPort } from "@valancex/port-web";
+
+const screen = openScreen({ program, model: manifest });
+const composer = composeWebPort({
+  screen,
+  container: document.querySelector("#app")!,
+  primitives,   // as below; every other PORT option (`native` too) passes through
+  onIntent: (intent) => { /* run the application's command */ },
+});
+
+await composer.show(snapshot);   // the first snapshot draws,
+await composer.show(next);       // later ones patch in place
+composer.close();                // empties the container and closes the screen
+```
+
+An interaction is reported to the screen, which gives an intent to `onIntent` (or, for a unit command it was given a transition for, patches the composer applies). `show` gives `{ diagnostics }` if the screen refused the snapshot, and nothing changes; the diagnostics of an interaction's dispatch go to the optional `onDiagnostics`, and a dispatch that rejects, or a result the PORT refuses (the PORT and the screen are then both ended, so the next `show` draws afresh), goes to the optional `onError`. Without it the error is reported as uncaught (`reportError`, else thrown from a microtask); if `onError` itself throws, that rejection is unhandled. Each result is applied to the PORT before the next report is dispatched. `draw`, `update`, `patch` and `report` below are the Tier 2 contract, unchanged: use them when something else hosts the program.
+
 ```ts
 import { attribute, booleanAttribute, createWebPort } from "@valancex/port-web";
 
