@@ -10,7 +10,7 @@ import type { RenderPatches, WebPort, WebPortOptions } from "./port.js";
 
 /** What the composer needs of a Mesh `Screen`: its `show` and `dispatch`, and the results it gives. */
 export interface ComposedScreen<Tree = Parameters<WebPort["draw"]>[0], Intent = unknown, Diagnostics = unknown> {
-  show(snapshot: Record<string, unknown>): Promise<{ readonly tree?: Tree; readonly patches?: RenderPatches; readonly diagnostics?: Diagnostics }>;
+  show(snapshot: Record<string, unknown>, context?: Record<string, unknown>): Promise<{ readonly tree?: Tree; readonly patches?: RenderPatches; readonly diagnostics?: Diagnostics }>;
   dispatch(handler: string, payload?: unknown): Promise<{ readonly intent?: Intent; readonly patches?: RenderPatches; readonly diagnostics?: Diagnostics }>;
   close(): void;
 }
@@ -32,8 +32,11 @@ export interface ComposeOptions<Intent = unknown, Diagnostics = unknown> extends
 type WebPortTree = Parameters<WebPort["draw"]>[0];
 
 export interface WebComposer<Diagnostics = unknown> {
-  /** Shows `snapshot`: the first one draws, later ones patch in place. Gives the diagnostics if the screen refused it (nothing changes), else nothing. */
-  show(snapshot: Record<string, unknown>): Promise<{ readonly diagnostics: Diagnostics } | { readonly diagnostics?: undefined }>;
+  /**
+   * Shows `snapshot`: the first one draws, later ones patch in place. Gives the diagnostics if the screen refused it (nothing changes), else nothing.
+   * `context` is the values the program's components `use` beside the snapshot (Mesh 0.18); a program that uses one needs it on its first show. Omitted, the screen keeps the last one it was given.
+   */
+  show(snapshot: Record<string, unknown>, context?: Record<string, unknown>): Promise<{ readonly diagnostics: Diagnostics } | { readonly diagnostics?: undefined }>;
   /** Empties the container and closes the screen. Safe to call twice; `show` draws afresh after it. */
   close(): void;
   [Symbol.dispose]?(): void;
@@ -99,9 +102,9 @@ export const composeWebPort = <Intent = unknown, Diagnostics = unknown>({ screen
     },
   });
   const composer: WebComposer<Diagnostics> = {
-    show: (snapshot) =>
+    show: (snapshot, context) =>
       enqueue(async () => {
-        const result = await screen.show(snapshot);
+        const result = await screen.show(snapshot, context);
 
         if (result.diagnostics !== undefined) {
           return { diagnostics: result.diagnostics };

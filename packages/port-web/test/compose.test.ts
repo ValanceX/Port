@@ -4,9 +4,9 @@ import { compile } from "@valancex/mesh-compiler";
 import { openScreen } from "@valancex/mesh-runtime";
 import { describe, expect, it, vi } from "vitest";
 
-import { composeWebPort } from "../src/index.js";
+import { attribute, composeWebPort } from "../src/index.js";
 
-import { dom, handler, node, read, readJson, sliceProgram, slicePrimitives, text, tree } from "./support.js";
+import { dom, handler, node, program, read, readJson, sliceProgram, slicePrimitives, text, tree } from "./support.js";
 
 const first = readJson("snapshots/first.json") as Record<string, unknown>;
 const second = readJson("snapshots/second.json") as Record<string, unknown>;
@@ -254,5 +254,29 @@ describe("composeWebPort's order and failures", () => {
     } finally {
       vi.unstubAllGlobals();
     }
+  });
+
+  it("passes a context through: the first show reads it, and a context-only change patches in place", async () => {
+    const model = JSON.stringify({
+      version: 1,
+      types: {},
+      context: { theme: { kind: "string" } },
+      components: { box: { props: { tone: { type: { kind: "string" }, required: false } }, events: {}, commands: {}, scope: {} }, page: { props: {}, events: {}, commands: {}, scope: { title: { kind: "string" } }, uses: ["theme"] } },
+    });
+    const compiled = await program({ page: "<box tone={theme} />" }, "page", model);
+    const { container } = dom();
+    const composer = composeWebPort({ screen: openScreen({ program: compiled, model }), container, primitives: { box: { element: "div", props: { tone: attribute("data-tone") } } }, onIntent: () => undefined });
+
+    await composer.show({ title: "a" }, { theme: "dark" });
+    const box = container.querySelector("div")!;
+
+    expect(box.getAttribute("data-tone")).toBe("dark");
+    // Only the context changed: the same node is patched.
+    await composer.show({ title: "a" }, { theme: "light" });
+    expect(container.querySelector("div")).toBe(box);
+    expect(box.getAttribute("data-tone")).toBe("light");
+    // No context given: the screen keeps the last one.
+    await composer.show({ title: "b" });
+    expect(box.getAttribute("data-tone")).toBe("light");
   });
 });
