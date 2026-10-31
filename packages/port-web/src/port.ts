@@ -12,6 +12,7 @@
 
 import type { BoundaryValue, RenderNode, RenderTree, TextRun } from "@valancex/mesh-runtime";
 import type { Plan } from "./check.js";
+import type { Native } from "./native.js";
 import type { PropRealization, WebPrimitive, WebPrimitives } from "./primitives.js";
 import type { Output } from "./realize.js";
 
@@ -35,6 +36,11 @@ export interface WebPortOptions {
   /** How each of the application's primitive components is realized. */
   readonly primitives: WebPrimitives;
   readonly report: Report;
+  /**
+   * The native hatch (`@valancex/port-web/native`): a callback, by component, that gets each drawn element of that primitive and its key, and may return a cleanup. Tier 3,
+   * Provisional, Web only, not part of contract version 1. See `Native`.
+   */
+  readonly native?: Native;
 }
 
 /** Which kind of difference made hydration draw afresh. */
@@ -180,6 +186,8 @@ interface DrawnNode {
   /** The drawn tree's handler identifier, by event name. Read when an interaction resolves. */
   handlers: ReadonlyMap<string, string>;
   children: Drawn[];
+  /** What the native callback returned for this element, to run when the element ends. */
+  cleanup: (() => void) | undefined;
 }
 
 interface DrawnText {
@@ -209,6 +217,10 @@ const isPropertyClass = (realization: PropRealization): boolean => realization.k
 /** The slots whose DOM property slot has an initial value to restore: the property class, and a controlled slot (which is an attribute and a property). */
 const hasPropertySlot = (realization: PropRealization): boolean => isPropertyClass(realization) || realization.kind === "controlled" || realization.kind === "controlled-boolean";
 
+/** What a property-class slot holds for `output`: its text, its native value, or (absent) the element's initial value. */
+const propertyValue = (node: DrawnNode, name: string, output: Output): unknown =>
+  "text" in output ? output.text : "native" in output ? output.native : node.initial.get(name);
+
 const writeProp = (node: DrawnNode, realization: PropRealization, output: Output): void => {
   const element = node.dom;
 
@@ -237,7 +249,7 @@ const writeProp = (node: DrawnNode, realization: PropRealization, output: Output
       return; // a layer's props are the PORT's: it shows, hides and places the element after the pass
     case "text-property":
     case "property":
-      slots(element)[realization.name] = "text" in output ? output.text : "native" in output ? output.native : node.initial.get(realization.name);
+      slots(element)[realization.name] = propertyValue(node, realization.name, output);
   }
 };
 
@@ -320,7 +332,7 @@ const sameOutput = (a: Output, b: Output): boolean =>
 // tree. Pure reads: it never changes the DOM.
 
 /** The attributes the client writes for `node`, by name, with the mismatch class each belongs to. */
-const expectedAttributes = (node: RenderNode, primitive: WebPrimitive | undefined, plan: Plan, group: string | undefined): ReadonlyArray<readonly [name: string, value: string, cls: HydrationMismatchClass]> => {
+const expectedAttributes = (node: Pick<RenderNode, "key" | "component">, primitive: WebPrimitive | undefined, plan: Plan, group: string | undefined): ReadonlyArray<readonly [name: string, value: string, cls: HydrationMismatchClass]> => {
   if (primitive === undefined) {
     return [[COMPONENT_ATTRIBUTE, node.component, "component"]];
   }
@@ -377,7 +389,7 @@ function* ancestors(node: DrawnNode | undefined): Generator<DrawnNode> {
 /** How many ports a document has had: the first one's groups are named by the keys alone (as the server wrote them), every later one's are made its own. */
 const mounts = new WeakMap<Document, number>();
 
-export const createWebPort = ({ container, primitives, report }: WebPortOptions): WebPort => {
+export const createWebPort = ({ container, primitives, report, native }: WebPortOptions): WebPort => {
   const doc = container.ownerDocument;
   const mounted = mounts.get(doc) ?? 0;
 
@@ -393,6 +405,13 @@ export const createWebPort = ({ container, primitives, report }: WebPortOptions)
     }
   };
   const applicable = validatePrimitives(primitives);
+
+  // A native callback is for a primitive of the table, as a function: a name the table doesn't have (a typo) would otherwise do nothing, silently.
+  for (const [component, setup] of Object.entries(native ?? {})) {
+    if (own(primitives, component) === undefined || typeof setup !== "function") {
+      throw new WebRealizationError("invalid-primitives", `<${component}> has a native callback, but ${typeof setup !== "function" ? "it isn't a function" : "the table has no such primitive"}`);
+    }
+  }
   const types = new Set(Array.from(applicable.values(), (byType) => [...byType.keys()]).flat());
   /** The drawn node each drawn element realizes. Only what is drawn is in it. */
   const nodeOf = new WeakMap<Node, DrawnNode>();
@@ -493,6 +512,7 @@ export const createWebPort = ({ container, primitives, report }: WebPortOptions)
     if (part.kind === "node") {
       nodeOf.delete(part.dom);
       forgetLayer(part);
+      release(part);
       part.children.forEach(dispose);
     }
   };
@@ -508,6 +528,7 @@ export const createWebPort = ({ container, primitives, report }: WebPortOptions)
     initial: new Map(),
     handlers: new Map(Object.entries(part.events)),
     children: [],
+    cleanup: undefined,
   });
 
   const create = (part: RenderNode | TextRun, parent: DrawnNode | undefined, plan: Plan): Drawn => {
@@ -552,6 +573,7 @@ export const createWebPort = ({ container, primitives, report }: WebPortOptions)
     nodeOf.set(node.dom, node);
     byKey.set(node.key, node);
     registerLayer(node);
+    hatch(node);
     node.children = part.children.map((child) => create(child, node, plan));
     node.dom.append(...node.children.map((child) => child.dom));
 
@@ -588,8 +610,15 @@ export const createWebPort = ({ container, primitives, report }: WebPortOptions)
     }
 
     groupOf(node, node.parent);
-    fresh.append(...Array.from(previous.childNodes));
+
+    // An opaque element's content is the native callback's, and stays with the element it was made for, whose cleanup takes it down.
+    if (primitive.opaque !== true) {
+      fresh.append(...Array.from(previous.childNodes));
+    }
+
     previous.replaceWith(fresh);
+    release(node);
+    hatch(node);
 
     for (const [name, output] of outputs) {
       writeProp(node, own(primitive.props, name)!, output);
@@ -730,6 +759,11 @@ export const createWebPort = ({ container, primitives, report }: WebPortOptions)
       return mismatch(cls, `no ${extra}`, `${extra}="${element.getAttribute(extra)}"`);
     }
 
+    // An opaque element's content is not the tree's (it has no children): whatever the page put there is not verified.
+    if (primitive?.opaque === true) {
+      return undefined;
+    }
+
     const children = part.children.filter(serialized);
     const nodes = Array.from(element.childNodes);
 
@@ -803,6 +837,7 @@ export const createWebPort = ({ container, primitives, report }: WebPortOptions)
     adopted.push(node);
     byKey.set(node.key, node);
     registerLayer(node);
+    hatch(node);
 
     const nodes = Array.from(dom.childNodes);
     let next = 0;
@@ -1241,6 +1276,124 @@ export const createWebPort = ({ container, primitives, report }: WebPortOptions)
     }
   };
 
+  // -------------------------------------------------------------------------
+  // The native hatch (`native`, Tier 3). A callback runs once its element is in the document and focus is settled, at the end of the call that drew it; a cleanup runs at the
+  // end of the call that ended its element, after focus was handed off, and before any callback of that call. Neither gets anything that reports: state changes only by
+  // commands. The PORT writes back what it owns on every element whose callback has run, at the end of every call that writes, so the callback can't keep a slot of the tree's.
+
+  /** Elements waiting for their callback. */
+  const mounting = new Set<DrawnNode>();
+  /** Cleanups of elements that ended, waiting to run. */
+  const cleaning: Array<() => void> = [];
+  /** Drawn nodes whose element's callback has run. */
+  const hatched = new Set<DrawnNode>();
+
+  const hatch = (node: DrawnNode): void => {
+    if (node.primitive !== undefined && own(native, node.component) !== undefined) {
+      mounting.add(node);
+    }
+  };
+
+  /** The node's element has ended: its cleanup is owed, and its callback isn't. */
+  const release = (node: DrawnNode): void => {
+    mounting.delete(node);
+    hatched.delete(node);
+
+    if (node.cleanup !== undefined) {
+      cleaning.push(node.cleanup);
+      node.cleanup = undefined;
+    }
+  };
+
+  /** Writes back every slot the PORT owns on `node`'s element where it differs: constant, group, popover and prop attributes, and property slots. Not a layer's `open`, which `settleLayers` keeps. */
+  const assertOwned = (node: DrawnNode): void => {
+    const primitive = node.primitive!;
+    const element = node.dom;
+    const group = groupKeyOf(primitive, ancestors(node.parent));
+    const wanted = new Map<string, string | null>(expectedAttributes(node, primitive, new Map([[node.key, node.outputs]]), group === undefined ? undefined : scope + group).map(([name, value]) => [name, value]));
+
+    if (primitive.layer === "modal") {
+      wanted.delete("open");
+    }
+
+    for (const [name, realization] of Object.entries(primitive.props ?? {})) {
+      if (isPropertyClass(realization)) {
+        const output = node.outputs.get(name) ?? ABSENT;
+        const slot = slots(element)[realization.name];
+
+        if ("native" in output ? !equal(slot as BoundaryValue, output.native) : slot !== propertyValue(node, realization.name, output)) {
+          writeProp(node, realization, output);
+        }
+      } else if (realization.kind !== "element" && realization.kind !== "layer" && !wanted.has(realization.name) && !(primitive.layer === "popover" && realization.name === "popover")) {
+        wanted.set(realization.name, null);
+      }
+    }
+
+    for (const [name, value] of wanted) {
+      if (element.getAttribute(name) !== value) {
+        if (value === null) {
+          element.removeAttribute(name);
+        } else {
+          element.setAttribute(name, value);
+        }
+      }
+    }
+
+    reassert(node);
+  };
+
+  /** The end of a call: owned slots written back, then the cleanups owed, then the callbacks of elements still drawn. Every one runs; the first that threw is rethrown after. */
+  const settleNative = (): void => {
+    const errors: unknown[] = [];
+    const attempt = (run: () => void): void => {
+      try {
+        run();
+      } catch (error) {
+        errors.push(error);
+      }
+    };
+
+    hatched.forEach(assertOwned);
+    cleaning.splice(0).forEach(attempt);
+
+    for (const node of [...mounting]) {
+      mounting.delete(node);
+
+      // Drawn still: not a part of a tree a refusal or a failed adoption left behind.
+      if (nodeOf.get(node.dom) === node) {
+        hatched.add(node);
+        attempt(() => {
+          const cleanup = own(native, node.component)!(node.dom, { key: node.key });
+
+          node.cleanup = typeof cleanup === "function" ? cleanup : undefined;
+        });
+      }
+    }
+
+    if (errors.length > 0) {
+      throw errors[0];
+    }
+  };
+
+  /** Runs one call of the PORT, then settles the native hatch, whether or not the call threw. The call's own error (a refusal, `patch-failed`) wins over a callback's. */
+  const settled = <T,>(run: () => T): T => {
+    let result: T;
+
+    try {
+      result = run();
+    } catch (error) {
+      try {
+        settleNative();
+      } catch { /* the call's error is the one to report */ }
+
+      throw error;
+    }
+
+    settleNative();
+
+    return result;
+  };
+
   const plain: Omit<WebPort, typeof Symbol.dispose> = {
     draw(tree) {
       drawChecked(tree, checkTree(tree, primitives));
@@ -1375,6 +1528,10 @@ export const createWebPort = ({ container, primitives, report }: WebPortOptions)
         if (patch.op === "insert") {
           if (target.kind !== "node") {
             throw unsupported(`${at} inserts under ${patch.parent}, which is a text run`, patch.parent);
+          }
+
+          if (own(primitives, target.component!)?.opaque === true) {
+            throw new WebRealizationError("opaque-children", `${at} inserts under <${target.component}>, which is opaque: its content is the native hatch's, not the tree's`, patch.parent);
           }
 
           // A fresh key: the part's, and every key under it, are in the tree at no other place.
@@ -1636,9 +1793,11 @@ export const createWebPort = ({ container, primitives, report }: WebPortOptions)
 
   const port: Omit<WebPort, typeof Symbol.dispose> = {
     ...plain,
-    draw: (tree) => keepingFocus(() => plain.draw(tree)),
-    update: (tree) => keepingFocus(() => plain.update(tree)),
-    patch: (patches) => keepingFocus(() => plain.patch(patches)),
+    draw: (tree) => settled(() => keepingFocus(() => plain.draw(tree))),
+    update: (tree) => settled(() => keepingFocus(() => plain.update(tree))),
+    patch: (patches) => settled(() => keepingFocus(() => plain.patch(patches))),
+    hydrate: (tree) => settled(() => plain.hydrate(tree)),
+    unmount: () => settled(() => plain.unmount()),
   };
 
   // Where the platform has `Symbol.dispose`, `using port = ...` unmounts at the end of the block.

@@ -24,8 +24,7 @@ export const dom = (): { readonly window: JSDOM["window"]; readonly container: E
 };
 
 /** Compiles MPRX sources against the slice's manifest, as a build would. */
-export const program = async (sources: Readonly<Record<string, string>>, root: string): Promise<{ readonly root: string; readonly templates: ReadonlyArray<string> }> => {
-  const manifest = read("components.json");
+export const program = async (sources: Readonly<Record<string, string>>, root: string, manifest: string = read("components.json")): Promise<{ readonly root: string; readonly templates: ReadonlyArray<string> }> => {
   const templates: Array<string> = [];
 
   for (const [component, source] of Object.entries(sources)) {

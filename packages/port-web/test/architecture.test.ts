@@ -10,6 +10,7 @@ import * as server from "../src/server.js";
 const src = new URL("../src/", import.meta.url);
 const files = readdirSync(src).filter((file) => file.endsWith(".ts"));
 const sources = files.map((file) => [file, readFileSync(new URL(file, src), "utf8")] as const);
+const byFileOf = (file: string): string => sources.find(([name]) => name === file)![1];
 const manifest = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")) as Record<string, Record<string, string> | undefined>;
 
 // The source without comments or string and template literals, so prose can't match.
@@ -49,9 +50,9 @@ describe("port-web's boundaries", () => {
       return Number(alternative.split(".")[1]);
     });
 
-    // 0.6 is the minimum supported; each later line PORT was run against is listed, with no gap (0.6 through 0.17). `scripts/check-mesh-range.mjs` runs this suite against each line the range lists, so a line is added here only
+    // 0.6 is the minimum supported; each later line PORT was run against is listed, with no gap (0.6 through 0.18). `scripts/check-mesh-range.mjs` runs this suite against each line the range lists, so a line is added here only
     // with a run (CI's `mesh-range` job).
-    expect(minors).toEqual([6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]);
+    expect(minors).toEqual([6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18]);
   });
 
   it("uses no browser globals: every DOM object comes from the container's document", () => {
@@ -115,16 +116,24 @@ describe("the server entry's boundaries", () => {
   });
 });
 
-// The public surface: the client and server entries, and nothing else. The
+// The public surface: the client and server entries, the native hatch's types, and nothing else. The
 // shared checks, value realization, HTML escaping and hydration's
 // verification are internal.
 describe("the public API surface", () => {
-  it("the package exposes only its two entries", () => {
-    expect(Object.keys((manifest["exports"] ?? {}) as Record<string, unknown>)).toEqual([".", "./server", "./package.json"]);
+  it("the package exposes only its two entries, the native hatch's subpath, and the opt-in vocabulary", () => {
+    expect(Object.keys((manifest["exports"] ?? {}) as Record<string, unknown>)).toEqual([".", "./server", "./native", "./vocabulary", "./package.json"]);
   });
 
-  it("the client entry: the Web PORT, the realization table's helpers, and its error", () => {
-    expect(Object.keys(client).sort()).toEqual(["UNKNOWN_COMPONENT_ELEMENT", "WebRealizationError", "attribute", "booleanAttribute", "controlled", "controlledBoolean", "createWebPort", "elementWhen", "layerDismiss", "layerProp", "property", "textProperty"]);
+  // Leaving the portable layer is visible in the import: the hatch's types are only at `@valancex/port-web/native`, and it has no run-time code.
+  it("the native entry: types only, and the client and server entries don't name it", async () => {
+    expect(Object.keys(await import("../src/native.js"))).toEqual([]);
+    expect(importsOf(byFileOf("native.ts"))).toEqual([]);
+    expect(importsOf(byFileOf("index.ts")).map(({ specifier }) => specifier)).not.toContain("./native.js");
+    expect(importsOf(byFileOf("server.ts")).map(({ specifier }) => specifier)).not.toContain("./native.js");
+  });
+
+  it("the client entry: the Web PORT, its composer helper, the realization table's helpers, and its error", () => {
+    expect(Object.keys(client).sort()).toEqual(["UNKNOWN_COMPONENT_ELEMENT", "WebRealizationError", "attribute", "booleanAttribute", "composeWebPort", "controlled", "controlledBoolean", "createWebPort", "elementWhen", "layerDismiss", "layerProp", "property", "textProperty"]);
   });
 
   it("the server entry: realizeHtml, the realization table's helpers, and the same error", () => {

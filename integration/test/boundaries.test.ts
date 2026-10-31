@@ -52,6 +52,6 @@ describe("the built server entry", () => {
   });
 
   it("the client entry loads the DOM realization and the same shared modules", () => {
-    expect(graphOf("index.js")).toEqual(["check.js", "error.js", "index.js", "port.js", "primitives.js", "realize.js"]);
+    expect(graphOf("index.js")).toEqual(["check.js", "compose.js", "error.js", "index.js", "port.js", "primitives.js", "realize.js"]);
   });
 });

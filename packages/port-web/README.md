@@ -2,6 +2,28 @@
 
 The Web PORT: realizes MESH render trees as DOM, keeps each node's DOM identity across updates, and reports what the user does as handler identifiers and payloads. It is the Web binding of the [PORT contract](../../docs/CONTRACT.md). **Version 0.9.0 is released and changes nothing here** (the package moves with `@valancex/port-desktop-vocabulary`, so one tag publishes both). See the [release notes](../../docs/releases) and [API stability](../../docs/stability.md).
 
+Tier 1 (**Provisional**): show snapshots, receive intents. `composeWebPort` drives the PORT from a Mesh screen (`openScreen` in `@valancex/mesh-runtime`), so you never choose `draw` or `patch`, and never release a render:
+
+```ts
+import { openScreen } from "@valancex/mesh-runtime";
+import { composeWebPort } from "@valancex/port-web";
+import { vocabulary } from "@valancex/port-web/vocabulary";
+
+const screen = openScreen({ program, model: manifest });
+const composer = composeWebPort({
+  screen,
+  container: document.querySelector("#app")!,
+  primitives: vocabulary,   // opt-in: column, row, heading, text, button, checkbox, textfield; or your own table, as below; every other PORT option (`native` too) passes through
+  onIntent: (intent) => { /* run the application's command */ },
+});
+
+await composer.show(snapshot);   // the first snapshot draws,
+await composer.show(next);       // later ones patch in place
+composer.close();                // empties the container and closes the screen
+```
+
+An interaction is reported to the screen, which gives an intent to `onIntent` (or, for a unit command it was given a transition for, patches the composer applies). `show(snapshot, context?)` passes the optional `context` (Mesh 0.18) to the screen, which keeps the last one when none is given. `show` gives `{ diagnostics }` if the screen refused the snapshot, and nothing changes; the diagnostics of an interaction's dispatch go to the optional `onDiagnostics`, and a dispatch that rejects, or a result the PORT refuses (the PORT and the screen are then both ended, so the next `show` draws afresh), goes to the optional `onError`. Without it the error is reported as uncaught (`reportError`, else thrown from a microtask); if `onError` itself throws, that rejection is unhandled. Each result is applied to the PORT before the next report is dispatched. `draw`, `update`, `patch` and `report` below are the Tier 2 contract, unchanged: use them when something else hosts the program.
+
 ```ts
 import { attribute, booleanAttribute, createWebPort } from "@valancex/port-web";
 
@@ -46,7 +68,7 @@ port.update(next.tree);                    // as after draw
 - **`focus(key)`** (0.11) moves keyboard focus to the part `key` names, or the first thing in it that takes focus, and returns whether focus is there now. A request to the platform made after the patches that drew the part, not a command. Separately, after every `draw`, `update` and `patch` the PORT keeps focus (and a text field's selection) with the part it was in, by key, and hands it to what follows, then what precedes, then what holds a part that is gone; its own focus and blur are not reported.
 - **A primitive's `group: { within, attribute }`** (0.11) puts the element in the DOM's own group: it carries `attribute` made from the nearest ancestor drawn as `within` (a radio's `name`), so the group is one tab stop with the arrow keys. **`elementWhen(name)`** (0.11) is a prop kind that chooses the element (`ol` for a list while `ordered`); the PORT replaces the element when the prop changes, and the children keep their DOM nodes.
 
-- **A primitive's `layer: "modal" | "popover"`** (0.12) makes it a layer above the page (Tier 3: a table entry for a primitive author; an application sees `dialog` and `popover` and a boolean `open`). Its props use **`layerProp("open")`** (the application's state, controlled: the PORT shows and hides the layer with the platform's `showModal()` and `showPopover()`), and for a popover **`layerProp("anchor")`** (the `id` of what it is placed at) and **`layerProp("placement")`** (`top`, `bottom`, `start` or `end`); its dismissal is an event realized by **`layerDismiss`**, which the PORT raises (`raised: true`) for Escape and an outside press. The application owns `open`: a `close` it ignores leaves the layer open (the PORT reopens what the browser closed). Server HTML writes a modal's `open`, so it paints before any script, and hydration makes it modal. Focus is kept inside a modal (Tab and Shift+Tab wrap) and returns to the invoker by key when it closes. A popover with no `popover` attribute in the table is `auto`; the application's `mode` may make it `manual`. Where the browser has no CSS anchor positioning, a popover is not placed (it shows where the browser puts it).
+- **A primitive's `layer: "modal" | "popover"`** (0.12) makes it a layer above the page (an advanced table entry, for a primitive author; an application sees `dialog` and `popover` and a boolean `open`). Its props use **`layerProp("open")`** (the application's state, controlled: the PORT shows and hides the layer with the platform's `showModal()` and `showPopover()`), and for a popover **`layerProp("anchor")`** (the `id` of what it is placed at) and **`layerProp("placement")`** (`top`, `bottom`, `start` or `end`); its dismissal is an event realized by **`layerDismiss`**, which the PORT raises (`raised: true`) for Escape and an outside press. The application owns `open`: a `close` it ignores leaves the layer open (the PORT reopens what the browser closed). Server HTML writes a modal's `open`, so it paints before any script, and hydration makes it modal. Focus is kept inside a modal (Tab and Shift+Tab wrap) and returns to the invoker by key when it closes. A popover with no `popover` attribute in the table is `auto`; the application's `mode` may make it `manual`. Where the browser has no CSS anchor positioning, a popover is not placed (it shows where the browser puts it).
 - **`unmount()`** empties the container. Nothing is reported afterwards. It is synchronous, safe to call twice or before anything was drawn, and leaves the PORT usable: `draw` (or `hydrate`) draws again, while `update` and `patch` refuse with `not-drawn`. Where the platform has `Symbol.dispose`, the PORT has `[Symbol.dispose]()` (unreleased), the same as `unmount()`, so `using port = createWebPort(...)` unmounts at the end of a block. The `using` statement itself needs a runtime or transpiler that supports explicit resource management (it is a syntax error on Node 22); otherwise call `unmount()`.
 - **`report(handler, payload?)`** is called at most once per interaction, for the one binding MESH's event resolution selects, with the drawn tree's handler identifier and the payload the event's realization builds. An event with no payload is reported without one.
 
@@ -95,13 +117,14 @@ It checks every tree in full before touching the DOM, so a refused tree changes 
 | `unrealizable-value` | a value its slot can't hold: a list or record in a text-only slot (MESH gives them no text), or a value of another kind in a native slot |
 | `missing-prop-text` | a number, boolean or `null` in a text-only slot, with no `propText` entry (a tree from before MESH v0.6); the PORT doesn't make MESH text |
 | `unrealizable-children` | a node has children (even an empty text run), but its primitive is realized as an HTML void element such as `img`, which can't hold any |
+| `opaque-children` | a node of an `opaque` primitive has children, in a tree or by a patch's insert: its content is the [native hatch](#the-native-hatch)'s (Provisional, with the hatch) |
 | `nested-modal` | a modal layer inside another modal layer (a dialog inside a dialog), in a tree or in a patch's insert: one modal at a time |
 | `duplicate-key` | two parts of a tree share a key, or a patch inserts one key twice |
 | `unsupported-patch` | `patch` only: the list isn't `mesh-render-patch` version 1, has an operation this PORT doesn't know, has a `replace` among other operations, or names a key of the wrong kind |
 | `unknown-key` | `patch` only: a patch names a key that is not in the drawn tree at that point |
 | `patch-failed` | `patch` only: a DOM setter threw while applying a validated list. Earlier steps stay applied; recover with `draw` of a full tree |
 | `not-drawn` | `update` or `patch` with nothing drawn (before `draw`, or after `unmount`) |
-| `invalid-primitives` | thrown by `createWebPort` and `realizeHtml`: the table maps a prop by anything but one plain realization of a known kind, realizes two props as one attribute or one property, uses `data-component`, uses an element or attribute name the DOM and HTML don't both give back unchanged (lowercase, no special characters), or maps one DOM event type to two events of one primitive |
+| `invalid-primitives` | thrown by `createWebPort` and `realizeHtml`: the table maps a prop by anything but one plain realization of a known kind, realizes two props as one attribute or one property, uses `data-component`, uses an element or attribute name the DOM and HTML don't both give back unchanged (lowercase, no special characters), or maps one DOM event type to two events of one primitive; or `createWebPort`'s `native` names a component the table has no primitive for, or gives one something that isn't a function |
 | `already-drawn` | `hydrate` with a tree already drawn. A drawn PORT is never cleared by it |
 | `adoption-failed` | `hydrate` only: after verification succeeded, a DOM property setter threw during adoption. The setter's error is the `cause`. The DOM may be partly adopted and isn't rolled back; nothing is drawn. The one code for which the page may have changed |
 | `unserializable-prop` | server only: a present value in a `property` or `textProperty` slot, which has no HTML form |
@@ -169,6 +192,25 @@ The design is the [PORT Web SSR design](../../docs/superpowers/specs/2026-09-28-
 **Properties.** A property slot's initial value, which a prop going from present to absent restores, is a fresh element's, never the adopted element's.
 
 **Events around hydration.** Before `hydrate`, nothing is reported. Afterwards, MESH's resolution applies with the client tree's handler identifiers. HTML carries none. Interactions before hydration are not replayed. Hydration doesn't preserve input made before it: a slot the client's tree realizes as a present property is written, over whatever it held. A slot whose prop is absent isn't written at all, since PORT never writes an absent slot, so its state is left untouched; that is the absent-prop rule, not input preservation.
+
+## Leaving the portable layer
+
+An application normally stays on the portable layer: render trees in, handler reports out. These are the places where you reach down to the DOM or add to what the PORT realizes. Each is marked with its tier from [the stability table](../../docs/stability.md).
+
+| Where | What it is | Tier |
+|---|---|---|
+| `port.inspect(key)` | Returns the live DOM node for a drawn part, or `undefined`. A read for devtools; changing the node is outside what the PORT keeps true. | Not part of the contract |
+| `payload(event, element)` on a primitive's event | Your function builds the event's payload from the DOM event and the receiving element. It must return plain data. | Stable (a `WebPrimitive` field) |
+| Your own `WebPrimitives` table | You choose the element, props and events for each primitive your manifest declares, including advanced entries such as `layer`. | Stable |
+| `native` option, with types from `@valancex/port-web/native` | The native hatch (Tier 3): a callback per component that gets each drawn element of that primitive and its key, and may return a cleanup. A primitive marked `opaque` gives the callback the element's content. See below. | Provisional (Web only, not in contract v1) |
+
+### The native hatch
+
+`createWebPort({ container, primitives, report, native })` takes `native`, a `Native` (import the type from `@valancex/port-web/native`): `{ [component]: (element, { key }) => cleanup | void }`. Use it to attach what the portable layer has no words for, such as a chart library, a `ResizeObserver` or a third-party widget.
+
+- **When it runs.** The callback runs once its element is in the document, at the end of the call that drew it: `draw`, an insert by `update` or `patch`, and `hydrate` once it adopts the server DOM (or draws afresh). The cleanup runs at the end of the call that ends the element: a removal, a replacement (another component at the key, or another element chosen by an `elementWhen` prop), a `draw`, or `unmount`. By then the element is out of the document and the PORT has handed focus off, so focus that was inside the element is already on its heir, and every cleanup of a call runs before that call's callbacks. A callback or cleanup that throws doesn't stop the others: the first error is rethrown after they run. `realizeHtml` takes no `native`, so server HTML is the same with or without it.
+- **It can't change state.** The callback gets the element and `{ key }`, and nothing that reports or dispatches: state changes only through the application's commands. The PORT writes back every slot it owns on that element (constant attributes, each prop's attribute or property, the group attribute, a popover's mode) at the end of every `update` and `patch`, so what a callback changes there lasts only until then. Attributes the PORT doesn't own are left alone. Text-run children of a hatched element are not slots: one the callback changes stays changed until the tree's text changes. A callback that dispatches DOM events (`element.click()`) reaches the declared handlers exactly as a person's interaction would, so the report still goes to the application, and state still changes only through its commands. The PORT's other elements, reached through the DOM (a parent, a child), have no callback and are not re-asserted, so leave them alone.
+- **`opaque`.** A primitive with `opaque: true` has no children in the tree: a tree or a patch insert that gives it any is refused with `opaque-children`. The server writes it empty, hydration doesn't verify what is inside it (a placeholder the page put there is left in place, unverified), and the PORT never touches its content, so the callback owns it. A layer can't be opaque (`invalid-primitives`): the PORT shows and hides a layer and keeps focus inside it. Without `opaque`, the element's children are the tree's, and the callback should leave them alone.
 
 ## Known limitations
 

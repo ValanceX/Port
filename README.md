@@ -63,6 +63,8 @@ Both PORTs are checked against MESH's conformance vectors (values, events, node 
 
 The two npm packages share one version and are released together (one `v*` tag); the Desktop PORT crate has its own tag (`desktop-v*`). Newest first; the [changelog](./CHANGELOG.md) and the [release notes](./docs/releases) have the detail.
 
+**v0.15.0 (prepared 2026-10-31; the crate stays 0.6.0):** the north-star refinements: the native hatch (`native`, `@valancex/port-web/native`), `composeWebPort` (with `show(snapshot, context?)`) and the opt-in `@valancex/port-web/vocabulary`; the peer range admits MESH 0.18, which `composeWebPort`'s context and the screen need. See the [release notes](./docs/releases/v0.15.md).
+
 **v0.14.0 (prepared 2026-10-24; the crate stays 0.6.0):** the MESH runtime peer range of `@valancex/port-web` admits MESH 0.17, run against it (435 tests); no API or behavior change. See the [release notes](./docs/releases/v0.14.md).
 
 **v0.13.0 (prepared 2026-10-24; the crate stays 0.6.0):** the MESH runtime peer range of `@valancex/port-web` admits MESH 0.16, run against it (435 tests); no API or behavior change. See the [release notes](./docs/releases/v0.13.md).

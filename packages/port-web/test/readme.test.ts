@@ -5,12 +5,14 @@ import { readFileSync } from "node:fs";
 import { stripTypeScriptTypes } from "node:module";
 import { describe, expect, it } from "vitest";
 
+import * as mesh from "@valancex/mesh-runtime";
 import * as web from "../src/index.js";
 import * as server from "../src/server.js";
-import { dom, handler, node, text, tree } from "./support.js";
+import * as vocabulary from "../src/vocabulary.js";
+import { dom, handler, node, program, text, tree } from "./support.js";
 
 const AsyncFunction = Object.getPrototypeOf(async () => {}).constructor as new (...args: Array<string>) => (...values: Array<unknown>) => Promise<unknown>;
-const modules: Record<string, unknown> = { "@valancex/port-web": web, "@valancex/port-web/server": server };
+const modules: Record<string, unknown> = { "@valancex/mesh-runtime": mesh, "@valancex/port-web": web, "@valancex/port-web/server": server, "@valancex/port-web/vocabulary": vocabulary };
 
 const blocks = [...readFileSync(new URL("../README.md", import.meta.url), "utf8").matchAll(/```ts\n([\s\S]*?)\n```/g)].map((match) => match[1]!);
 
@@ -39,27 +41,45 @@ const primitives = {
 const treeOf = (title: string) => tree(node(1, "page", { title }, [text(2, "Hi"), node(3, "button", {}, [text(4, "Go")], { click: handler(1) })]));
 
 describe("the package README's samples", () => {
-  it("has the four samples these tests cover", () => {
-    expect(blocks).toHaveLength(4);
+  it("has the five samples these tests cover", () => {
+    expect(blocks).toHaveLength(5);
+  });
+
+  // The composer drives a MESH screen (`openScreen`, MESH 0.18); against an older MESH (scripts/check-mesh-range.mjs) there is none to run it on.
+  it.skipIf(!("openScreen" in mesh))("the composer sample shows a snapshot, then another in place, and closes", async () => {
+    const { window } = dom();
+
+    window.document.body.innerHTML = '<div id="app"></div>';
+    const app = window.document.querySelector("#app")!;
+    // A core-only screen (column, text, button), so the sample runs with the real vocabulary.
+    const manifest = JSON.stringify({ version: 1, types: {}, components: { ...Object.fromEntries(["column", "text", "button"].map((name) => [name, vocabulary.vocabularyManifest.components[name as "column"]])), hello: { props: {}, events: {}, commands: { refresh: { parameters: [] } }, scope: { name: { kind: "string" } } } } });
+    const compiled = await program({ hello: "<column><text>{name}</text><button on.click={refresh()}>Refresh</button></column>" }, "hello", manifest);
+    const scope = { document: window.document, program: compiled, manifest, snapshot: { name: "Ada Lovelace" }, next: { name: "Ada King" } };
+
+    // Without its last line, to see what the container holds; with it, the container is empty.
+    await run(blocks[0]!.replace("composer.close();", "return composer;"), scope);
+    expect(app.querySelector("span")!.textContent).toBe("Ada King");
+    await run(blocks[0]!, scope);
+    expect(app.childNodes).toHaveLength(0);
   });
 
   it("the first sample draws, updates and unmounts", async () => {
     const { window } = dom();
 
     window.document.body.innerHTML = '<div id="app"></div>';
-    await run(blocks[0]!, { document: window.document, render: { tree: treeOf("one") }, next: { tree: treeOf("two") } });
+    await run(blocks[1]!, { document: window.document, render: { tree: treeOf("one") }, next: { tree: treeOf("two") } });
     expect(window.document.querySelector("#app")!.childNodes).toHaveLength(0);
   });
 
   it("the server sample gives the HTML that the hydrate sample then adopts", async () => {
-    const html = (await run(blocks[1]!, { render: { tree: treeOf("one") }, primitives }, "return html;")) as string;
+    const html = (await run(blocks[2]!, { render: { tree: treeOf("one") }, primitives }, "return html;")) as string;
 
     expect(html).toContain("<button");
     const { window, container } = dom();
 
     container.innerHTML = html;
     const port = web.createWebPort({ container, primitives, report: () => {} });
-    const result = (await run(blocks[2]!, { port, render: { tree: treeOf("one") }, next: { tree: treeOf("two") } }, "return result;")) as { adopted: boolean };
+    const result = (await run(blocks[3]!, { port, render: { tree: treeOf("one") }, next: { tree: treeOf("two") } }, "return result;")) as { adopted: boolean };
 
     expect(result.adopted).toBe(true);
     expect(window.document.querySelector("section")!.getAttribute("aria-label")).toBe("two");
@@ -70,7 +90,7 @@ describe("the package README's samples", () => {
     const port = web.createWebPort({ container, primitives, report: () => {} });
     const logged: Array<unknown> = [];
 
-    await run(blocks[3]!, { port, next: { tree: treeOf("two") }, console: { error: (...args: Array<unknown>) => logged.push(args) } });
+    await run(blocks[4]!, { port, next: { tree: treeOf("two") }, console: { error: (...args: Array<unknown>) => logged.push(args) } });
     expect(logged).toEqual([["not-drawn", undefined]]);
   });
 });
