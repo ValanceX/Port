@@ -48,8 +48,8 @@
   "devDependencies": {
     "@types/jsdom": "^30.0.0",
     "@types/node": "^26.6.5",
-    "@valancex/mesh-compiler": "^0.17.0",
-    "@valancex/mesh-runtime": "file:../../local-packs/valancex-mesh-runtime-0.17.0.tgz",
+    "@valancex/mesh-compiler": "file:../../local-packs/valancex-mesh-compiler-0.18.0.tgz",
+    "@valancex/mesh-runtime": "file:../../local-packs/valancex-mesh-runtime-0.18.0.tgz",
     "jsdom": "^30.1.3",
     "typescript": "^7.0.2",
     "vitest": "^5.0.5"

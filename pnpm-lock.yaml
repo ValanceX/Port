@@ -65,11 +65,11 @@ importers:
         specifier: ^26.6.5
         version: 26.6.5
       '@valancex/mesh-compiler':
-        specifier: ^0.17.0
-        version: 0.17.0
+        specifier: file:../../local-packs/valancex-mesh-compiler-0.18.0.tgz
+        version: file:local-packs/valancex-mesh-compiler-0.18.0.tgz
       '@valancex/mesh-runtime':
-        specifier: file:../../local-packs/valancex-mesh-runtime-0.17.0.tgz
-        version: file:local-packs/valancex-mesh-runtime-0.17.0.tgz
+        specifier: file:../../local-packs/valancex-mesh-runtime-0.18.0.tgz
+        version: file:local-packs/valancex-mesh-runtime-0.18.0.tgz
       jsdom:
         specifier: ^30.1.3
         version: 30.1.3
@@ -597,12 +597,13 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@valancex/mesh-compiler@0.17.0':
-    resolution: {integrity: sha512-HEPYgNaFtsi11mkVvEQt0Isch6C7BQFROa6W/9hGZXd3GxOXH3MikkxT8uy//dDKXnRQHAML/JkWILEz7CkAFw==}
-    engines: {node: '>=22'}
-
   '@valancex/mesh-compiler@0.6.0':
     resolution: {integrity: sha512-+8k7ZTLqb3fmT0pQOfHiX8hxzGwU6anKsbdN7HY17NFarL9h44SpXPxtythRZp4ujm29gheC+Mh1BzBDv7CNxg==}
+    engines: {node: '>=22'}
+
+  '@valancex/mesh-compiler@file:local-packs/valancex-mesh-compiler-0.18.0.tgz':
+    resolution: {integrity: sha512-uGJsMbiWmKYOEAML5z70t9FoaX4FFSXw2znQehg0LBflqvrLW+LI/rYs8wowThP1wGjaPJaZ62dTTq2PJ8hb1A==, tarball: file:local-packs/valancex-mesh-compiler-0.18.0.tgz}
+    version: 0.18.0
     engines: {node: '>=22'}
 
   '@valancex/mesh-conformance@0.17.0':
@@ -613,9 +614,9 @@ packages:
     resolution: {integrity: sha512-haovWIo58s9DA1SRwdla2a0QWRRa4CcQCW3QcdRjEo6V0NSeLd4zmfyhXWbJE6vb3QYfq57Tfuj/1pJbPbnTzg==}
     engines: {node: '>=22'}
 
-  '@valancex/mesh-runtime@file:local-packs/valancex-mesh-runtime-0.17.0.tgz':
-    resolution: {integrity: sha512-MTraO6L86xkICSadLJGyabNSaF/29KYGCozSX0ZPN8sG90yJLwG+khQUh5EfO2DpDZIsN4x0icIzx9bj8LmIsg==, tarball: file:local-packs/valancex-mesh-runtime-0.17.0.tgz}
-    version: 0.17.0
+  '@valancex/mesh-runtime@file:local-packs/valancex-mesh-runtime-0.18.0.tgz':
+    resolution: {integrity: sha512-0pDD74NUm3im3AlNBiiAPFczBB12AFmXT0cbjRscbsJeSOQaFVztOTC6fF37RTTwBsB4XtsLZh5WMZX/akLVMQ==, tarball: file:local-packs/valancex-mesh-runtime-0.18.0.tgz}
+    version: 0.18.0
     engines: {node: '>=22'}
 
   '@valancex/nexus@0.8.1':
@@ -1301,15 +1302,15 @@ snapshots:
   '@typescript/typescript-win32-x64@7.0.2':
     optional: true
 
-  '@valancex/mesh-compiler@0.17.0': {}
-
   '@valancex/mesh-compiler@0.6.0': {}
+
+  '@valancex/mesh-compiler@file:local-packs/valancex-mesh-compiler-0.18.0.tgz': {}
 
   '@valancex/mesh-conformance@0.17.0': {}
 
   '@valancex/mesh-runtime@0.6.0': {}
 
-  '@valancex/mesh-runtime@file:local-packs/valancex-mesh-runtime-0.17.0.tgz': {}
+  '@valancex/mesh-runtime@file:local-packs/valancex-mesh-runtime-0.18.0.tgz': {}
 
   '@valancex/nexus@0.8.1':
     dependencies:
