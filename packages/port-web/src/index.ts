@@ -1,7 +1,7 @@
 /**
  * The Web PORT: realizes MESH render trees as DOM, and reports what the
  * user does as handler identifiers and payloads, for the composer to
- * dispatch. See docs/CONTRACT.md for the contract it implements.
+ * dispatch. See docs/reference/contract.md for the contract it implements.
  *
  * @packageDocumentation
  */

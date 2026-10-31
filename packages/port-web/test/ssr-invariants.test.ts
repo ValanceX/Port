@@ -1,5 +1,5 @@
 // The SSR design's atomicity and non-assignment invariants
-// (docs/superpowers/specs/2026-09-28-port-web-ssr.md §2A, §4.8, §5, §7),
+// (docs/explanation/specs/2026-09-28-port-web-ssr.md §2A, §4.8, §5, §7),
 // observed directly: property assignments are counted by a setter probe,
 // DOM mutations by a MutationObserver, and refusals by what the API
 // returns, rather than inferred from final values.

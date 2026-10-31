@@ -1,6 +1,6 @@
 # Value realization audit
 
-> **Resolved by MESH v0.6** (2026-09-27, `a8a046f`). MESH defined a prop's text (`propText`, spec §9.7.7), kept "no text" for lists and records (§9.7.8), and defined realization as native or MESH text only (§9.8.7). The Web PORT implements it: see [Web value realization](./2026-09-28-web-value-realization.md). This document is kept as the record of the question.
+> **Resolved by MESH v0.6** (2026-09-27, `a8a046f`). MESH defined a prop's text (`propText`, spec §9.7.7), kept "no text" for lists and records (§9.7.8), and defined realization as native or MESH text only (§9.8.7). The Web PORT implements it: see [Web value realization](2026-09-28-web-value-realization.md). This document is kept as the record of the question.
 
 **Date:** 2026-09-27
 **Question:** how does a render-v1 prop value reach a Web target (a DOM property, a DOM attribute, and server-rendered HTML) without PORT inventing a conversion MESH forbids?
@@ -15,7 +15,7 @@
 
 > **PORT may realize a value according to a MESH-defined representation, but PORT must not determine the semantic textual representation of a MESH value.**
 
-Where MESH defines the representation (a string, a text run, a boolean realized by presence where the realization table chooses that), PORT realizes it. Where a target needs text and MESH defines none, PORT refuses. It adds no formatting, `JSON.stringify`, JavaScript coercion (`String(x)`, `"[object Object]"`, `"a,b"`) or any other fallback. The [MESH handoff](./2026-09-27-mesh-semantic-handoff.md) asks MESH the question that would close the gap.
+Where MESH defines the representation (a string, a text run, a boolean realized by presence where the realization table chooses that), PORT realizes it. Where a target needs text and MESH defines none, PORT refuses. It adds no formatting, `JSON.stringify`, JavaScript coercion (`String(x)`, `"[object Object]"`, `"a,b"`) or any other fallback. The [MESH handoff](2026-09-27-mesh-semantic-handoff.md) asks MESH the question that would close the gap.
 
 ## Facts
 
@@ -101,7 +101,7 @@ Neither contradicts the PORT contract. PORT follows V2 strictly, and render-v1 a
 
 ## Upstream questions for MESH
 
-The fundamental question, with its consequences for each interpretation, is in the [MESH handoff](./2026-09-27-mesh-semantic-handoff.md): **does render-v1 carry semantic values that PORT must realize, or values already semantically realized for the relevant output position?** The narrower questions it contains:
+The fundamental question, with its consequences for each interpretation, is in the [MESH handoff](2026-09-27-mesh-semantic-handoff.md): **does render-v1 carry semantic values that PORT must realize, or values already semantically realized for the relevant output position?** The narrower questions it contains:
 
 1. **Scalar props in text slots.** When a target needs text for a number, boolean or `null` prop, what is it, and who produces it?
 2. **`null` in text slots.** Is it text (content uses `null`), omission (which makes it equal to absent), or unrealizable?

@@ -1,6 +1,6 @@
 # MESH semantic handoff from PORT
 
-> **Resolved by MESH v0.6** (2026-09-27, `a8a046f`). Both gaps are settled: values by spec §9.7.7, §9.8.2 and §9.8.7 (render-v1 carries semantic values, and each number, boolean and `null` prop's MESH text as `propText`), and events by §9.9. The decisions are in MESH's `docs/superpowers/specs/2026-09-27-mesh-port-semantic-resolution.md`. This document is kept as the record of the question.
+> **Resolved by MESH v0.6** (2026-09-27, `a8a046f`). Both gaps are settled: values by spec §9.7.7, §9.8.2 and §9.8.7 (render-v1 carries semantic values, and each number, boolean and `null` prop's MESH text as `propText`), and events by §9.9. The decisions are in MESH's `docs/explanation/specs/2026-09-27-mesh-port-semantic-resolution.md`. This document is kept as the record of the question.
 
 **Date:** 2026-09-27
 **From:** PORT (ValanceX/Port, branch `claude/focused-keller-jf7dt2`)
@@ -9,7 +9,7 @@
 
 PORT has built a Web realization of render-v1 and run the whole slice (MPRX → MESH → NEXUS → PORT Web → DOM, and back) against the published packages. Two questions came up that PORT can't answer without deciding what an application means, which is MESH's to decide. This document hands them over. It is evidence and questions only: nothing in MESH is changed, and PORT adopts no answer.
 
-The full evidence is in the [event propagation audit](./2026-09-27-event-propagation-audit.md) and the [value realization audit](./2026-09-27-value-realization-audit.md).
+The full evidence is in the [event propagation audit](2026-09-27-event-propagation-audit.md) and the [value realization audit](2026-09-27-value-realization-audit.md).
 
 ---
 
@@ -18,7 +18,7 @@ The full evidence is in the [event propagation audit](./2026-09-27-event-propaga
 Shown by MESH's current source, documents and tests, and by PORT's tests.
 
 1. **render-v1 is enough for everything PORT has built.** The Web PORT draws, updates in place by key, and reports events from render-v1 alone, and never imports MESH's runtime code (`packages/port-web/test/architecture.test.ts`). The slice's DOM and intents match MESH's reviewed fixtures (`integration/test/slice.test.ts`).
-2. **Program continuity works as MESH specifies, without new data.** The composer tells PORT whether a tree comes from the drawn program (*update*) or not (*draw*). PORT infers it from nothing in a tree. MESH refuses a new program's handler dispatched with an old program's render (`runtime-handler-other-program`), so the composer keeps the drawn render. No program identity is needed in render-v1 (`integration/test/composer.test.ts`; PORT `docs/CONTRACT.md`, "Program continuity").
+2. **Program continuity works as MESH specifies, without new data.** The composer tells PORT whether a tree comes from the drawn program (*update*) or not (*draw*). PORT infers it from nothing in a tree. MESH refuses a new program's handler dispatched with an old program's render (`runtime-handler-other-program`), so the composer keeps the drawn render. No program identity is needed in render-v1 (`integration/test/composer.test.ts`; PORT `docs/reference/contract.md`, "Program continuity").
 3. **A binding belongs to one node in every MESH statement.** §4 ("this element emits this event"); a handler identifier "names exactly one handler at one node"; `$event`'s type is that of "the element the `on.` sits on" (§9.5); events are declared per component, with no shared vocabulary (§9.1; manifest). MESH's architecture says "`on.click` is interaction intent, not a DOM event". Propagation is mentioned nowhere, and no checked or evaluated MESH program nests bound nodes (event audit E1–E11).
 4. **Today's Web PORT bubbles, as the DOM does.** A click on a bound child also reports a bound ancestor, even across differently named events realized as the same DOM event. This is pinned by characterization tests marked non-contractual (`packages/port-web/test/propagation.test.ts`).
 5. **MESH gives text for content, not for props.** §9.7.7 defines the text of interpolations (string, boolean, `null`, absent, number by §9.7.7.1). Props go out "as is" (§9.8.2). Lists and records have no text form by design (§9.7.8). MPRX can't make a string from a number (§9.4: `+` is numeric only). `@valancex/mesh-runtime` doesn't export MESH's number text; the Rust runtime does (`mesh_runtime::number_to_text`).
@@ -38,7 +38,7 @@ It is MESH's because it changes which intents reach the application, and must be
 
 ### B2. Value realization
 
-MESH doesn't say what a prop's value becomes where a target can hold only text, or whether it may be placed there at all. The per-value, per-context matrix is in the [value realization audit](./2026-09-27-value-realization-audit.md#handoff-matrix). In short: strings are defined everywhere; every other kind is defined in content (or excluded from it) and "as is" for props; and **no rule covers a non-string prop in a text slot**.
+MESH doesn't say what a prop's value becomes where a target can hold only text, or whether it may be placed there at all. The per-value, per-context matrix is in the [value realization audit](2026-09-27-value-realization-audit.md#handoff-matrix). In short: strings are defined everywhere; every other kind is defined in content (or excluded from it) and "as is" for props; and **no rule covers a non-string prop in a text slot**.
 
 ## C. PORT consequences
 

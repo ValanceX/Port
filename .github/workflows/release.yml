@@ -4,7 +4,7 @@ name: Release
 # does: all of CI on the tagged commit, then @valancex/port-web and
 # @valancex/port-desktop-vocabulary (one version, published together) packed,
 # published to npm with provenance, and a GitHub release with the tarballs
-# and the version's release notes (docs/releases/vX.Y.md).
+# and the version's release notes (docs/reference/releases/vX.Y.md).
 #
 # - A pushed `v*` tag publishes. Its tag must be `v` + the version both
 #   packages share. Tagging the release commit is the maintainer's step.
@@ -114,7 +114,7 @@ jobs:
             echo "::error::Publishing needs a tag: push ${tag}"
             exit 1
           fi
-          notes="docs/releases/v$(echo "$version" | cut -d. -f1,2).md"
+          notes="docs/reference/releases/v$(echo "$version" | cut -d. -f1,2).md"
           if [ ! -f "$notes" ]; then
             echo "::error::No release notes at ${notes}"
             exit 1

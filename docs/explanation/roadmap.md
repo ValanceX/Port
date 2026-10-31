@@ -32,7 +32,7 @@ PORT Web
 
 The roadmap deliberately generalizes from evidence gathered from the Web implementation rather than speculative abstractions for native, Canvas, GPU, or other targets.
 
-> **Update 2026-10-17.** A second target now exists, the Desktop PORT (`valancex-port-desktop`, released as 0.2.0; [architecture note](./architecture/2026-10-14-port-desktop.md)). It shares the contract and no code with the Web PORT, as section 2.8 says it should, and it is what the evidence rule asked for: the vocabulary is the target's own (seventeen components, as data), the contract did not change, and each addition (form primitives, a choice group, `label`, a static table) came from what an application needed, with the design written first, in the Valance repository. A shared `@valancex/port` package is still not warranted: there is no code worth sharing. Mobile and Canvas PORTs are not started.
+> **Update 2026-10-17.** A second target now exists, the Desktop PORT (`valancex-port-desktop`, released as 0.2.0; [architecture note](design-records/2026-10-14-port-desktop.md)). It shares the contract and no code with the Web PORT, as section 2.8 says it should, and it is what the evidence rule asked for: the vocabulary is the target's own (seventeen components, as data), the contract did not change, and each addition (form primitives, a choice group, `label`, a static table) came from what an application needed, with the design written first, in the Valance repository. A shared `@valancex/port` package is still not warranted: there is no code worth sharing. Mobile and Canvas PORTs are not started.
 
 ---
 
@@ -255,7 +255,7 @@ This is important for debugging and developer tooling.
 
 ## Phase 0 — Scaffold and Boundary Freeze
 
-**Status:** Done (2026-09-27). See the [integration audit](./architecture/2026-09-27-port-integration-audit.md).
+**Status:** Done (2026-09-27). See the [integration audit](design-records/2026-09-27-port-integration-audit.md).
 
 ### Goals
 
@@ -274,7 +274,7 @@ Establish the repository and package boundaries without prematurely designing a 
 
 ### Package direction
 
-Settled by the audit (Gates 3 and 4): the namespace is `@valancex`, matching MESH and NEXUS. The first package was `@valancex/port-web`; the second, `valancex-port-desktop` (Rust), follows the same rules ([architecture note](./architecture/2026-10-14-port-desktop.md)). A shared `@valancex/port` isn't created, because the shared contract is language-neutral data and prose ([CONTRACT.md](./CONTRACT.md)), and the Canvas placeholder was removed. Either may return when a second target produces evidence for it.
+Settled by the audit (Gates 3 and 4): the namespace is `@valancex`, matching MESH and NEXUS. The first package was `@valancex/port-web`; the second, `valancex-port-desktop` (Rust), follows the same rules ([architecture note](design-records/2026-10-14-port-desktop.md)). A shared `@valancex/port` isn't created, because the shared contract is language-neutral data and prose ([CONTRACT.md](../reference/contract.md)), and the Canvas placeholder was removed. Either may return when a second target produces evidence for it.
 
 ### Explicitly deferred
 
@@ -295,7 +295,7 @@ The scaffold is stable and establishes a boundary without pretending to know the
 
 # V0.1 — Semantic Input Boundary
 
-**Status:** Done. The input is MESH's render-v1, unchanged, and the protocol is [CONTRACT.md](./CONTRACT.md): *draw*, *update*, *unmount* in; `(handler, payload)` out. Of the candidates below, render-v1 carries identity (keys), hierarchy, child ordering, text, props (final values) and interaction intent (handler identifiers). It carries no styles, accessibility semantics or lifecycle expectations; those are open questions for MESH (audit U1, U2).
+**Status:** Done. The input is MESH's render-v1, unchanged, and the protocol is [CONTRACT.md](../reference/contract.md): *draw*, *update*, *unmount* in; `(handler, payload)` out. Of the candidates below, render-v1 carries identity (keys), hierarchy, child ordering, text, props (final values) and interaction intent (handler identifiers). It carries no styles, accessibility semantics or lifecycle expectations; those are open questions for MESH (audit U1, U2).
 
 ## Objective
 
@@ -386,7 +386,7 @@ A semantic fixture can produce a correct DOM tree.
 
 # V0.3 — Events and Interaction
 
-**Status:** Done, on MESH v0.6's event resolution (spec §9.9). A realization maps each of a primitive's events to a DOM event type (at most one event per type) and builds its payload. One capture listener per DOM event type on the container finds the interacted node, walks the drawn tree towards the root, and reports the first node whose primitive has an applicable event and binds it: at most one report per interaction, whatever the DOM's propagation does. MESH's conformance vectors pass through a real DOM, and the slice runs nested bindings to one NEXUS command per click. The [event propagation audit](./architecture/2026-09-27-event-propagation-audit.md) is the question MESH answered.
+**Status:** Done, on MESH v0.6's event resolution (spec §9.9). A realization maps each of a primitive's events to a DOM event type (at most one event per type) and builds its payload. One capture listener per DOM event type on the container finds the interacted node, walks the drawn tree towards the root, and reports the first node whose primitive has an applicable event and binds it: at most one report per interaction, whatever the DOM's propagation does. MESH's conformance vectors pass through a real DOM, and the slice runs nested bindings to one NEXUS command per click. The [event propagation audit](design-records/2026-09-27-event-propagation-audit.md) is the question MESH answered.
 
 ## Objective
 
@@ -439,7 +439,7 @@ Real Web interactions can reach NEXUS without exposing raw browser event objects
 
 # V0.4 — Styles and Accessibility
 
-**Status:** Partly met, by choice. Accessibility: an application's primitives declare the roles, names and states they realize (`aria-*`, `role`, `scope`, constant attributes), and the Web PORT writes them; the Desktop PORT passes names, roles, states, counts and indices to the platform through AccessKit (checkbox, radio group, text field, table). Styles: PORT adds no style mechanism (do not invent one, below): an application's styles are its own, loaded per target by VALANCE as plain stylesheets (it does not scope them; see Valance's [style contract](https://github.com/ValanceX/Valance/blob/main/docs/direction/bets/style-contract.md)). Not done: focus management beyond what the platform gives, and any styling vocabulary for a second target. *(Update 2026-10-17.)*
+**Status:** Partly met, by choice. Accessibility: an application's primitives declare the roles, names and states they realize (`aria-*`, `role`, `scope`, constant attributes), and the Web PORT writes them; the Desktop PORT passes names, roles, states, counts and indices to the platform through AccessKit (checkbox, radio group, text field, table). Styles: PORT adds no style mechanism (do not invent one, below): an application's styles are its own, loaded per target by VALANCE as plain stylesheets (it does not scope them; see Valance's [style contract](https://github.com/ValanceX/Valance/blob/main/docs/explanation/bets/style-contract.md)). Not done: focus management beyond what the platform gives, and any styling vocabulary for a second target. *(Update 2026-10-17.)*
 
 ## Objective
 
@@ -513,7 +513,7 @@ Repeated application updates produce correct target state while preserving ident
 
 # V0.6 — Web Runtime Architecture
 
-**Status:** Done for the first SSR milestone, as the [PORT Web SSR design](./superpowers/specs/2026-09-28-port-web-ssr.md) specifies. The server path is `@valancex/port-web/server`. It shares `primitives.ts`, `check.ts` and `realize.ts` with the browser path, loads no DOM code (checked by its module graph), and runs in Node with no DOM at all.
+**Status:** Done for the first SSR milestone, as the [PORT Web SSR design](specs/2026-09-28-port-web-ssr.md) specifies. The server path is `@valancex/port-web/server`. It shares `primitives.ts`, `check.ts` and `realize.ts` with the browser path, loads no DOM code (checked by its module graph), and runs in Node with no DOM at all.
 
 ## Objective
 
@@ -561,7 +561,7 @@ Server and browser implementations have explicit responsibilities and do not dep
 
 # V0.7 — SSR
 
-**Status: first milestone done.** `render-v1 → deterministic HTML → hydrate → normal update`, as the [PORT Web SSR design](./superpowers/specs/2026-09-28-port-web-ssr.md) specifies, for its supported subset: text and boolean attributes, absent property slots, text runs, and unknown components. Present property values, U+0000, and raw-text, `template` and foreign elements are refused explicitly. Route rendering, streaming and server lifecycle are later work. **Release integration dependency:** NEXUS must publish a release accepting MESH runtime 0.6 before PORT's temporary workspace override can be removed (design §13).
+**Status: first milestone done.** `render-v1 → deterministic HTML → hydrate → normal update`, as the [PORT Web SSR design](specs/2026-09-28-port-web-ssr.md) specifies, for its supported subset: text and boolean attributes, absent property slots, text runs, and unknown components. Present property values, U+0000, and raw-text, `template` and foreign elements are refused explicitly. Route rendering, streaming and server lifecycle are later work. **Release integration dependency:** NEXUS must publish a release accepting MESH runtime 0.6 before PORT's temporary workspace override can be removed (design §13).
 
 ### Notes recorded so far: not a design
 
@@ -610,14 +610,14 @@ A real Valance route can produce HTML on the server without running a browser en
 
 # V0.8 — Hydration and Client Takeover
 
-**Status: first milestone done.** `WebPort.hydrate` verifies the whole server DOM against the client's tree without mutating it, then adopts it, or draws afresh on the first mismatch. A property setter that throws during adoption is reported as `adoption-failed`, with no rollback promised. All of this is as the [PORT Web SSR design](./superpowers/specs/2026-09-28-port-web-ssr.md) specifies. The slice runs server → HTML → hydrate → click → NEXUS → update of the server's own nodes (`integration/test/ssr.test.ts`). Not done: event replay, preserving input made before hydration, and partial or progressive hydration. The information hydration needs exists: the program (the composer knows it), the snapshot the server rendered (the server's composer has it), and MESH's determinism ("identical inputs give identical results"), so the client re-renders the same tree. Nothing needed is missing from both render-v1 and the composer. Moving the snapshot to the client is composer work (integration audit U8).
+**Status: first milestone done.** `WebPort.hydrate` verifies the whole server DOM against the client's tree without mutating it, then adopts it, or draws afresh on the first mismatch. A property setter that throws during adoption is reported as `adoption-failed`, with no rollback promised. All of this is as the [PORT Web SSR design](specs/2026-09-28-port-web-ssr.md) specifies. The slice runs server → HTML → hydrate → click → NEXUS → update of the server's own nodes (`integration/test/ssr.test.ts`). Not done: event replay, preserving input made before hydration, and partial or progressive hydration. The information hydration needs exists: the program (the composer knows it), the snapshot the server rendered (the server's composer has it), and MESH's determinism ("identical inputs give identical results"), so the client re-renders the same tree. Nothing needed is missing from both render-v1 and the composer. Moving the snapshot to the client is composer work (integration audit U8).
 
 ### Notes recorded so far: not a design
 
 Observations only, recorded while SSR was blocked. The design may discard any of these.
 
 
-- **Identity by structure.** Every tree of a static program has the same structure (audit F4; a program with MESH 0.7's conditional or repeated structure varies, and hydration is neither changed nor tested for it in 0.2.2), so hydration can pair server DOM with the tree in document order, with no keys in the markup. That presumes the composer tells the client PORT the server's program. Program continuity stays the composer's, as for *update* ([CONTRACT.md](./CONTRACT.md#program-continuity)). A mismatch (a different element, or a missing node) is detected explicitly, never patched silently.
+- **Identity by structure.** Every tree of a static program has the same structure (audit F4; a program with MESH 0.7's conditional or repeated structure varies, and hydration is neither changed nor tested for it in 0.2.2), so hydration can pair server DOM with the tree in document order, with no keys in the markup. That presumes the composer tells the client PORT the server's program. Program continuity stays the composer's, as for *update* ([CONTRACT.md](../reference/contract.md#program-continuity)). A mismatch (a different element, or a missing node) is detected explicitly, never patched silently.
 - **One model, not two.** Hydration adopts server nodes into exactly the drawn-node records `draw` builds, then behaves as `update`. SSR adds no second identity or update model.
 - **State crosses as the snapshot.** Dispatch needs a `Render` (NEXUS M1), and a `Render` can only be made by rendering. So the client renders the *serialized snapshot* the server rendered, gets the same tree, and adopts the server DOM for it. Who serializes the snapshot, the composer or NEXUS, is open (audit U8).
 

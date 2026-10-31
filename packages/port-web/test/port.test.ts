@@ -1,4 +1,4 @@
-// The Web PORT against the PORT contract (docs/CONTRACT.md), with MESH's
+// The Web PORT against the PORT contract (docs/reference/contract.md), with MESH's
 // real output wherever the slice reaches, and hand-written render-v1 trees
 // for the edge cases it doesn't.
 import type { RenderNode, RenderTree } from "@valancex/mesh-runtime";
@@ -168,7 +168,7 @@ describe("update", () => {
   });
 });
 
-// docs/CONTRACT.md, "Program continuity": PORT never determines whether two
+// docs/reference/contract.md, "Program continuity": PORT never determines whether two
 // trees come from one program. draw and update carry that fact from the
 // composer, and PORT infers it from nothing in the tree.
 describe("program continuity is the composer's, never inferred by PORT", () => {

@@ -1,4 +1,4 @@
-// Realization-table validation (docs/superpowers/specs/2026-09-28-port-web-ssr.md
+// Realization-table validation (docs/explanation/specs/2026-09-28-port-web-ssr.md
 // §4.7), shared by the client and the server: a table either side refuses,
 // both refuse, with `invalid-primitives`, before anything is realized.
 import type { PropRealization, WebPrimitives } from "../src/index.js";

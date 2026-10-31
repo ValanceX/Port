@@ -1,8 +1,8 @@
 /**
- * The composer helper (Tier 1): drives a Web PORT from a Mesh screen (`openScreen` in `@valancex/mesh-runtime`), so the
+ * The composer helper: drives a Web PORT from a Mesh screen (`openScreen` in `@valancex/mesh-runtime`), so the
  * caller shows snapshots and receives intents, and never chooses `draw` or `patch`, nor releases a render. The screen is
  * an argument and its shape is described here, so this module imports nothing from Mesh at run time. The PORT's own
- * `draw`, `patch` and `report` (Tier 2) are unchanged.
+ * `draw`, `patch` and `report` are unchanged.
  */
 
 import { createWebPort } from "./port.js";

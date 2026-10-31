@@ -8,7 +8,7 @@
 // tree's, and an event reports the handler identifier of the drawn tree.
 //
 // A vector is data. Where the PORT disagrees with one, the test says so and
-// is marked (`knownFailures`), with the reason in docs/direction/bets/
+// is marked (`knownFailures`), with the reason in Valance docs/explanation/bets/
 // conformance-kit.md; a vector is never weakened to pass.
 import type { RenderNode, RenderTree, TextRun } from "@valancex/mesh-runtime";
 import type { WebPort, WebPrimitives } from "../src/index.js";
@@ -55,7 +55,7 @@ const load = (path: string): ReadonlyArray<Vector> => (JSON.parse(readFileSync(n
 
 const all = [...load("identity/cases.json"), ...load("identity/repeat/cases.json")];
 
-/** The vectors the Web PORT does not pass, by name, with why (docs/direction/bets/conformance-kit.md). */
+/** The vectors the Web PORT does not pass, by name, with why (Valance docs/explanation/bets/conformance-kit.md). */
 const knownFailures: Readonly<Record<string, string>> = {};
 
 const parts = (part: Part): ReadonlyArray<Part> => (part.type === "text" ? [part] : [part, ...part.children.flatMap(parts)]);

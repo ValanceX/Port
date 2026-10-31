@@ -1,6 +1,6 @@
 /**
  * Server realization: a render-v1 tree as the HTML of its container's
- * content (docs/superpowers/specs/2026-09-28-port-web-ssr.md §4). It uses no
+ * content (docs/explanation/specs/2026-09-28-port-web-ssr.md §4). It uses no
  * DOM. It shares the table validation and tree check (check.ts) and the
  * value realization (realize.ts) with the client, and only places their
  * outputs: every text it writes is a text run's text, a string prop's own

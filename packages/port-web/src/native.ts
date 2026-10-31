@@ -1,5 +1,5 @@
 /**
- * The Web PORT's native hatch, `@valancex/port-web/native`: a Tier 3 escape hatch that leaves the portable layer (Provisional, Web only, not part of contract version 1).
+ * The Web PORT's native hatch, `@valancex/port-web/native`: an explicit way out of the portable layer (Provisional, Web only, not part of contract version 1).
  *
  * Pass a `Native` as `createWebPort`'s `native` option. Its callback for a component runs when an element of that primitive exists in the document: after `draw`, after an
  * insert by `update` or `patch`, and after `hydrate` adopts the server DOM. The cleanup it returns runs when that element ends (it is removed, replaced by another element or

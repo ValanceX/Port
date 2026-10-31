@@ -1,8 +1,8 @@
 # @valancex/port-web
 
-The Web PORT: realizes MESH render trees as DOM, keeps each node's DOM identity across updates, and reports what the user does as handler identifiers and payloads. It is the Web binding of the [PORT contract](../../docs/CONTRACT.md). **Version 0.9.0 is released and changes nothing here** (the package moves with `@valancex/port-desktop-vocabulary`, so one tag publishes both). See the [release notes](../../docs/releases) and [API stability](../../docs/stability.md).
+The Web PORT: realizes MESH render trees as DOM, keeps each node's DOM identity across updates, and reports what the user does as handler identifiers and payloads. It is the Web binding of the [PORT contract](../../docs/reference/contract.md). **Version 0.9.0 is released and changes nothing here** (the package moves with `@valancex/port-desktop-vocabulary`, so one tag publishes both). See the [release notes](../../docs/reference/releases) and [API stability](../../docs/reference/stability.md).
 
-Tier 1 (**Provisional**): show snapshots, receive intents. `composeWebPort` drives the PORT from a Mesh screen (`openScreen` in `@valancex/mesh-runtime`), so you never choose `draw` or `patch`, and never release a render:
+**Provisional.** Show snapshots, receive intents. `composeWebPort` drives the PORT from a Mesh screen (`openScreen` in `@valancex/mesh-runtime`), so you never choose `draw` or `patch`, and never release a render:
 
 ```ts
 import { openScreen } from "@valancex/mesh-runtime";
@@ -22,7 +22,7 @@ await composer.show(next);       // later ones patch in place
 composer.close();                // empties the container and closes the screen
 ```
 
-An interaction is reported to the screen, which gives an intent to `onIntent` (or, for a unit command it was given a transition for, patches the composer applies). `show(snapshot, context?)` passes the optional `context` (Mesh 0.18) to the screen, which keeps the last one when none is given. `show` gives `{ diagnostics }` if the screen refused the snapshot, and nothing changes; the diagnostics of an interaction's dispatch go to the optional `onDiagnostics`, and a dispatch that rejects, or a result the PORT refuses (the PORT and the screen are then both ended, so the next `show` draws afresh), goes to the optional `onError`. Without it the error is reported as uncaught (`reportError`, else thrown from a microtask); if `onError` itself throws, that rejection is unhandled. Each result is applied to the PORT before the next report is dispatched. `draw`, `update`, `patch` and `report` below are the Tier 2 contract, unchanged: use them when something else hosts the program.
+An interaction is reported to the screen, which gives an intent to `onIntent` (or, for a unit command it was given a transition for, patches the composer applies). `show(snapshot, context?)` passes the optional `context` (Mesh 0.18) to the screen, which keeps the last one when none is given. `show` gives `{ diagnostics }` if the screen refused the snapshot, and nothing changes; the diagnostics of an interaction's dispatch go to the optional `onDiagnostics`, and a dispatch that rejects, or a result the PORT refuses (the PORT and the screen are then both ended, so the next `show` draws afresh), goes to the optional `onError`. Without it the error is reported as uncaught (`reportError`, else thrown from a microtask); if `onError` itself throws, that rejection is unhandled. Each result is applied to the PORT before the next report is dispatched. `draw`, `update`, `patch` and `report` below are the underlying contract, unchanged: use them when something else hosts the program.
 
 ```ts
 import { attribute, booleanAttribute, createWebPort } from "@valancex/port-web";
@@ -63,7 +63,7 @@ port.update(next.tree);                    // as after draw
 
 - **`draw(tree)`** realizes a render-v1 tree afresh inside `container`, replacing whatever was there. Use it for the first tree, and for any tree from a different program: keys aren't comparable across programs.
 - **`update(tree)`** brings the drawn tree to `tree`, from the same program, in place. Children are matched by key, never by position: every key present in both trees keeps its DOM node (moved if its order changed), a new key gets a new node, a key that is gone has its node disposed, and a key that leaves and later returns gets a fresh node. A key whose component changed is replaced. Only attributes and text that differ are written.
-- **`patch(patches)`** (since 0.4.0) applies a MESH `render-patch-v1` list (from MESH's `update`) to the drawn tree in place, instead of `update(tree)`. `setProp`, `removeProp` and `setText` change a kept part; `insert`, `remove` and `move` add, take away and reorder parts by key, and a moved part keeps its DOM node; `replace` is a `draw`. The result is what `update` of the full new tree gives. The whole list is checked before the DOM is touched, each operation against the effect of the ones before it, so a list it can't realize changes nothing (`unknown-key`, `duplicate-key`, `unsupported-patch`, `unrealized-prop`, `unrealizable-value`, `missing-prop-text`); an operation it doesn't know is refused, never skipped. If a DOM setter then throws, `patch` throws `patch-failed` (the steps before it stay applied) and you recover with `draw`. Its types, `RenderPatches` and `RenderPatch`, are this package's own. See [the contract](../../docs/CONTRACT.md#patch).
+- **`patch(patches)`** (since 0.4.0) applies a MESH `render-patch-v1` list (from MESH's `update`) to the drawn tree in place, instead of `update(tree)`. `setProp`, `removeProp` and `setText` change a kept part; `insert`, `remove` and `move` add, take away and reorder parts by key, and a moved part keeps its DOM node; `replace` is a `draw`. The result is what `update` of the full new tree gives. The whole list is checked before the DOM is touched, each operation against the effect of the ones before it, so a list it can't realize changes nothing (`unknown-key`, `duplicate-key`, `unsupported-patch`, `unrealized-prop`, `unrealizable-value`, `missing-prop-text`); an operation it doesn't know is refused, never skipped. If a DOM setter then throws, `patch` throws `patch-failed` (the steps before it stay applied) and you recover with `draw`. Its types, `RenderPatches` and `RenderPatch`, are this package's own. See [the contract](../../docs/reference/contract.md#patch).
 - **`hydrate(tree)`** takes over server HTML in `container`, with nothing drawn. See [Server HTML and hydration](#server-html-and-hydration).
 - **`focus(key)`** (0.11) moves keyboard focus to the part `key` names, or the first thing in it that takes focus, and returns whether focus is there now. A request to the platform made after the patches that drew the part, not a command. Separately, after every `draw`, `update` and `patch` the PORT keeps focus (and a text field's selection) with the part it was in, by key, and hands it to what follows, then what precedes, then what holds a part that is gone; its own focus and blur are not reported.
 - **A primitive's `group: { within, attribute }`** (0.11) puts the element in the DOM's own group: it carries `attribute` made from the nearest ancestor drawn as `within` (a radio's `name`), so the group is one tab stop with the arrow keys. **`elementWhen(name)`** (0.11) is a prop kind that chooses the element (`ol` for a list while `ordered`); the PORT replaces the element when the prop changes, and the children keep their DOM nodes.
@@ -97,7 +97,7 @@ A DOM attribute and a DOM property are different slots. An attribute holds only 
 | `property(name, "number")` | IDL `double` property: **native** | the number itself (never a `long` or `float` property, which would truncate or round) |
 | `property(name, "value")` | a property that keeps any value, such as a custom element's: **native** | any value unchanged, lists, records and `null` included |
 
-A list or record in a text-only slot, a value of another kind in a native slot, or a number, boolean or `null` in a text-only slot without a `propText` entry, is refused. The PORT never calls `String()`, `JSON.stringify` or a formatter on a value. The full table, with each case's SSR consequence, is the [Web value realization](../../docs/architecture/2026-09-28-web-value-realization.md).
+A list or record in a text-only slot, a value of another kind in a native slot, or a number, boolean or `null` in a text-only slot without a `propText` entry, is refused. The PORT never calls `String()`, `JSON.stringify` or a formatter on a value. The full table, with each case's SSR consequence, is the [Web value realization](../../docs/explanation/design-records/2026-09-28-web-value-realization.md).
 
 ### Events: MESH's event resolution
 
@@ -144,7 +144,7 @@ try {
 }
 ```
 
-An unknown render-v1 *property* is different: it is ignored, as MESH's schema requires (see the contract's [What may be ignored](../../docs/CONTRACT.md#what-may-be-ignored-and-what-may-not)).
+An unknown render-v1 *property* is different: it is ignored, as MESH's schema requires (see the contract's [What may be ignored](../../docs/reference/contract.md#what-may-be-ignored-and-what-may-not)).
 
 **Events made by one key.** An event may be realized by one key of a keyboard event: `submit: { type: "keydown", key: "Enter" }` is what a person does by pressing Enter in a field (`KeyboardEvent.key`). Any other key is not that event: at that node it does not apply, and the interaction goes on toward the root like any that does not. `key` is allowed only on `keydown` and `keyup`, non-empty, at most 32 characters. Several events of one primitive may share a DOM event type when each is made by a different key (Enter is `submit` and Escape is `cancel` on a field, both `keydown`); two events that one interaction could be, the same key or an event that takes any key, are refused.
 
@@ -154,7 +154,7 @@ A component with no realization isn't refused. It's drawn as a `<valance-unknown
 
 ## Server HTML and hydration
 
-The design is the [PORT Web SSR design](../../docs/superpowers/specs/2026-09-28-port-web-ssr.md). `hydrate` is Web-specific, not a PORT contract operation.
+The design is the [PORT Web SSR design](../../docs/explanation/specs/2026-09-28-port-web-ssr.md). `hydrate` is Web-specific, not a PORT contract operation.
 
 ### Controlled fields
 
@@ -195,14 +195,14 @@ The design is the [PORT Web SSR design](../../docs/superpowers/specs/2026-09-28-
 
 ## Leaving the portable layer
 
-An application normally stays on the portable layer: render trees in, handler reports out. These are the places where you reach down to the DOM or add to what the PORT realizes. Each is marked with its tier from [the stability table](../../docs/stability.md).
+An application normally stays on the portable layer: render trees in, handler reports out. These are the places where you reach down to the DOM or add to what the PORT realizes. Each is marked with its stability level from [the stability table](../../docs/reference/stability.md).
 
-| Where | What it is | Tier |
+| Where | What it is | Level |
 |---|---|---|
 | `port.inspect(key)` | Returns the live DOM node for a drawn part, or `undefined`. A read for devtools; changing the node is outside what the PORT keeps true. | Not part of the contract |
 | `payload(event, element)` on a primitive's event | Your function builds the event's payload from the DOM event and the receiving element. It must return plain data. | Stable (a `WebPrimitive` field) |
 | Your own `WebPrimitives` table | You choose the element, props and events for each primitive your manifest declares, including advanced entries such as `layer`. | Stable |
-| `native` option, with types from `@valancex/port-web/native` | The native hatch (Tier 3): a callback per component that gets each drawn element of that primitive and its key, and may return a cleanup. A primitive marked `opaque` gives the callback the element's content. See below. | Provisional (Web only, not in contract v1) |
+| `native` option, with types from `@valancex/port-web/native` | The native hatch: a callback per component that gets each drawn element of that primitive and its key, and may return a cleanup. A primitive marked `opaque` gives the callback the element's content. See below. | Provisional (Web only, not in contract v1) |
 
 ### The native hatch
 
@@ -225,4 +225,4 @@ These are the documented semantics of v0.2 and v0.3, not defects. Each is a diff
 
 ## Not yet
 
-Accessibility semantics beyond what a realization table chooses, styling, streaming or partial hydration, event replay, and preserving input before hydration. See the [roadmap](../../docs/ROADMAP.md).
+Accessibility semantics beyond what a realization table chooses, styling, streaming or partial hydration, event replay, and preserving input before hydration. See the [roadmap](../../docs/explanation/roadmap.md).

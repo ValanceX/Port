@@ -1,6 +1,6 @@
 # PORT Web: applying render patches (design)
 
-Status: **built** (2026-10-06): `patch` with all its operations, the Web Components recipe's tests, the error behavior, and the devtools hooks `inspect(key)` and the touched keys `patch` returns are in `@valancex/port-web` (unreleased, with MESH's `update`), tested in jsdom and end to end against the real MESH runtime's patches. Replaying a session log and the Chromium version of the one-DOM-node test are not built. Companion: MESH's [fine-grained reactivity and composition design](https://github.com/ValanceX/Mesh/blob/main/docs/superpowers/specs/2026-10-06-mesh-fine-grained-reactivity-and-composition.md), which defines `render-patch-v1` and the equivalence law.
+Status: **built** (2026-10-06): `patch` with all its operations, the Web Components recipe's tests, the error behavior, and the devtools hooks `inspect(key)` and the touched keys `patch` returns are in `@valancex/port-web` (unreleased, with MESH's `update`), tested in jsdom and end to end against the real MESH runtime's patches. Replaying a session log and the Chromium version of the one-DOM-node test are not built. Companion: MESH's [fine-grained reactivity and composition design](https://github.com/ValanceX/Mesh/blob/main/docs/explanation/specs/2026-10-06-mesh-fine-grained-reactivity-and-composition.md), which defines `render-patch-v1` and the equivalence law.
 
 ## What changes for PORT
 
@@ -64,4 +64,4 @@ PORT keeps no history; it only realizes. It helps devtools in two ways: (1) it e
 
 ## Documentation that changed with it
 
-`docs/CONTRACT.md` (the `patch` section and table row; the "Not in version 1" list no longer says lists and conditionals are absent, since PORT realizes whatever keys a tree has), `docs/ARCHITECTURE.md`, `docs/ROADMAP.md` (two status lines), the audit's superseded note, the README status, the package README and the changelog. The Web value realization note needed no change: `patch` realizes values by the same table.
+`docs/reference/contract.md` (the `patch` section and table row; the "Not in version 1" list no longer says lists and conditionals are absent, since PORT realizes whatever keys a tree has), `docs/explanation/architecture.md`, `docs/explanation/roadmap.md` (two status lines), the audit's superseded note, the README status, the package README and the changelog. The Web value realization note needed no change: `patch` realizes values by the same table.

@@ -1,5 +1,5 @@
 //! The host protocol: how a composer in another process (an engine running the application) drives this PORT. One JSON object per line, in both directions. It carries the PORT's operations out
-//! and the PORT's reports back, and nothing else: the PORT never sees a command, a state or a route. The protocol is specified in `docs/architecture/2026-10-14-port-desktop.md`.
+//! and the PORT's reports back, and nothing else: the PORT never sees a command, a state or a route. The protocol is specified in `docs/explanation/design-records/2026-10-14-port-desktop.md`.
 use crate::port::{Port, PortError, Report};
 use crate::theme::Theme;
 use crate::tree::Tree;

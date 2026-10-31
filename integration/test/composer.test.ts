@@ -1,4 +1,4 @@
-// The composer's two obligations (docs/CONTRACT.md), with real MESH and
+// The composer's two obligations (docs/reference/contract.md), with real MESH and
 // NEXUS: it keeps the drawn render and dispatches every report with it,
 // and it alone decides program continuity, drawing afresh when the program
 // changes and updating otherwise.

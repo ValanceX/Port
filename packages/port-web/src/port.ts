@@ -2,9 +2,9 @@
  * The Web PORT: realizes MESH render trees (render-v1) as DOM inside a
  * container, keeps each key's DOM node across updates from one program,
  * and reports interactions as handler identifiers and payloads. It is the
- * Web binding of the PORT contract (docs/CONTRACT.md). It can also take
+ * Web binding of the PORT contract (docs/reference/contract.md). It can also take
  * over server HTML for a tree (hydrate), as the SSR design specifies
- * (docs/superpowers/specs/2026-09-28-port-web-ssr.md).
+ * (docs/explanation/specs/2026-09-28-port-web-ssr.md).
  *
  * It uses no browser globals: every DOM object comes from the container's
  * own document.
@@ -37,7 +37,7 @@ export interface WebPortOptions {
   readonly primitives: WebPrimitives;
   readonly report: Report;
   /**
-   * The native hatch (`@valancex/port-web/native`): a callback, by component, that gets each drawn element of that primitive and its key, and may return a cleanup. Tier 3,
+   * The native hatch (`@valancex/port-web/native`): a callback, by component, that gets each drawn element of that primitive and its key, and may return a cleanup.
    * Provisional, Web only, not part of contract version 1. See `Native`.
    */
   readonly native?: Native;
@@ -144,7 +144,7 @@ export interface WebPort {
   /**
    * Moves keyboard focus to the part `key` names, or to the first thing inside it that can take focus (a `column` holding a field is asked to focus the field).
    * Returns whether focus is now in that part. It is a request to the platform, not state: the host calls it after the patches that drew the part are applied
-   * (a form asks for its first invalid field), and nothing is promised for a key that is not drawn (false). Tier 2.
+   * (a form asks for its first invalid field), and nothing is promised for a key that is not drawn (false).
    */
   focus(key: string): boolean;
   /**
@@ -1277,7 +1277,7 @@ export const createWebPort = ({ container, primitives, report, native }: WebPort
   };
 
   // -------------------------------------------------------------------------
-  // The native hatch (`native`, Tier 3). A callback runs once its element is in the document and focus is settled, at the end of the call that drew it; a cleanup runs at the
+  // The native hatch (`native`). A callback runs once its element is in the document and focus is settled, at the end of the call that drew it; a cleanup runs at the
   // end of the call that ended its element, after focus was handed off, and before any callback of that call. Neither gets anything that reports: state changes only by
   // commands. The PORT writes back what it owns on every element whose callback has run, at the end of every call that writes, so the callback can't keep a slot of the tree's.
 

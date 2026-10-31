@@ -3,7 +3,7 @@
 **Date:** 2026-09-28
 **Scope:** the Web PORT (`@valancex/port-web`) only. This is the Web PORT's own documentation of how it realizes render-v1 values on its target. It is **not** a universal PORT contract: another PORT picks its own slots and records its own table.
 **Against:** MESH v0.6.0 (`a8a046f`): spec §9.7.7 (the text of a value), §9.7.8 (no text for lists and records), §9.8.2 (how each value crosses), §9.8.7 (realization); `@valancex/mesh-runtime` 0.6.0's `RenderNode.propText`.
-**Supersedes** the open questions of the [value realization audit](./2026-09-27-value-realization-audit.md), which MESH v0.6 answered.
+**Supersedes** the open questions of the [value realization audit](2026-09-27-value-realization-audit.md), which MESH v0.6 answered.
 
 ---
 
@@ -117,7 +117,7 @@ The integration slice's table (`integration/test/app.ts`), against MESH's slice 
 
 ## SSR
 
-Implemented as the [PORT Web SSR design](../superpowers/specs/2026-09-28-port-web-ssr.md) (§2A, §3) specifies, in `@valancex/port-web/server` (`realizeHtml`) and `WebPort.hydrate`:
+Implemented as the [PORT Web SSR design](../specs/2026-09-28-port-web-ssr.md) (§2A, §3) specifies, in `@valancex/port-web/server` (`realizeHtml`) and `WebPort.hydrate`:
 
 - **Serializable, by the same `realizeProp` outputs:** `attribute` (a string's value or MESH's `propText`, escaped), `booleanAttribute` (presence), non-empty text runs, and the unknown-component placeholder. No second formatting exists.
 - **Omission on both sides:** an absent prop in any slot, including `property` and `textProperty`.
