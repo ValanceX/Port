@@ -45,7 +45,8 @@ describe("the package README's samples", () => {
     expect(blocks).toHaveLength(5);
   });
 
-  it("the composer sample shows a snapshot, then another in place, and closes", async () => {
+  // The composer drives a MESH screen (`openScreen`, MESH 0.18); against an older MESH (scripts/check-mesh-range.mjs) there is none to run it on.
+  it.skipIf(!("openScreen" in mesh))("the composer sample shows a snapshot, then another in place, and closes", async () => {
     const { window } = dom();
 
     window.document.body.innerHTML = '<div id="app"></div>';
