@@ -16,7 +16,7 @@ describe("the opt-in Web vocabulary", () => {
   });
 
   it("its manifest is the Desktop PORT's, for the same components", () => {
-    const desktop = JSON.parse(readFileSync(new URL("../../port-desktop-vocabulary/vocabulary.json", import.meta.url), "utf8")) as { components: Record<string, unknown> };
+    const desktop = JSON.parse(readFileSync(new URL("../../port-desktop/vocabulary.json", import.meta.url), "utf8")) as { components: Record<string, unknown> };
 
     expect(Object.keys(vocabularyManifest.components)).toEqual(core);
     for (const name of core) {
