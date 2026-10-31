@@ -245,7 +245,7 @@ describe("keyed reconciliation: the boundary", () => {
   });
 
   it("does not keep a realization across a change of component: the key matches, the object is replaced", () => {
-    // Realization compatibility (docs/CONTRACT.md): a realization is retained
+    // Realization compatibility (docs/reference/contract.md): a realization is retained
     // only when the key and the component are compatible. PORT's own safety
     // rule for malformed input, not a MESH identity rule.
     const { port, container } = setup();

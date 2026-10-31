@@ -11,7 +11,7 @@
 </card>                          B: b only         (local binding)
 ```
 
-**Evidence examined:** ValanceX/Mesh at `a03733e` (v0.5.0 plus one docs commit; unchanged on `main` at the time of writing): `docs/MPRX-SPEC.md` §4, §9.1, §9.5, §9.8, §10; `docs/manual/runtime.md`; `docs/manual/manifest.md`; `docs/ARCHITECTURE.md`; `docs/guides/rendering-mesh-output.md`; `schemas/render-v1.schema.json`; every `.mprx` under `examples/` and `crates/mesh-runtime/tests/programs/`; the test host `crates/mesh-runtime/tests/common/host.rs` and its `events.json` files. NEXUS v0.8 `src/mesh/index.ts`. PORT `packages/port-web` at this commit.
+**Evidence examined:** ValanceX/Mesh at `a03733e` (v0.5.0 plus one docs commit; unchanged on `main` at the time of writing): `docs/MPRX-SPEC.md` §4, §9.1, §9.5, §9.8, §10; `docs/manual/runtime.md`; `docs/manual/manifest.md`; `docs/explanation/architecture.md`; `docs/guides/rendering-mesh-output.md`; `schemas/render-v1.schema.json`; every `.mprx` under `examples/` and `crates/mesh-runtime/tests/programs/`; the test host `crates/mesh-runtime/tests/common/host.rs` and its `events.json` files. NEXUS v0.8 `src/mesh/index.ts`. PORT `packages/port-web` at this commit.
 
 **Conclusion, briefly:** MESH doesn't specify propagation. The evidence consistently treats a binding as belonging to one node, and nothing supports bubbling, so **local binding is the better-supported reading**. But it is not a stated rule, so this is a **MESH contract gap**. PORT's V0.3 (events) is not semantically complete until MESH closes it. The Web PORT's current behavior (the DOM's bubbling) is characterized by tests and documented as not contractual. It is not Valance semantics.
 
@@ -27,7 +27,7 @@ What MESH currently specifies, and doesn't.
 - **E4. The payload belongs to the node's own event.** §9.5: `$event`'s type "is the payload of the handled event, as declared by the component of the element the `on.` sits on". §9.8.4: a payload is checked "against the payload type of the event the handler is bound to".
 - **E5. Events are per component, not a shared vocabulary.** The manifest declares `events` inside each component, with each its own payload. §9.1: props, events, commands and scope names are separate namespaces per component. §4: "there is no registry of known DOM/runtime events". `avatar`'s `click` (payload `Press`) and `button`'s `click` (no payload) in the slice are two unrelated declarations that share a name.
 - **E6. An event's meaning is only its name and payload.** A manifest event is `{}` or `{ "payload": T }` (manifest manual, "Events"). Nothing states which interactions a primitive's event covers: for example, whether a click on a node's content is a click on the node.
-- **E7. `on.click` is not a DOM event.** MESH `docs/ARCHITECTURE.md`, "Direction": "`on.click` is interaction intent, not a DOM event."
+- **E7. `on.click` is not a DOM event.** MESH `docs/explanation/architecture.md`, "Direction": "`on.click` is interaction intent, not a DOM event."
 - **E8. The renderer reports; it doesn't interpret.** Runtime manual: a renderer "reports an event as its handler identifier and payload, and never interprets either". The guide: "When the user does something, report the node's handler identifier for that event". It is singular throughout, and nothing says how many reports one interaction yields.
 - **E9. Composites have no events** (§10, `assembly-composite-event`). There is no event forwarding or re-emission between components.
 - **E10. MESH never evaluates nested bindings.** The only MPRX in the MESH repository where a bound node has a bound descendant is a Tree-sitter highlighting sample, `grammar/tree-sitter-mprx/test/captures/events.mprx` (`<list on.select=…>` around `<button on.click=…>`). It pins syntax colouring only, and is never checked or evaluated. No example, check fixture or runtime test program nests bindings. MESH's test host (`tests/common/host.rs`) fires an event by picking *one* node binding it (`occurrence`) and dispatching *once*.
@@ -84,13 +84,13 @@ In both cases Q2 (extent) is currently answered by each PORT's realization of th
 ## Recommendation
 
 - **Best supported by current MESH evidence: B1, local binding with the nearest bound node.** Every relevant statement treats a binding as one node's (E1, E2, E4, E8); MESH has no cross-component event relation (E5, E9); MESH calls `on.click` intent, not a DOM event (E7); and MESH's own host dispatches once per event (E10). Nothing in MESH supports A: its only source is the DOM's default (E12).
-- **Handed to MESH** as questions E-Q1 to E-Q4 in the [MESH semantic handoff](./2026-09-27-mesh-semantic-handoff.md#event-questions).
+- **Handed to MESH** as questions E-Q1 to E-Q4 in the [MESH semantic handoff](2026-09-27-mesh-semantic-handoff.md#event-questions).
 - **It is not settled.** No MESH document states multiplicity (Q1) or extent (Q2) (E6, E11), and no MESH test evaluates nested bindings (E10). **This is a MESH contract gap**, and PORT does not modify MESH to close it. What MESH would need to say:
   1. whether one user interaction triggers at most one binding (Q1);
   2. how an interaction on a descendant relates to an ancestor's binding: never (B2), only when no nearer node binds it (B1), or always (A);
   3. if not B2, what an event of a primitive covers (Q2), or that this is left to each PORT's realization of the primitive.
 - **PORT's position until then:**
   - V0.3 (events) is **not semantically complete**. The roadmap says so.
-  - The Web PORT keeps the DOM's behavior, pinned by *characterization* tests (`test/propagation.test.ts`) that say it's not the contract. `docs/CONTRACT.md` and the Web PORT's README state that propagation is unspecified and must not be relied on.
+  - The Web PORT keeps the DOM's behavior, pinned by *characterization* tests (`test/propagation.test.ts`) that say it's not the contract. `docs/reference/contract.md` and the Web PORT's README state that propagation is unspecified and must not be relied on.
   - The Web PORT is **not** changed. Implementing B1 would make PORT the source of the semantic. Failing closed (refusing a tree where one interaction could trigger two bindings) was considered and **rejected by the project** (2026-09-27): it would refuse valid MESH programs, and it too would be PORT deciding a semantic question. So is any PORT-specific propagation abstraction built only to hide the question, and none is added.
   - The vertical slice is unaffected: no bound node in it has a bound ancestor.

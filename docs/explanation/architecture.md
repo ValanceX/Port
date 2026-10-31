@@ -2,7 +2,7 @@
 
 This document covers PORT's part of the Valance design: what it's responsible for, what it deliberately stays out of, and the rules that keep it that way. The sibling repos, [NEXUS](https://github.com/ValanceX/Nexus) and [MESH](https://github.com/ValanceX/Mesh), each have their own architecture doc. For the big picture, start at the [ValanceX organization page](https://github.com/ValanceX).
 
-**Glossary:** words that mean different things across the Valance repos (`scope`, `Host`, `start`, `instance`) are defined in the shared [Glossary](https://github.com/ValanceX/Valance/blob/main/docs/understand/glossary.md).
+**Glossary:** words that mean different things across the Valance repos (`scope`, `Host`, `start`, `instance`) are defined in the shared [Glossary](https://github.com/ValanceX/Valance/blob/main/docs/reference/glossary.md).
 
 ## The short version
 
@@ -49,7 +49,7 @@ A PORT:
 - *(direction, not built)* describes its own capabilities (for example `retained-rendering`). PORT is the authority on what its target can guarantee, so MESH never needs an encyclopedia of platforms. Nothing consumes such a description yet, so no format exists (audit U4);
 - *(direction, not built)* realizes style semantics in the target's own styling system, always explicitly (e.g. under `@target linux`), never by pretending every target styles alike. render-v1 carries no style or accessibility information yet (audit U1, U2);
 - should be **inspectable**: a developer should eventually be able to see what a PORT did with a given element (which target object it became, which optimizations applied) rather than treating it as an opaque engine;
-- *(built: Provisional, Web)* offers **explicit escape hatches** down to target primitives and native APIs, clearly marked as leaving the portable layer: the Web PORT's `native` option, typed from `@valancex/port-web/native`, with `opaque` primitives. It gets no way to report, and the PORT writes back what it owns, so state stays the application's. A Desktop parallel waits for evidence ([ROADMAP](./ROADMAP.md) §2.8). See [Leaving the portable layer](../packages/port-web/README.md#leaving-the-portable-layer).
+- *(built: Provisional, Web)* offers **explicit escape hatches** down to target primitives and native APIs, clearly marked as leaving the portable layer: the Web PORT's `native` option, typed from `@valancex/port-web/native`, with `opaque` primitives. It gets no way to report, and the PORT writes back what it owns, so state stays the application's. A Desktop parallel waits for evidence ([ROADMAP](roadmap.md) §2.8). See [Leaving the portable layer](../../packages/port-web/README.md#leaving-the-portable-layer).
 
 ## What PORT is not
 
@@ -82,11 +82,11 @@ Neither kind turns into scattered `if (device.hasX)` checks in feature or render
 
 ## The boundary
 
-Established from MESH v0.5 and NEXUS v0.8 in the [integration audit](./architecture/2026-09-27-port-integration-audit.md), completed by MESH v0.6's realization and event-resolution rules, and stated as the [PORT contract](./CONTRACT.md).
+Established from MESH v0.5 and NEXUS v0.8 in the [integration audit](design-records/2026-09-27-port-integration-audit.md), completed by MESH v0.6's realization and event-resolution rules, and stated as the [PORT contract](../reference/contract.md).
 
 - **NEXUS → PORT is not a dependency.** NEXUS's `Mesh.host` renders MESH programs into `Render`s. A **composer** (the application, or later tooling) gives PORT each `render.tree`, says whether it comes from the program already drawn, and keeps the `Render` whose tree is drawn. NEXUS and PORT never import each other (NEXUS §16, MESH rule 13).
-- **Program continuity is the composer's.** *draw* means "a different program", *update* "the same program". PORT never works this out from keys, handler identifiers, shape or anything else in a tree ([CONTRACT.md](./CONTRACT.md#program-continuity)).
-- **In:** render-v1, owned by MESH. PORT doesn't redefine or wrap it. A PORT may also take MESH's `render-patch-v1` patch lists, the changes between two trees of one program, instead of a whole new tree ([CONTRACT.md](./CONTRACT.md#patch)). There is no "MESH IR" to consume: MESH's IR is internal to its compiler.
+- **Program continuity is the composer's.** *draw* means "a different program", *update* "the same program". PORT never works this out from keys, handler identifiers, shape or anything else in a tree ([CONTRACT.md](../reference/contract.md#program-continuity)).
+- **In:** render-v1, owned by MESH. PORT doesn't redefine or wrap it. A PORT may also take MESH's `render-patch-v1` patch lists, the changes between two trees of one program, instead of a whole new tree ([CONTRACT.md](../reference/contract.md#patch)). There is no "MESH IR" to consume: MESH's IR is internal to its compiler.
 - **Out:** `report(handler, payload?)`. The composer dispatches it through NEXUS with the drawn `Render`. PORT never sees an intent or a command, and target events never leave PORT.
 - **PORT → target** is PORT's own business.
 - **The application's primitives** are declared in its MESH manifest; there is no Valance-wide primitive set. What each becomes on a target is configuration of that target's PORT (for Web, a realization table).
@@ -109,7 +109,7 @@ The Web has two kinds of slot for a prop, and they don't share semantics. An **H
 | text-only slot | `attribute(name)`, `textProperty(name)`, `controlled(name)` (v0.3) | a string's own value, or MESH's `propText`; a list or record is refused. `controlled` is the attribute and the same-named property together, for a field the user edits |
 | unsupported | anything not in the table | refused |
 
-A numeric DOM property therefore takes the number natively, while an attribute showing a number takes MESH's text for it. The values, slots, sources, SSR consequences and failures are tabulated in the [Web value realization](./architecture/2026-09-28-web-value-realization.md). One pure step (`realize.ts`) decides every prop's output before anything is written. The Web PORT's server path (`@valancex/port-web/server`) writes the same outputs as HTML rather than formatting values a second way, and never derives an attribute from a DOM property: a present property value has no HTML form, and is refused on the server. Server rendering and `hydrate` are Web-specific, not PORT contract operations ([CONTRACT.md](./CONTRACT.md#web-server-html-and-hydrate)).
+A numeric DOM property therefore takes the number natively, while an attribute showing a number takes MESH's text for it. The values, slots, sources, SSR consequences and failures are tabulated in the [Web value realization](design-records/2026-09-28-web-value-realization.md). One pure step (`realize.ts`) decides every prop's output before anything is written. The Web PORT's server path (`@valancex/port-web/server`) writes the same outputs as HTML rather than formatting values a second way, and never derives an attribute from a DOM property: a present property value has no HTML form, and is refused on the server. Server rendering and `hydrate` are Web-specific, not PORT contract operations ([CONTRACT.md](../reference/contract.md#web-server-html-and-hydrate)).
 
 What crosses should describe **guarantees, not mechanisms**, so NEXUS and MESH can change internals without breaking PORTs. The evolution rule, in both directions:
 
@@ -127,7 +127,7 @@ The PORT contract is language-neutral: render-v1 is a JSON Schema (MESH implemen
 | Package | Role |
 |---|---|
 | `@valancex/port-web` | Web PORT (DOM): the first target |
-| `valancex-port-desktop` | Desktop PORT (a native window; Rust): the second target (0.2.0 released, 0.3.0 prepared; its own tag). See the [architecture note](./architecture/2026-10-14-port-desktop.md) |
+| `valancex-port-desktop` | Desktop PORT (a native window; Rust): the second target (0.2.0 released, 0.3.0 prepared; its own tag). See the [architecture note](design-records/2026-10-14-port-desktop.md) |
 | `@valancex/port-desktop-vocabulary` | The Desktop PORT's vocabulary as data, for the tools that check a template against it. Versioned with `@valancex/port-web` |
 
 There is no shared `@valancex/port` package: the only thing PORTs share is the contract, which is data and prose. The earlier scaffold's `@valence/port` and `@valence/port-canvas` were removed because they implied a shared TypeScript layer with nothing in it (audit, Gate 3). A second target is added only when the first raises a question it would answer; it may be in any language and gets its own package, and PORTs never depend on each other.

@@ -6,7 +6,7 @@
  * reasons everywhere.
  *
  * - `validatePrimitives`: the realization table itself
- *   (docs/superpowers/specs/2026-09-28-port-web-ssr.md §4.7).
+ *   (docs/explanation/specs/2026-09-28-port-web-ssr.md §4.7).
  * - `checkTree`: a render-v1 tree against the table, realizing every prop
  *   with realize.ts, before any target is touched.
  */

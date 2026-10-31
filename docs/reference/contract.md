@@ -1,8 +1,16 @@
 # The PORT contract, version 1
 
-This is what every PORT promises, in any language, on any target. It is deliberately small. It is derived from MESH v0.6's render-tree format, its realization rule (spec §9.8.7) and event resolution (spec §9.9), and from NEXUS v0.8's boundary rules. The evidence is in the [integration audit](./architecture/2026-09-27-port-integration-audit.md); MESH v0.6 settled the two questions PORT handed it (the [MESH semantic handoff](./architecture/2026-09-27-mesh-semantic-handoff.md)).
+> **TL;DR:** What every PORT promises, in any language and on any target: render trees in, interaction reports out, and the rules between.
 
-It is **not** an API. Each PORT binds these operations to its own language and target however suits them. The Web PORT's binding is [`@valancex/port-web`](../packages/port-web/README.md).
+## Prerequisites
+
+* What a render tree is: MESH's [Rendering MESH output](https://github.com/ValanceX/Mesh/blob/main/docs/how-to/rendering-mesh-output.md).
+
+---
+
+This is what every PORT promises, in any language, on any target. It is deliberately small. It is derived from MESH v0.6's render-tree format, its realization rule (spec §9.8.7) and event resolution (spec §9.9), and from NEXUS v0.8's boundary rules. The evidence is in the [integration audit](../explanation/design-records/2026-09-27-port-integration-audit.md); MESH v0.6 settled the two questions PORT handed it (the [MESH semantic handoff](../explanation/design-records/2026-09-27-mesh-semantic-handoff.md)).
+
+It is **not** an API. Each PORT binds these operations to its own language and target however suits them. The Web PORT's binding is [`@valancex/port-web`](../../packages/port-web/README.md).
 
 ## Who is involved
 
@@ -19,11 +27,11 @@ report (h, p) │ │ draw(tree) / update(tree) / patch(patches) / unmount()
 ```
 
 - **PORT** realizes render trees on one target and reports what the user does.
-- **The composer** is whoever assembles the application: app code, a test, or later, tooling. It holds a NEXUS MESH host and a PORT, and connects them. NEXUS and PORT never depend on each other (NEXUS `docs/ARCHITECTURE.md` §16).
+- **The composer** is whoever assembles the application: app code, a test, or later, tooling. It holds a NEXUS MESH host and a PORT, and connects them. NEXUS and PORT never depend on each other (NEXUS `docs/explanation/architecture.md` §16).
 
 ## Input: a render-v1 tree
 
-PORT's only data input is a MESH render tree, as defined by MESH's [`render-v1.schema.json`](https://github.com/ValanceX/Mesh/blob/main/schemas/render-v1.schema.json) and [runtime manual](https://github.com/ValanceX/Mesh/blob/main/docs/manual/runtime.md). PORT does not redefine it, wrap it or extend it.
+PORT's only data input is a MESH render tree, as defined by MESH's [`render-v1.schema.json`](https://github.com/ValanceX/Mesh/blob/main/schemas/render-v1.schema.json) and [runtime manual](https://github.com/ValanceX/Mesh/blob/main/docs/reference/runtime.md). PORT does not redefine it, wrap it or extend it.
 
 A PORT:
 - accepts `format: "mesh-render"`, `version: 1`, and **refuses** any other format or version;
@@ -108,7 +116,7 @@ at most one binding  →  at most one report  →  at most one command intent
 
 A PORT:
 
-1. **Realizes values only as MESH allows** (spec §9.8.7). A value goes either **natively** into a target slot of its own kind that holds it exactly, or **as its MESH text** into a slot that holds only text: a string's own value, or the node's `propText` entry for a number, boolean or `null`. A PORT formats, defaults and converts nothing: no platform coercion, host-language formatting or JSON. A value with no conforming slot (a list or record in a text-only slot, a value of another kind in a native one, or a text-only slot with no MESH text to put in it) is a realization error. An absent prop is realized by omission. Each PORT documents its own slots; the Web PORT's are in its [value realization table](./architecture/2026-09-28-web-value-realization.md).
+1. **Realizes values only as MESH allows** (spec §9.8.7). A value goes either **natively** into a target slot of its own kind that holds it exactly, or **as its MESH text** into a slot that holds only text: a string's own value, or the node's `propText` entry for a number, boolean or `null`. A PORT formats, defaults and converts nothing: no platform coercion, host-language formatting or JSON. A value with no conforming slot (a list or record in a text-only slot, a value of another kind in a native one, or a text-only slot with no MESH text to put in it) is a realization error. An absent prop is realized by omission. Each PORT documents its own slots; the Web PORT's are in its [value realization table](../explanation/design-records/2026-09-28-web-value-realization.md).
 2. **Surfaces unknown components.** A node whose component the PORT has no realization for is made visible, never dropped.
 3. **Drops nothing silently.** Known render-v1 content the PORT cannot realize is an error, not an omission. This is **not** the same as ignoring an unknown schema property; see [What may be ignored](#what-may-be-ignored-and-what-may-not).
 4. **Keeps identity.** Between *update*s, each key is realized by the same target object.
@@ -143,7 +151,7 @@ These are deliberately absent, because nothing upstream provides them yet or not
 
 ## Web: server HTML and hydrate
 
-Server rendering is a Web realization concern, specified in the [PORT Web SSR design](./superpowers/specs/2026-09-28-port-web-ssr.md). It doesn't change render-v1, MESH or NEXUS, and it isn't a universal PORT operation: a PORT with no server form has none.
+Server rendering is a Web realization concern, specified in the [PORT Web SSR design](../explanation/specs/2026-09-28-port-web-ssr.md). It doesn't change render-v1, MESH or NEXUS, and it isn't a universal PORT operation: a PORT with no server form has none.
 
 - **One realization pipeline.** The server (`realizeHtml` in `@valancex/port-web/server`) and the client share the table validation, the tree check and `realize.ts`. The server only places their outputs as HTML. It makes no text of a value: `propText` stays MESH's.
 - **Property vs attribute.** A MESH prop, the DOM property a table realizes it as, and an HTML attribute are three different things. PORT never derives an attribute from a property, even where the browser reflects one. A present value in a DOM property slot has no HTML form, so the server refuses the tree (`unserializable-prop`). An absent one is omitted on both sides.
@@ -152,4 +160,8 @@ Server rendering is a Web realization concern, specified in the [PORT Web SSR de
 
 ## Conformance
 
-Each PORT proves this contract with its own tests, against trees produced by the real MESH runtime where possible, and against small hand-written render-v1 trees for edge cases. The Web PORT's are in [`packages/port-web/test`](../packages/port-web/test), and the full MESH → NEXUS → PORT Web slice is in [`integration/`](../integration).
+Each PORT proves this contract with its own tests, against trees produced by the real MESH runtime where possible, and against small hand-written render-v1 trees for edge cases. The Web PORT's are in [`packages/port-web/test`](../../packages/port-web/test), and the full MESH → NEXUS → PORT Web slice is in [`integration/`](../../integration).
+
+## Next steps
+
+* The [Web PORT README](../../packages/port-web/README.md) or the [Desktop PORT README](../../packages/port-desktop/README.md).

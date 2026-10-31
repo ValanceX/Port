@@ -6,28 +6,28 @@ All notable changes to PORT are recorded here. The project follows [Semantic Ver
 
 ## [0.15.0] - 2026-10-31 (prepared, not yet released; the crate stays 0.6.0)
 
-A minor release of the two npm packages, which share one version: **the north-star refinements** (Valance north-star scorecard), all additive and **Provisional**: the native hatch, `composeWebPort` (with `show(snapshot, context?)`) and the opt-in `@valancex/port-web/vocabulary`. The MESH runtime peer range of `@valancex/port-web` admits 0.18 (`… || ^0.17.0 || ^0.18.0`). **`composeWebPort`'s context and the screen (`openScreen`) need MESH 0.18.0**; the other additions do not. See the [v0.15 release notes](./docs/releases/v0.15.md).
+A minor release of the two npm packages, which share one version: **the north-star refinements** (Valance north-star scorecard), all additive and **Provisional**: the native hatch, `composeWebPort` (with `show(snapshot, context?)`) and the opt-in `@valancex/port-web/vocabulary`. The MESH runtime peer range of `@valancex/port-web` admits 0.18 (`… || ^0.17.0 || ^0.18.0`). **`composeWebPort`'s context and the screen (`openScreen`) need MESH 0.18.0**; the other additions do not. See the [v0.15 release notes](docs/reference/releases/v0.15.md).
 
 ### Added
 
 - `@valancex/port-web`: **`composeWebPort`** (Tier 1, **Provisional**; Valance north-star refinements Task 24). It takes a Mesh `screen` (`openScreen` in `@valancex/mesh-runtime`), a `container`, `primitives` (and any other `createWebPort` option, `native` included, except `report`, which it owns) and `onIntent`. `show(snapshot)` draws the first snapshot and patches in place for the next, so the caller never chooses `draw` or `patch` and never releases a render; an interaction is dispatched through the screen, which gives an intent to `onIntent` (or, for a unit command it ran, patches the composer applies); `close()` empties the container and closes the screen. `show` gives `{ diagnostics }` when the screen refuses a snapshot, `onDiagnostics` receives those of a dispatch, and `onError` (optional; default: reported as an uncaught error) receives a dispatch that rejects or a result the PORT refuses, which also ends the PORT and the screen so the next `show` draws afresh. If `onError` itself throws, that rejection is unhandled. A unit result's patches are applied, then its `intent` (if the transition raised one) goes to `onIntent`. Every `show` and report runs on one chain, so each result is applied before the next report is dispatched. The screen is an argument typed structurally (`ComposedScreen`), so the module imports nothing from Mesh at run time and the peer range is unchanged; it needs a Mesh with `openScreen` (not in 0.17.0). `draw`, `update`, `patch` and `report` are unchanged (Tier 2). The tests run the repository against a local pack of `mesh-runtime` (the commit titled DO NOT MERGE BEFORE THE RELEASES). See the package README.
 - `@valancex/port-web`: **`@valancex/port-web/vocabulary`** (Tier 1, opt-in, **Provisional**; 42990f5): `vocabulary`, the portable core (column, row, heading, text, button, checkbox, textfield) realized for the Web as a `WebPrimitives` table, and `vocabularyManifest`, the same core as manifest data, so an application passes `primitives: vocabulary` instead of writing its own table. Nothing outside the subpath changes. Audit **T1.2** stays ◐ (C-2): the table is opt-in, not a default.
 - `@valancex/port-web`: **`show(snapshot, context?)`** on `composeWebPort`'s composer (Tier 1, **Provisional**). The optional `context` is passed to the screen's `show` (Mesh 0.18's `show(snapshot, context?)`, which keeps the last context when none is given), so a program whose components `use` context can be shown, and a context-only change patches in place. Needs a Mesh with the context channel (0.18) at release; the peer range gets that floor then. Tested against a local pack of `mesh-runtime` 0.18.0.
-- Scorecard audits touched (Valance `docs/NORTH_STAR_SCORECARD.md`): **E2** (no lifecycle, flush, update or release step at Tier 1) for the Web PORT, ◐ (the composer is Valance's; the author drives `draw` or `update` and releases renders) → P: with `composeWebPort` a Tier 1 author triggers none of them. **T1.2** (nothing required that has a correct default): for this helper, a required `onError` → optional with a default (uncaught-error reporting), so the minimal call is `screen`, `container`, `primitives`, `onIntent`.
+- Scorecard audits touched (Valance `docs/explanation/north-star-scorecard.md`): **E2** (no lifecycle, flush, update or release step at Tier 1) for the Web PORT, ◐ (the composer is Valance's; the author drives `draw` or `update` and releases renders) → P: with `composeWebPort` a Tier 1 author triggers none of them. **T1.2** (nothing required that has a correct default): for this helper, a required `onError` → optional with a default (uncaught-error reporting), so the minimal call is `screen`, `container`, `primitives`, `onIntent`.
 - `@valancex/port-web`: **the native hatch** (Tier 3, **Provisional**, Web only, not in contract version 1; Valance north-star refinements B6). `createWebPort` takes `native`, a callback per component, typed from the new subpath **`@valancex/port-web/native`** (`Native`, `NativeSetup`; types only). It gets each drawn element of that primitive and `{ key }`, nothing that reports or dispatches, and runs once the element is in the document, after `draw`, an insert by `update` or `patch`, and `hydrate`. Its cleanup runs at the end of the call that removes or replaces the element, or of `draw` or `unmount`, after focus has been handed off. The server takes no `native`. At the end of every `update` and `patch` the PORT writes back every slot it owns on a hatched element. A primitive marked **`opaque: true`** has no tree children (refused with the new code **`opaque-children`**); the server writes it empty and hydration leaves its content unverified. A layer can't be opaque, and a `native` entry must be a function for a primitive of the table (both `invalid-primitives`). See the package README, "Leaving the portable layer".
-- Scorecard audits touched (Valance `docs/NORTH_STAR_SCORECARD.md`): **H1** (a documented way down to the platform) F at the 2026-10-19 baseline (partial hatches documented by A10) → P: the hatch exists and is documented; **H2** (the hatch cannot corrupt framework state) – → P: it is imported from its own subpath, gets no report or dispatch, and the PORT re-asserts what it owns (tested).
+- Scorecard audits touched (Valance `docs/explanation/north-star-scorecard.md`): **H1** (a documented way down to the platform) F at the 2026-10-19 baseline (partial hatches documented by A10) → P: the hatch exists and is documented; **H2** (the hatch cannot corrupt framework state) – → P: it is imported from its own subpath, gets no report or dispatch, and the PORT re-asserts what it owns (tested).
 
 ## [0.14.0] - 2026-10-24 (prepared, not yet released; the crate stays 0.6.0)
 
-A minor release of the two npm packages, which share one version: **the MESH runtime peer range of `@valancex/port-web` admits 0.17** (`^0.6.0 || … || ^0.16.0 || ^0.17.0`), so the newest set installs together once MESH 0.17 is published. No API or behavior change; the Web PORT's 435 tests were run against MESH 0.17.0 (`scripts/check-mesh-range.mjs` now installs from `MESH_PACK_DIR` for a version that is not published yet). See the [v0.14 release notes](./docs/releases/v0.14.md).
+A minor release of the two npm packages, which share one version: **the MESH runtime peer range of `@valancex/port-web` admits 0.17** (`^0.6.0 || … || ^0.16.0 || ^0.17.0`), so the newest set installs together once MESH 0.17 is published. No API or behavior change; the Web PORT's 435 tests were run against MESH 0.17.0 (`scripts/check-mesh-range.mjs` now installs from `MESH_PACK_DIR` for a version that is not published yet). See the [v0.14 release notes](docs/reference/releases/v0.14.md).
 
 ## [0.13.0] - 2026-10-24 (prepared, not yet released; the crate stays 0.6.0)
 
-A minor release of the two npm packages, which share one version: **the MESH runtime peer range of `@valancex/port-web` admits 0.16** (`^0.6.0 || … || ^0.15.0 || ^0.16.0`). MESH 0.16 is published and 0.12's range stopped at 0.15, so the newest published set did not install together (the budgets' installability check, Valance Bet 3). No API or behavior change. The line was run, not only listed: `scripts/check-mesh-range.mjs 0.16.0` ran the Web PORT's 435 tests against MESH 0.16.0 with the 0.16 conformance vectors. See the [v0.13 release notes](./docs/releases/v0.13.md).
+A minor release of the two npm packages, which share one version: **the MESH runtime peer range of `@valancex/port-web` admits 0.16** (`^0.6.0 || … || ^0.15.0 || ^0.16.0`). MESH 0.16 is published and 0.12's range stopped at 0.15, so the newest published set did not install together (the budgets' installability check, Valance Bet 3). No API or behavior change. The line was run, not only listed: `scripts/check-mesh-range.mjs 0.16.0` ran the Web PORT's 435 tests against MESH 0.16.0 with the 0.16 conformance vectors. See the [v0.13 release notes](docs/reference/releases/v0.13.md).
 
 ## [0.12.0] - 2026-10-23 (prepared, not yet released; the crate is 0.6.0, tag `desktop-v0.6.0`)
 
-A minor release of the two npm packages and of the Desktop PORT crate: **layers (WP6b of the Valance direction work)**: a modal dialog and a popover on both targets. Additive: nothing an application wrote before changes. See the [v0.12 release notes](./docs/releases/v0.12.md).
+A minor release of the two npm packages and of the Desktop PORT crate: **layers (WP6b of the Valance direction work)**: a modal dialog and a popover on both targets. Additive: nothing an application wrote before changes. See the [v0.12 release notes](docs/reference/releases/v0.12.md).
 
 ### Added
 
@@ -40,7 +40,7 @@ A minor release of the two npm packages and of the Desktop PORT crate: **layers 
 
 ## [0.11.0] - 2026-10-23 (prepared, not yet released; the crate is 0.5.0, tag `desktop-v0.5.0`)
 
-A minor release of the two npm packages and of the Desktop PORT crate: **PORT behavior (WP6 of the Valance direction work)**. Additive: nothing an application wrote before changes, except where noted. See the [v0.11 release notes](./docs/releases/v0.11.md).
+A minor release of the two npm packages and of the Desktop PORT crate: **PORT behavior (WP6 of the Valance direction work)**. Additive: nothing an application wrote before changes, except where noted. See the [v0.11 release notes](docs/reference/releases/v0.11.md).
 
 ### Added
 
@@ -66,7 +66,7 @@ A minor release of the two npm packages and of the Desktop PORT crate: **PORT be
 
 ## [0.10.0] - 2026-10-18 (prepared, not yet released; the crate is 0.4.0, tag `desktop-v0.4.0`)
 
-A minor release of the two npm packages that share one version, and of the Desktop PORT crate. **`@valancex/port-desktop-vocabulary` grows to twenty components**, additively: nothing an application wrote before changes. **`@valancex/port-web`'s peer range now admits MESH 0.13 and 0.14.** See the [v0.10 release notes](./docs/releases/v0.10.md).
+A minor release of the two npm packages that share one version, and of the Desktop PORT crate. **`@valancex/port-desktop-vocabulary` grows to twenty components**, additively: nothing an application wrote before changes. **`@valancex/port-web`'s peer range now admits MESH 0.13 and 0.14.** See the [v0.10 release notes](docs/reference/releases/v0.10.md).
 
 ### Added
 
@@ -89,7 +89,7 @@ A minor release of the two npm packages that share one version, and of the Deskt
 
 ## [0.3.1] - 2026-10-17 (`valancex-port-desktop`, tag `desktop-v0.3.1`)
 
-A patch release of the Desktop PORT crate, on its own tag: a fix, and no change to the vocabulary, the host protocol or the crate's API. The npm packages are unchanged (they stay at 0.9.0). See the [v0.9 release notes](./docs/releases/v0.9.md#desktop-031).
+A patch release of the Desktop PORT crate, on its own tag: a fix, and no change to the vocabulary, the host protocol or the crate's API. The npm packages are unchanged (they stay at 0.9.0). See the [v0.9 release notes](docs/reference/releases/v0.9.md#desktop-031).
 
 ### Fixed
 
@@ -97,7 +97,7 @@ A patch release of the Desktop PORT crate, on its own tag: a fix, and no change 
 
 ## [0.9.0] - 2026-10-17
 
-A minor release of the two npm packages that share one version. **`@valancex/port-web` changes nothing** (it moves so the workspace has one version). **The Desktop PORT's vocabulary grows by seven components**, additively: nothing an application wrote before changes. See the [v0.9 release notes](./docs/releases/v0.9.md).
+A minor release of the two npm packages that share one version. **`@valancex/port-web` changes nothing** (it moves so the workspace has one version). **The Desktop PORT's vocabulary grows by seven components**, additively: nothing an application wrote before changes. See the [v0.9 release notes](docs/reference/releases/v0.9.md).
 
 ### Added
 
@@ -113,7 +113,7 @@ A minor release of the Desktop PORT crate, on its own tag. Additive: a tree that
 
 ## [0.8.0] - 2026-10-16
 
-A minor release of the two npm packages that share one version. **`@valancex/port-web` changes nothing** (it moves so the workspace has one version). **The Desktop PORT's vocabulary grows by one component**, additively: nothing an application wrote before changes. See the [v0.8 release notes](./docs/releases/v0.8.md).
+A minor release of the two npm packages that share one version. **`@valancex/port-web` changes nothing** (it moves so the workspace has one version). **The Desktop PORT's vocabulary grows by one component**, additively: nothing an application wrote before changes. See the [v0.8 release notes](docs/reference/releases/v0.8.md).
 
 ### Added
 
@@ -129,11 +129,11 @@ A minor release of the Desktop PORT crate, on its own tag. Additive: a tree that
 
 ## [0.7.1] - 2026-10-16
 
-A patch release that **completes v0.7.0**. The v0.7.0 tag published `@valancex/port-web` 0.7.0, and the publish of `@valancex/port-desktop-vocabulary` 0.7.0 was refused because its npm trusted publisher was not yet set; the release did not finish, and npm does not reuse a version. The two packages move together to 0.7.1 so that both are published by the workflow. **No code changes**: `@valancex/port-web` 0.7.1 is 0.7.0, and `@valancex/port-desktop-vocabulary` 0.7.1 carries everything v0.7.0 described below. There is no `@valancex/port-desktop-vocabulary` 0.7.0. See the [v0.7 release notes](./docs/releases/v0.7.md#v071).
+A patch release that **completes v0.7.0**. The v0.7.0 tag published `@valancex/port-web` 0.7.0, and the publish of `@valancex/port-desktop-vocabulary` 0.7.0 was refused because its npm trusted publisher was not yet set; the release did not finish, and npm does not reuse a version. The two packages move together to 0.7.1 so that both are published by the workflow. **No code changes**: `@valancex/port-web` 0.7.1 is 0.7.0, and `@valancex/port-desktop-vocabulary` 0.7.1 carries everything v0.7.0 described below. There is no `@valancex/port-desktop-vocabulary` 0.7.0. See the [v0.7 release notes](docs/reference/releases/v0.7.md#v071).
 
 ## [0.7.0] - 2026-10-16
 
-A minor release of the two packages that share one version, `@valancex/port-web` and `@valancex/port-desktop-vocabulary`. **`@valancex/port-web` changes nothing** (it moves so the workspace has one version, as at 0.6.0). **The Desktop PORT's vocabulary grows**, additively: nothing an application wrote before changes. See the [v0.7 release notes](./docs/releases/v0.7.md). The crate `valancex-port-desktop` is released on its own tag; its first release, 0.1.0, carries the same additions.
+A minor release of the two packages that share one version, `@valancex/port-web` and `@valancex/port-desktop-vocabulary`. **`@valancex/port-web` changes nothing** (it moves so the workspace has one version, as at 0.6.0). **The Desktop PORT's vocabulary grows**, additively: nothing an application wrote before changes. See the [v0.7 release notes](docs/reference/releases/v0.7.md). The crate `valancex-port-desktop` is released on its own tag; its first release, 0.1.0, carries the same additions.
 
 ### Added
 
@@ -143,14 +143,14 @@ A minor release of the two packages that share one version, `@valancex/port-web`
 
 ## [0.1.0] - 2026-10-15 (`valancex-port-desktop`, tag `desktop-v0.1.0`)
 
-The first release of the Desktop PORT, the Rust crate (and the `vlx-window` program) that draws a Valance application in a native window. It is versioned and released on its own tag, apart from the npm packages. Built and tested on Linux and Windows; macOS is not built or tested. Unsigned. See the [architecture note](./docs/architecture/2026-10-14-port-desktop.md) and [API stability](./docs/stability.md).
+The first release of the Desktop PORT, the Rust crate (and the `vlx-window` program) that draws a Valance application in a native window. It is versioned and released on its own tag, apart from the npm packages. Built and tested on Linux and Windows; macOS is not built or tested. Unsigned. See the [architecture note](docs/explanation/design-records/2026-10-14-port-desktop.md) and [API stability](docs/reference/stability.md).
 
 ### Added
 
 - `valancex-port-desktop`: **form primitives**. `textfield` takes `kind` (`password` masks what is shown; every other kind, known or not, is plain text), `invalid` (outlined, and invalid in the accessibility tree) and `describedby` (the `id` of the text that explains the control, its accessible description); `checkbox` takes `invalid` and `describedby`; `text` and `paragraph` take `id`; `textfield` raises `focus` (the person came into the field) and `blur` (they left it, also after `submit` or `cancel`). Headless tests read the accessibility tree back.
 - `valancex-port-desktop`: a **choice group**, `radiogroup` and `radio`. The group is named for assistive technology by its `label` and is a radio group in the accessibility tree; a radio raises `select` with its `value` when chosen, and reports nothing for the selected one or a disabled one. Movement among the options is the platform's: Tab reaches each, and the window adds no arrow-key handling.
 - `valancex-port-desktop`: the host message `resize` (`{ "op": "resize", "width": 812 }`), the width of the window's content in whole points, sent when the window opens and whenever it changes, so the application learns how much room it has (`viewport`) as it does on the web. An engine that does not know the message ignores it.
-- `valancex-port-desktop`: **keys, only the ones a platform has a convention for.** Escape in a text field is a new event, `cancel` (beside `click`, `change` and `submit`). Alt+Left and Alt+Right, and the mouse's back and forward buttons, are a new host message, `navigate` (`back` or `forward`), for an engine that keeps a list of pages; on macOS the keys are unmapped (the mouse buttons stay). See "Keys" in the [architecture note](./docs/architecture/2026-10-14-port-desktop.md).
+- `valancex-port-desktop`: **keys, only the ones a platform has a convention for.** Escape in a text field is a new event, `cancel` (beside `click`, `change` and `submit`). Alt+Left and Alt+Right, and the mouse's back and forward buttons, are a new host message, `navigate` (`back` or `forward`), for an engine that keeps a list of pages; on macOS the keys are unmapped (the mouse buttons stay). See "Keys" in the [architecture note](docs/explanation/design-records/2026-10-14-port-desktop.md).
 - `valancex-port-desktop`: the window can start its engine again in place (`Engine::restart`), triggered by a change to the file `VLX_RELOAD` names, so a development server can rebuild without closing and reopening the window.
 - `valancex-port-desktop`: `submit`, an event of `textfield` (the person pressed Enter in it). A headless test clicks into the field and presses keys.
 - `valancex-port-desktop`: color scheme. The window tells the engine the system's colors (`scheme`, when it opens and when they change), and the engine may ask the window to look `light`, `dark` or `system` (`appearance`); the window follows the system when it asks for nothing.
@@ -158,11 +158,11 @@ The first release of the Desktop PORT, the Rust crate (and the `vlx-window` prog
 - `valancex-port-desktop`: an optional `label` on `button`, `checkbox` and `textfield`, the control's accessible name, passed to the platform's accessibility tree (AccessKit, now enabled in the window). A test draws a tree with no window and reads the names back.
 - `vlx-window` (a binary of `valancex-port-desktop`): a window for any engine, for `vlx dev`.
 - The content layer of `valancex-port-desktop` (`content.json`: `paragraph`, `list`, `listitem`, `code`, `blockquote`, `image`, `strong`, `emphasis`, `link`, and `heading` with a `level`), named as WAI-ARIA names them, drawn from real MESH output, with links reported as addresses (`link` in the host protocol).
-- `valancex-port-desktop` 0.1.0 (unreleased): the Desktop PORT. A Rust crate that realizes `render-v1` as a native window (egui) and reports interactions as handler identifiers and payloads. A vocabulary of nine components (`column`, `row`, `heading`, `text`, `button`, `checkbox`, `textfield`, `radiogroup`, `radio`) in `vocabulary.json`, with two events (`click`, `change`); the host protocol for an engine in another process; contract tests on real MESH output. See the [architecture note](./docs/architecture/2026-10-14-port-desktop.md).
+- `valancex-port-desktop` 0.1.0 (unreleased): the Desktop PORT. A Rust crate that realizes `render-v1` as a native window (egui) and reports interactions as handler identifiers and payloads. A vocabulary of nine components (`column`, `row`, `heading`, `text`, `button`, `checkbox`, `textfield`, `radiogroup`, `radio`) in `vocabulary.json`, with two events (`click`, `change`); the host protocol for an engine in another process; contract tests on real MESH output. See the [architecture note](docs/explanation/design-records/2026-10-14-port-desktop.md).
 
 ## [0.6.1] - 2026-10-15
 
-A patch release of `@valancex/port-web` (and `@valancex/port-desktop-vocabulary`, which moves with it). See the [v0.6 release notes](./docs/releases/v0.6.md#v061).
+A patch release of `@valancex/port-web` (and `@valancex/port-desktop-vocabulary`, which moves with it). See the [v0.6 release notes](docs/reference/releases/v0.6.md#v061).
 
 ### Fixed
 
@@ -170,7 +170,7 @@ A patch release of `@valancex/port-web` (and `@valancex/port-desktop-vocabulary`
 
 ## [0.6.0] - 2026-10-15
 
-A minor release. **The Desktop PORT's vocabulary is published as data**, so the tools that check a template (`vlx check`, editors) read it from a package instead of carrying a copy that can drift. `@valancex/port-web` changes nothing: the two packages share one version and are published together. See the [v0.6 release notes](./docs/releases/v0.6.md).
+A minor release. **The Desktop PORT's vocabulary is published as data**, so the tools that check a template (`vlx check`, editors) read it from a package instead of carrying a copy that can drift. `@valancex/port-web` changes nothing: the two packages share one version and are published together. See the [v0.6 release notes](docs/reference/releases/v0.6.md).
 
 ### Added
 
@@ -182,7 +182,7 @@ A minor release. **The Desktop PORT's vocabulary is published as data**, so the 
 
 ## [0.5.0] - 2026-10-14
 
-A minor release of `@valancex/port-web`: **what a primitive always is, a flag the user changes, and an event made by one key.** Additive: nothing existing changes. Found by building one application for the web and for a native window. See the [v0.5 release notes](./docs/releases/v0.5.md).
+A minor release of `@valancex/port-web`: **what a primitive always is, a flag the user changes, and an event made by one key.** Additive: nothing existing changes. Found by building one application for the web and for a native window. See the [v0.5 release notes](docs/reference/releases/v0.5.md).
 
 ### Added
 
@@ -191,7 +191,7 @@ A minor release of `@valancex/port-web`: **what a primitive always is, a flag th
 
 ## [0.4.2] - 2026-10-13
 
-A patch release: the MESH runtime peer range accepts 0.11 and 0.12. See the [v0.4 release notes](./docs/releases/v0.4.md#v042).
+A patch release: the MESH runtime peer range accepts 0.11 and 0.12. See the [v0.4 release notes](docs/reference/releases/v0.4.md#v042).
 
 ### Changed
 
@@ -199,7 +199,7 @@ A patch release: the MESH runtime peer range accepts 0.11 and 0.12. See the [v0.
 
 ## [0.4.1] - 2026-10-10
 
-A patch release: **a URL attribute never holds code.** Found by validating the released 0.4.0 against the API design principles (§11 secure defaults). See the [v0.4 release notes](./docs/releases/v0.4.md).
+A patch release: **a URL attribute never holds code.** Found by validating the released 0.4.0 against the API design principles (§11 secure defaults). See the [v0.4 release notes](docs/reference/releases/v0.4.md).
 
 ### Fixed
 
@@ -207,7 +207,7 @@ A patch release: **a URL attribute never holds code.** Found by validating the r
 
 ## [0.4.0] - 2026-10-10
 
-A minor release: **`@valancex/port-web` gains `patch`, and a presentation can end with `unmount` safely.** Nothing existing changes. See the [v0.4 release notes](./docs/releases/v0.4.md).
+A minor release: **`@valancex/port-web` gains `patch`, and a presentation can end with `unmount` safely.** Nothing existing changes. See the [v0.4 release notes](docs/reference/releases/v0.4.md).
 
 ### Added
 
@@ -222,7 +222,7 @@ A minor release: **`@valancex/port-web` gains `patch`, and a presentation can en
 
 ## [0.3.0] - 2026-10-05
 
-A minor release: **one realization is added to `@valancex/port-web`'s API; nothing existing changes.** See the [v0.3 release notes](./docs/releases/v0.3.md).
+A minor release: **one realization is added to `@valancex/port-web`'s API; nothing existing changes.** See the [v0.3 release notes](docs/reference/releases/v0.3.md).
 
 ### Added
 
@@ -235,7 +235,7 @@ A minor release: **one realization is added to `@valancex/port-web`'s API; nothi
 
 ## [0.2.4] - 2026-10-05
 
-A compatibility release: **`@valancex/port-web`'s source, API and behavior are unchanged.** See the [v0.2 release notes](./docs/releases/v0.2.md#v024).
+A compatibility release: **`@valancex/port-web`'s source, API and behavior are unchanged.** See the [v0.2 release notes](docs/reference/releases/v0.2.md#v024).
 
 ### Changed
 
@@ -248,7 +248,7 @@ A compatibility release: **`@valancex/port-web`'s source, API and behavior are u
 
 ## [0.2.3] - 2026-10-04
 
-A compatibility release: **`@valancex/port-web`'s source, API and behavior are unchanged.** See the [v0.2 release notes](./docs/releases/v0.2.md#v023).
+A compatibility release: **`@valancex/port-web`'s source, API and behavior are unchanged.** See the [v0.2 release notes](docs/reference/releases/v0.2.md#v023).
 
 ### Changed
 
@@ -262,7 +262,7 @@ A compatibility release: **`@valancex/port-web`'s source, API and behavior are u
 
 ## [0.2.2] - 2026-10-02
 
-A patch release: **`@valancex/port-web`'s API is unchanged**, and `update` now does what the contract has always said it does. See the [v0.2 release notes](./docs/releases/v0.2.md#v022).
+A patch release: **`@valancex/port-web`'s API is unchanged**, and `update` now does what the contract has always said it does. See the [v0.2 release notes](docs/reference/releases/v0.2.md#v022).
 
 ### Fixed
 
@@ -286,7 +286,7 @@ A patch release: **`@valancex/port-web`'s API is unchanged**, and `update` now d
 
 ## [0.2.1] - 2026-09-28
 
-A patch release. `@valancex/port-web`'s source, API and behavior are unchanged from 0.2.0. Everything else is in the private integration workspace. See the [v0.2 release notes](./docs/releases/v0.2.md#v021).
+A patch release. `@valancex/port-web`'s source, API and behavior are unchanged from 0.2.0. Everything else is in the private integration workspace. See the [v0.2 release notes](docs/reference/releases/v0.2.md#v021).
 
 ### Added
 
@@ -318,7 +318,7 @@ A patch release. `@valancex/port-web`'s source, API and behavior are unchanged f
 
 ## [0.2.0] - 2026-09-28
 
-The Web PORT on MESH v0.6, with server rendering and hydration for a deliberately narrow subset. See the [v0.2 release notes](./docs/releases/v0.2.md) for an overview.
+The Web PORT on MESH v0.6, with server rendering and hydration for a deliberately narrow subset. See the [v0.2 release notes](docs/reference/releases/v0.2.md) for an overview.
 
 ### Included
 

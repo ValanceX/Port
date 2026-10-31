@@ -2,7 +2,7 @@
 
 The Desktop PORT: it realizes MESH render trees as a native window and reports what the person does as handler identifiers and payloads. **Version 0.4.0 (prepared; release tag `desktop-v0.4.0`; 0.3.1 is released).** Built and tested on Linux and Windows; macOS is not built or tested.
 
-It is a Rust crate, because a native window is Rust's to draw (PORT's rule: an implementation's language follows its target; see the [architecture note](../../docs/architecture/2026-10-14-port-desktop.md)). It takes the same input as [`@valancex/port-web`](../port-web) and keeps the same [PORT contract](../../docs/CONTRACT.md); what differs is the **vocabulary**: columns and rows, text, a heading, a button, a toggle, a checkbox, a text field, a choice group, two live regions, a caption and a static table, not HTML. The window itself (its title, its size, whether it may close) is the host's, not a template's.
+It is a Rust crate, because a native window is Rust's to draw (PORT's rule: an implementation's language follows its target; see the [architecture note](../../docs/explanation/design-records/2026-10-14-port-desktop.md)). It takes the same input as [`@valancex/port-web`](../port-web) and keeps the same [PORT contract](../../docs/reference/contract.md); what differs is the **vocabulary**: columns and rows, text, a heading, a button, a toggle, a checkbox, a text field, a choice group, two live regions, a caption and a static table, not HTML. The window itself (its title, its size, whether it may close) is the host's, not a template's.
 
 ## Five minutes
 
@@ -32,7 +32,7 @@ A template, in the vocabulary:
 </column>
 ```
 
-The worked application is [`examples/todo`](https://github.com/ValanceX/Valance/tree/main/examples/todo) in the Valance repository, and the [Learn page](https://github.com/ValanceX/Valance/blob/main/docs/learn/desktop-application.md) builds it step by step.
+The worked application is [`examples/todo`](https://github.com/ValanceX/Valance/tree/main/examples/todo) in the Valance repository, and the [Learn page](https://github.com/ValanceX/Valance/blob/main/docs/tutorials/03-desktop-application.md) builds it step by step.
 
 ## The vocabulary
 
@@ -61,11 +61,11 @@ Seventeen components, in [`vocabulary.json`](./vocabulary.json) (a MESH manifest
 
 **`label`** is a control's accessible name, the one a screen reader says: a checkbox has no text of its own and a field's `placeholder` is a hint, not a name, so a template gives them a `label` (the window passes it to the platform's accessibility tree through AccessKit). A button's name is its content unless a `label` says otherwise.
 
-Events: **click** (a button), **change** (the value of a checkbox, a toggle or a text field changed; it carries the new value), **select** (a radio was chosen; it carries its value), **submit** and **cancel** (Enter and Escape in a text field) and **focus** and **blur** (the person came into a text field, or left it). The names are the ones most toolkits already use; [the investigation](https://github.com/ValanceX/Valance/blob/main/docs/application-model/NATIVE-VOCABULARY.md) has the sources. The **content layer** (`content.json`) is what Markdown produces, named as WAI-ARIA names the same things: `paragraph`, `list` (`ordered`), `listitem`, `code`, `blockquote`, `image` (`src`, `label`), `strong`, `emphasis`, `link` (`href`), and `heading` with its `level`. Its names are WAI-ARIA's (the maintainer's decision, after checking them against the toolkits' sources). An **image** (`src`, `label`) is drawn from a file on the machine when `src` is an absolute path to a PNG, JPEG, GIF, BMP, WebP or SVG file (the engine names the file; the PORT fetches nothing), named for assistive technology by its `label`; anything else (an address on the network, a relative path, a file that is not there) is drawn as its description, `[image: label]`. A link is an address and has no event: activating it reports the address (`link` in the host protocol), and the application decides what it means. Repeating and conditional parts are not components: they are MESH's blocks (`{#each}`, `{#if}`) in the template.
+Events: **click** (a button), **change** (the value of a checkbox, a toggle or a text field changed; it carries the new value), **select** (a radio was chosen; it carries its value), **submit** and **cancel** (Enter and Escape in a text field) and **focus** and **blur** (the person came into a text field, or left it). The names are the ones most toolkits already use; [the investigation](https://github.com/ValanceX/Valance/blob/main/docs/explanation/application-model/native-vocabulary.md) has the sources. The **content layer** (`content.json`) is what Markdown produces, named as WAI-ARIA names the same things: `paragraph`, `list` (`ordered`), `listitem`, `code`, `blockquote`, `image` (`src`, `label`), `strong`, `emphasis`, `link` (`href`), and `heading` with its `level`. Its names are WAI-ARIA's (the maintainer's decision, after checking them against the toolkits' sources). An **image** (`src`, `label`) is drawn from a file on the machine when `src` is an absolute path to a PNG, JPEG, GIF, BMP, WebP or SVG file (the engine names the file; the PORT fetches nothing), named for assistive technology by its `label`; anything else (an address on the network, a relative path, a file that is not there) is drawn as its description, `[image: label]`. A link is an address and has no event: activating it reports the address (`link` in the host protocol), and the application decides what it means. Repeating and conditional parts are not components: they are MESH's blocks (`{#each}`, `{#if}`) in the template.
 
 ## The theme
 
-The engine can give the window a theme with its first `appearance` message (see [the architecture note](../../docs/architecture/2026-10-14-port-desktop.md)): resolved values for the seven primitives of the portable core (`column`, `row`, `heading`, `text`, `button`, `checkbox`, `textfield`), by mode. The window applies the fill, text color, border, radius, padding, gap, least size and type size of a recipe, with a `button`'s `intent` and `size` and the viewport class; the rest the toolkit draws itself. The theme module is [`theme`](src/theme.rs); the style contract that writes the theme is the Valance repository's `@valancex/style`.
+The engine can give the window a theme with its first `appearance` message (see [the architecture note](../../docs/explanation/design-records/2026-10-14-port-desktop.md)): resolved values for the seven primitives of the portable core (`column`, `row`, `heading`, `text`, `button`, `checkbox`, `textfield`), by mode. The window applies the fill, text color, border, radius, padding, gap, least size and type size of a recipe, with a `button`'s `intent` and `size` and the viewport class; the rest the toolkit draws itself. The theme module is [`theme`](src/theme.rs); the style contract that writes the theme is the Valance repository's `@valancex/style`.
 
 ## The contract
 
@@ -81,7 +81,7 @@ The engine can give the window a theme with its first `appearance` message (see 
 
 ### Driving it from an engine
 
-An engine in another process (the application, in JavaScript) drives the PORT with one JSON object per line: `hello`, `title`, `appearance`, `draw`, `update`, `unmount` and `closeAnswer` in; `event`, `link`, `scheme`, `navigate`, `resize`, `closeRequested` and `close` out. The module `host` is that conversation, and [the architecture note](../../docs/architecture/2026-10-14-port-desktop.md) specifies it.
+An engine in another process (the application, in JavaScript) drives the PORT with one JSON object per line: `hello`, `title`, `appearance`, `draw`, `update`, `unmount` and `closeAnswer` in; `event`, `link`, `scheme`, `navigate`, `resize`, `closeRequested` and `close` out. The module `host` is that conversation, and [the architecture note](../../docs/explanation/design-records/2026-10-14-port-desktop.md) specifies it.
 
 ## `vlx-window`
 
@@ -93,4 +93,4 @@ A window for any engine, used by `vlx dev` on a desktop project: `cargo install 
 
 ## Stability
 
-Released as 0.1.0, 0.2.0, 0.3.0 and 0.3.1; 0.4.0 is prepared (see the [changelog](../../CHANGELOG.md) and [API stability](../../docs/stability.md)). Before 1.0 a minor version may change the vocabulary, the host protocol or the crate API, only with the change named in its release notes. So far every release has only added.
+Released as 0.1.0, 0.2.0, 0.3.0 and 0.3.1; 0.4.0 is prepared (see the [changelog](../../CHANGELOG.md) and [API stability](../../docs/reference/stability.md)). Before 1.0 a minor version may change the vocabulary, the host protocol or the crate API, only with the change named in its release notes. So far every release has only added.

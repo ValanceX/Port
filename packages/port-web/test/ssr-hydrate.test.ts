@@ -1,4 +1,4 @@
-// Hydration (docs/superpowers/specs/2026-09-28-port-web-ssr.md §5–§9, §12):
+// Hydration (docs/explanation/specs/2026-09-28-port-web-ssr.md §5–§9, §12):
 // verify all, then adopt; on any mismatch, a fresh draw; either way the
 // PORT is then exactly as after draw(tree). Events keep MESH's resolution.
 import type { RenderNode, RenderTree } from "@valancex/mesh-runtime";

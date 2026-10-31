@@ -1,4 +1,4 @@
-// SSR test support (docs/superpowers/specs/2026-09-28-port-web-ssr.md §12):
+// SSR test support (docs/explanation/specs/2026-09-28-port-web-ssr.md §12):
 // parse server HTML as a page load would, describe what a container
 // realizes semantically, and check that SSR + hydrate realizes exactly what
 // a fresh client draw does. HTML strings are compared only where

@@ -1,4 +1,4 @@
-// Server HTML realization (docs/superpowers/specs/2026-09-28-port-web-ssr.md
+// Server HTML realization (docs/explanation/specs/2026-09-28-port-web-ssr.md
 // §4, §12). The criterion is semantic parity: server HTML, parsed as a page
 // load parses it and hydrated, realizes exactly what a fresh client draw
 // does. HTML strings are compared only where determinism is under test.

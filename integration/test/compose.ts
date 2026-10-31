@@ -1,5 +1,5 @@
 // The composer: the application code that connects NEXUS MESH hosts to a
-// PORT (NEXUS docs/ARCHITECTURE.md §16; PORT docs/CONTRACT.md). It is the
+// PORT (NEXUS docs/explanation/architecture.md §16; PORT docs/reference/contract.md). It is the
 // only code here that knows both. NEXUS never sees the PORT, and the PORT
 // never sees NEXUS, a `Render`, an intent or a command.
 //

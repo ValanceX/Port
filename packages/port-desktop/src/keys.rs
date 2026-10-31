@@ -1,5 +1,5 @@
 //! The keys the window gives meaning to without being asked, and no others. A key is mapped only where the platform has a convention for it; where it has none the key is left unmapped
-//! rather than invented (docs/architecture/2026-10-14-port-desktop.md, "Keys").
+//! rather than invented (docs/explanation/design-records/2026-10-14-port-desktop.md, "Keys").
 //!
 //! - Enter in a text field is `submit` and Escape is `cancel`: SwiftUI documents Return and Escape as the platform's default and cancel shortcuts, and Windows and Linux dialogs follow the
 //!   same convention. Those are the text field's events (see `view`).

@@ -7,9 +7,9 @@
 
 | Repository | Revision | What was read |
 |---|---|---|
-| ValanceX/Port | `778f7f3` (scaffold) | every file: README, `docs/ARCHITECTURE.md`, `docs/ROADMAP.md`, the three packages, workspace and build config |
-| ValanceX/Mesh | `a03733e` (v0.5.0 + one docs commit) | README, `docs/ARCHITECTURE.md`, `docs/manual/runtime.md`, `docs/guides/rendering-mesh-output.md`, `schemas/render-v1.schema.json`, `packages/mesh-runtime` (types, API, README), `examples/slice/`, the reference renderer in `crates/mesh-runtime/tests/common/renderer.rs` |
-| ValanceX/Nexus | `bc2f384` (tag `v0.8.0`; published to npm as `@valancex/nexus@0.8.0`) | `package.json`, `src/index.ts`, `src/mesh/index.ts`, `docs/ARCHITECTURE.md` §15, §16, §24–26, `docs/ROADMAP.md` §10–17, `tests/mesh.test.ts`, `tests/vertical-slice.test.ts` |
+| ValanceX/Port | `778f7f3` (scaffold) | every file: README, `docs/explanation/architecture.md`, `docs/explanation/roadmap.md`, the three packages, workspace and build config |
+| ValanceX/Mesh | `a03733e` (v0.5.0 + one docs commit) | README, `docs/explanation/architecture.md`, `docs/manual/runtime.md`, `docs/guides/rendering-mesh-output.md`, `schemas/render-v1.schema.json`, `packages/mesh-runtime` (types, API, README), `examples/slice/`, the reference renderer in `crates/mesh-runtime/tests/common/renderer.rs` |
+| ValanceX/Nexus | `bc2f384` (tag `v0.8.0`; published to npm as `@valancex/nexus@0.8.0`) | `package.json`, `src/index.ts`, `src/mesh/index.ts`, `docs/explanation/architecture.md` §15, §16, §24–26, `docs/explanation/roadmap.md` §10–17, `tests/mesh.test.ts`, `tests/vertical-slice.test.ts` |
 | ValanceX/.github | `main` | `profile/README.md` |
 | npm registry | 2026-09-27 | published versions of `@valancex/*` and `@valence/*`, rechecked after NEXUS's release |
 
@@ -68,7 +68,7 @@ Event payload types are declared in the manifest: in the slice, `avatar`'s `clic
 
 ### F7. The render tree carries no accessibility, style or capability information
 
-render-v1 has no roles, accessible names, style properties, or target hints. MESH's `docs/ARCHITECTURE.md` "Direction: semantics, not implementations" (commit `a03733e`) lists accessibility intent, portable style concepts and target capability reasoning as *direction*, and states: "None of this is implemented yet beyond templates and render trees."
+render-v1 has no roles, accessible names, style properties, or target hints. MESH's `docs/explanation/architecture.md` "Direction: semantics, not implementations" (commit `a03733e`) lists accessibility intent, portable style concepts and target capability reasoning as *direction*, and states: "None of this is implemented yet beyond templates and render trees."
 
 ### F8. NEXUS hosts MESH; it does not talk to PORT
 
@@ -83,9 +83,9 @@ host.dispatch(render, handler, payload)
 
 A `Render` (from `@valancex/mesh-runtime`) holds the tree plus the program, model and snapshot it came from. Invariants M1 (dispatch uses exactly the supplied `Render`) and M2 (the adapter retains no render) put keeping the drawn render on **the caller**.
 
-`docs/ARCHITECTURE.md` §16: "NEXUS must have no dependency on PORT, and … **PORT must have no dependency on NEXUS either.** PORT only ever sees MESH **render trees** … Whoever composes the app hands PORT render trees and routes PORT's events back to the adapter's `dispatch`, together with the `Render` they came from." `PORT → NEXUS` is listed as an invalid dependency direction.
+`docs/explanation/architecture.md` §16: "NEXUS must have no dependency on PORT, and … **PORT must have no dependency on NEXUS either.** PORT only ever sees MESH **render trees** … Whoever composes the app hands PORT render trees and routes PORT's events back to the adapter's `dispatch`, together with the `Render` they came from." `PORT → NEXUS` is listed as an invalid dependency direction.
 
-MESH `docs/ARCHITECTURE.md` rule 13: "PORT's renderers [depend] on MESH's render-tree types. NEXUS and PORT don't depend on each other."
+MESH `docs/explanation/architecture.md` rule 13: "PORT's renderers [depend] on MESH's render-tree types. NEXUS and PORT don't depend on each other."
 
 ### F9. The render-tree types are published only inside the runtime package
 
@@ -109,7 +109,7 @@ MESH `docs/ARCHITECTURE.md` rule 13: "PORT's renderers [depend] on MESH's render
 | NEXUS `package.json` | `@valancex/nexus` |
 | npm registry | `@valancex/mesh-compiler` 0.4.0, 0.5.0, `@valancex/mesh-runtime` 0.5.0 and `@valancex/nexus` 0.8.0 are published. `@valancex/port` and `@valence/port` are not |
 | PORT packages | `@valence/port`, `@valence/port-web`, `@valence/port-canvas`; workspace root `valence-port-workspace` |
-| PORT `docs/ROADMAP.md` Phase 0 | "Package direction: `@valancex/port`, `@valancex/port-web`, `@valancex/port-canvas`" |
+| PORT `docs/explanation/roadmap.md` Phase 0 | "Package direction: `@valancex/port`, `@valancex/port-web`, `@valancex/port-canvas`" |
 | GitHub organization | `ValanceX` |
 
 ### F13. NEXUS is installable from npm
@@ -190,7 +190,7 @@ Target-specific and PORT-internal. For Web: DOM nodes, attributes, properties, l
 
 **A. Does the boundary need to be executable TypeScript?** No. The input is a JSON Schema (render-v1) that MESH already publishes and implements in Rust and JavaScript (F11). The protocol is three operations and one report; they can be stated as prose.
 
-**B. Can it be a language-neutral data contract?** It already is. The stable Valance-level contract is render-v1 plus the renderer/host obligations in MESH's runtime manual. PORT's contribution is to state the protocol (R2, R3, R9) language-neutrally: [`docs/CONTRACT.md`](../CONTRACT.md).
+**B. Can it be a language-neutral data contract?** It already is. The stable Valance-level contract is render-v1 plus the renderer/host obligations in MESH's runtime manual. PORT's contribution is to state the protocol (R2, R3, R9) language-neutrally: [`docs/reference/contract.md`](../../reference/contract.md).
 
 **C. What is inherently Web-specific?** Mapping primitives to elements, props to attributes/properties, events to DOM listeners and payload construction; DOM node identity; event listener lifecycle; later, HTML serialization and hydration. All of it lives in `port-web`.
 
@@ -199,7 +199,7 @@ Target-specific and PORT-internal. For Web: DOM nodes, attributes, properties, l
 **E. Does the current structure imply "all PORTs implement a TypeScript renderer interface"?** Yes, implicitly. Every target is an npm package depending on a shared TypeScript package (`port-web → port`, `port-canvas → port`), and the Canvas placeholder is an empty TypeScript package created for symmetry. Neither the dependency nor the placeholder carries any code or evidence.
 
 **Conclusion.**
-- The shared PORT contract is **language-neutral**: render-v1 (MESH-owned) plus the protocol in `docs/CONTRACT.md` (PORT-owned). Its conformance evidence is tests in each PORT, and MESH's own fixtures.
+- The shared PORT contract is **language-neutral**: render-v1 (MESH-owned) plus the protocol in `docs/reference/contract.md` (PORT-owned). Its conformance evidence is tests in each PORT, and MESH's own fixtures.
 - **`@valancex/port` is not created.** There is nothing executable to share, and inventing a shared package now would constrain future PORTs without evidence. It may be introduced when a second PORT (in any language) demonstrates shared code worth publishing.
 - **`port-canvas` is removed.** It had no code and its only effect was to imply symmetry. The roadmap keeps Canvas as a deferred *question*, not a package.
 - **The Web PORT is TypeScript** because its target (DOM, CSS, browser events) is JavaScript-native, and its inputs already arrive as JavaScript objects (the runtime's frozen trees). A Rust/WASM Web PORT would still have to call the DOM through JavaScript glue, and nothing on the evidence rewards that cost. This is a Web decision, not a PORT-wide one.
@@ -225,13 +225,13 @@ To remain unresolved until evidence arrives.
 
 - **U1. Accessibility semantics.** render-v1 has none (F7). Whether they come as manifest-declared primitive metadata, as new render-tree properties, or stay in the Web realization table is a MESH decision. PORT Web can only realize what primitives and props give it.
 - **U2. Styling.** Same as U1. No portable style concept crosses today.
-- **U3. Non-text values in text-only target slots.** *Audited in [`2026-09-27-value-realization-audit.md`](./2026-09-27-value-realization-audit.md), with a per-value, per-slot table: a MESH contract gap that blocks SSR.* A number, list or record prop has no MESH-given text. The DOM can take a number as a *property* (the browser converts it), but an HTML attribute or SSR output needs text, and PORT is forbidden to format numbers (F3). MESH gives number text only for text runs (§9.7.7). PORT Web currently refuses non-text values in attribute slots loudly. Whether MESH should provide text for such props is a question for MESH.
+- **U3. Non-text values in text-only target slots.** *Audited in [`2026-09-27-value-realization-audit.md`](2026-09-27-value-realization-audit.md), with a per-value, per-slot table: a MESH contract gap that blocks SSR.* A number, list or record prop has no MESH-given text. The DOM can take a number as a *property* (the browser converts it), but an HTML attribute or SSR output needs text, and PORT is forbidden to format numbers (F3). MESH gives number text only for text runs (§9.7.7). PORT Web currently refuses non-text values in attribute slots loudly. Whether MESH should provide text for such props is a question for MESH.
 - **U4. Target capability descriptions.** No consumer exists (Gate 2), so no format is defined.
 - **U5. Lists and conditionals.** F4 holds only while MPRX has no loops or conditional elements. MESH says "a later design for lists may extend [keys]". Insertion, removal and reordering are unspecified until then.
 - **U6. Payloads beyond the slice.** How each primitive's event payload is built from a DOM event is currently decided per realization table. Whether some payload shapes deserve standard Web realizations needs more applications.
 - **U7. How the composer learns the program changed.** A MESH `Render` does not expose its program identity (it's "never given to a renderer"). A composer that swaps programs knows because it did so; hot reload tooling (NEXUS roadmap §15) will need to track it.
 - **U8. SSR state transfer.** Dispatch needs a `Render`, so a hydrating client must obtain one by rendering the serialized snapshot itself (see ROADMAP). Whether snapshot serialization is the composer's or NEXUS's is open (NEXUS roadmap §14 lists serialization and hydration as v0.10 investigations).
-- **U9. Event propagation.** MPRX says nothing about whether an event on a nested node also counts for its ancestors' bindings. PORT Web keeps the DOM's default (bubbling), so a click on a node inside another node that binds `click` reports both. **Audited** in [`2026-09-27-event-propagation-audit.md`](./2026-09-27-event-propagation-audit.md): local binding is better supported, but it is a MESH contract gap, and V0.3 is not semantically complete.
+- **U9. Event propagation.** MPRX says nothing about whether an event on a nested node also counts for its ancestors' bindings. PORT Web keeps the DOM's default (bubbling), so a click on a node inside another node that binds `click` reports both. **Audited** in [`2026-09-27-event-propagation-audit.md`](2026-09-27-event-propagation-audit.md): local binding is better supported, but it is a MESH contract gap, and V0.3 is not semantically complete.
 
 ## Contradictions
 
@@ -243,7 +243,7 @@ Recorded, not silently resolved. Where this kickoff changes PORT's own documents
 - **C4. `@valence` vs `@valancex`** (F12). **Resolved** by Gate 4.
 - **C5. Scaffold structure vs "no universal renderer interface".** PORT's docs forbid a universal renderer interface, while the package graph makes every target depend on one shared TypeScript package (Gate 3 E). **Resolved** by Gate 3.
 - **C6. Org profile lists PORT's language as "TypeScript".** The kickoff states PORT's implementation language follows the target. True today for `port-web` only. The org profile is outside this repository; flagged, not changed.
-- **C7. MESH `docs/ARCHITECTURE.md` "PORT describes target capabilities, and MESH may reason about them" vs render-v1.** MESH's direction expects information to flow from PORT to MESH tooling, but there is no channel for it in any current format. Direction only; no action.
+- **C7. MESH `docs/explanation/architecture.md` "PORT describes target capabilities, and MESH may reason about them" vs render-v1.** MESH's direction expects information to flow from PORT to MESH tooling, but there is no channel for it in any current format. Direction only; no action.
 - **C8. PORT ROADMAP V0.1 "Do not simply expose the MESH IR wholesale … PORT should consume the semantic guarantees it actually needs."** There is no MESH IR to expose, and render-v1 is already the minimal, guarantee-shaped output MESH designed for renderers. PORT consumes it as is, rather than defining its own input format. **Resolved** in the roadmap.
 
 ## External documentation follow-ups

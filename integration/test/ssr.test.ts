@@ -1,5 +1,5 @@
 // Server rendering and hydration through the whole slice, every step real
-// (docs/superpowers/specs/2026-09-28-port-web-ssr.md §6, §12):
+// (docs/explanation/specs/2026-09-28-port-web-ssr.md §6, §12):
 //
 //   server: NEXUS state → host → MESH render-v1 → PORT realizeHtml → HTML
 //   page:   HTML, parsed as a page load parses it, in a fresh DOM

@@ -1,4 +1,4 @@
-// The dependency directions the slice relies on (NEXUS docs/ARCHITECTURE.md
+// The dependency directions the slice relies on (NEXUS docs/explanation/architecture.md
 // §16, MESH rule 13), checked against the packages as published and built.
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";

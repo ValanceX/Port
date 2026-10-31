@@ -1,4 +1,4 @@
-// The Web PORT's boundaries (docs/CONTRACT.md, obligation 7; the audit's
+// The Web PORT's boundaries (docs/reference/contract.md, obligation 7; the audit's
 // R8): it depends on neither NEXUS nor the MESH runtime, only on the
 // render tree's types, and uses no browser globals.
 import { readdirSync, readFileSync } from "node:fs";
@@ -72,7 +72,7 @@ describe("port-web's boundaries", () => {
   });
 });
 
-// The server entry (docs/superpowers/specs/2026-09-28-port-web-ssr.md §4.1):
+// The server entry (docs/explanation/specs/2026-09-28-port-web-ssr.md §4.1):
 // DOM-free, sharing the table, its validation, the tree check and value
 // realization with the client, and never loading the client's DOM code.
 describe("the server entry's boundaries", () => {

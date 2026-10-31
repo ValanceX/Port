@@ -4,7 +4,7 @@
 **Status:** Approved (`edea539`), with the table-validation tightening in §4.7 and the adoption-failure decision in §7.1. The first milestone (§10) is implemented: `packages/port-web/src/{check,html,server,port}.ts`, tested as §12 describes.
 **Scope:** the Web PORT (`@valancex/port-web`) only. This is not a universal PORT contract, and it adds no shared renderer API.
 **Baseline:** PORT branch `claude/port-mesh-v0.6-adoption-ius9fs` (Gate A), MESH v0.6.0 (`a8a046f`), `@valancex/mesh-runtime` 0.6.0, `@valancex/nexus` 0.8.0.
-**Inputs:** [PORT contract](../../CONTRACT.md), [Web value realization](../../architecture/2026-09-28-web-value-realization.md), MESH spec §9.7.7, §9.8.7, §9.9, and MESH's runtime manual (keys, program identity, handler identifiers, determinism).
+**Inputs:** [PORT contract](../../reference/contract.md), [Web value realization](../design-records/2026-09-28-web-value-realization.md), MESH spec §9.7.7, §9.8.7, §9.9, and MESH's runtime manual (keys, program identity, handler identifiers, determinism).
 
 ---
 
@@ -342,7 +342,7 @@ server HTML ─▶ hydrate(T) adoption-failed (a setter threw, §7.1): nothing d
 - PORT still infers nothing from the tree or the HTML about programs.
 - The composer still decides: it calls `hydrate` only for the program it knows the server rendered, and `draw` for any other.
 - Showing a different host later is a `draw`, as today.
-- **Contract amendment, at implementation:** `docs/CONTRACT.md` gains `hydrate` as a Web-PORT operation, described in these terms. It is a Web-specific operation, not a new universal one: a PORT without server rendering doesn't have it.
+- **Contract amendment, at implementation:** `docs/reference/contract.md` gains `hydrate` as a Web-PORT operation, described in these terms. It is a Web-specific operation, not a new universal one: a PORT without server rendering doesn't have it.
 
 ## 9. Events around hydration
 
@@ -373,7 +373,7 @@ There is one event model: MESH §9.9 through the Web PORT's mapping (§2B).
 7. Documentation:
    - `CONTRACT.md` (the `hydrate` operation);
    - the port-web README;
-   - the [Web value realization](../../architecture/2026-09-28-web-value-realization.md)'s SSR column, made final from §3;
+   - the [Web value realization](../design-records/2026-09-28-web-value-realization.md)'s SSR column, made final from §3;
    - the roadmap's V0.6 to V0.8.
 
 **Supported subset:** primitives realized as normal or void elements with `attribute`, `booleanAttribute` and absent `property`/`textProperty` slots; text runs without U+0000; unknown components; any event realization (events aren't serialized).
