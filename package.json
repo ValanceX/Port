@@ -19,6 +19,6 @@
   },
   "devDependencies": {
     "typescript": "^7.0.2",
-    "@valancex/mesh-conformance": "^0.17.0"
+    "@valancex/mesh-conformance": "^0.18.0"
   }
 }
