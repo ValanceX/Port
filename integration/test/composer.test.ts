@@ -96,7 +96,7 @@ describe("the composer decides program continuity", () => {
     expect(result.operations.filter((operation) => operation === "draw")).toHaveLength(2);
     expect(result.label).toBe("Reload");
     expect(result.reused).toEqual([]);
-    expect(Exit.isFailure(result.mismatched) && Option.getOrUndefined(Cause.failureOption(result.mismatched.cause))).toMatchObject({
+    expect(Exit.isFailure(result.mismatched) && Option.getOrUndefined(Cause.findErrorOption(result.mismatched.cause))).toMatchObject({
       _tag: "MeshDiagnostics",
       diagnostics: { diagnostics: [{ code: "runtime-handler-other-program" }] },
     });

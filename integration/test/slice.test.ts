@@ -10,7 +10,7 @@
 // @valancex/mesh-compiler, rendered by the published @valancex/mesh-runtime
 // inside the published @valancex/nexus, and drawn by this repository's PORT.
 import * as Nexus from "@valancex/nexus";
-import { Chunk, Effect, Exit, Fiber, Layer, Option, Stream } from "effect";
+import { Effect, Exit, Fiber, Layer, Option, Stream } from "effect";
 import { describe, expect, it } from "vitest";
 
 import { Team, UserSelected, application, compileProgram, dom, expectedFirstHtml, initialTeam, primitives, readJson, until } from "./app.js";
@@ -51,14 +51,14 @@ describe("MPRX → MESH → NEXUS → PORT Web → DOM", () => {
       yield* Effect.promise(app.stop);
       yield* Nexus.Application.shutdown(running);
 
-      return { drawnHtml, updatedHtml, sameImg, selected, events: Chunk.toReadonlyArray(events), dispatched: app.dispatched, after: container.innerHTML };
+      return { drawnHtml, updatedHtml, sameImg, selected, events: events, dispatched: app.dispatched, after: container.innerHTML };
     })));
 
     expect(result.drawnHtml).toBe(expectedFirstHtml);
 
     // The intent is exactly MESH's reviewed one: PORT's report carried the right handler, with the drawn render.
     expect(result.dispatched).toHaveLength(2);
-    const [select, refresh] = result.dispatched.map((exit) => Exit.getOrElse(exit, (cause) => { throw new Error(String(cause)); }));
+    const [select, refresh] = result.dispatched.map((exit) => Exit.isSuccess(exit) ? exit.value : (() => { throw new Error(String(exit.cause)); })());
     expect(select!.intent).toEqual(readJson("expected/select-first.intent.json"));
     expect(refresh!.intent.command).toEqual({ component: "users", name: "refresh" });
     expect(result.selected.selectedUserId).toEqual(Option.some("u1"));
