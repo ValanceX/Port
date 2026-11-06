@@ -145,7 +145,7 @@ describe("SSR → hydrate → NEXUS → update, through the slice", () => {
     expect(result.survivors).toEqual([]);
     expect(result.dispatched.map(commandOf)).toEqual([{
       command: { component: "user-card", name: "selectUser" },
-      arguments: [{ value: second.first }],
+      arguments: [{ name: "user", value: second.first }],
     }]);
     // Every later render is an update of the fresh draw (the host's renders stream may repeat the current one first).
     expect(result.operations[0]).toBe("hydrate");
@@ -154,7 +154,7 @@ describe("SSR → hydrate → NEXUS → update, through the slice", () => {
     expect(result.sameImg).toBe(true);
   });
 
-  it("MESH v0.6's propText reaches server HTML exactly as it reaches the DOM", async () => {
+  it("MESH's propText reaches server HTML exactly as it reaches the DOM", async () => {
     const users = read("users.mprx").replace("<button on.click", "<button disabled={compact} on.click");
     const table: WebPrimitives = { ...primitives, button: { ...primitives["button"]!, props: { disabled: { kind: "attribute", name: "aria-disabled" } } } };
     const { html, embedded } = await serve(initialTeam, table, users);

@@ -15,8 +15,8 @@
   "devDependencies": {
     "@types/jsdom": "^30.0.0",
     "@types/node": "^26.6.5",
-    "@valancex/mesh-compiler": "^0.6.0",
-    "@valancex/mesh-runtime": "^0.6.0",
+    "@valancex/mesh-compiler": "^0.18.0",
+    "@valancex/mesh-runtime": "^0.18.0",
     "@valancex/nexus": "^0.18.0",
     "@valancex/port-web": "workspace:*",
     "@vitest/browser-playwright": "5.0.5",

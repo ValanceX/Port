@@ -9,9 +9,9 @@
 // identity reaching PORT's reconciliation, and the intent is as far back as
 // that needs to go.
 //
-// This uses the MESH checkout's own build (the `{#if}` and `{#each}` blocks
-// of MESH 0.11 aren't in the published 0.6.0 this workspace depends
-// on), found at `MESH_CHECKOUT` or the sibling `../Mesh`. Without a built
+// This uses the MESH checkout's own build (the suite predates the published
+// packages carrying the `{#if}` and `{#each}` blocks), found at `MESH_CHECKOUT`
+// or the sibling `../Mesh`. Without a built
 // checkout the suite is skipped. PORT's dependency is not changed: nothing
 // here is PORT's code importing MESH internals, only the test composing the
 // two packages' public APIs, as the composer does.
@@ -226,12 +226,12 @@ describe.skipIf(!built)("MESH dynamic structure → render-v1 → PORT keyed rec
       const [a, b] = await Promise.all(app.reported.map(([handler, payload]) => app.intent(handler, payload)));
 
       expect(a!.command).toEqual({ component: "list", name: "pick" });
-      expect(a!.arguments).toEqual([{ value: "a" }]);
-      expect(b!.arguments).toEqual([{ value: "b" }]);
+      expect(a!.arguments).toEqual([{ name: "id", value: "a" }]);
+      expect(b!.arguments).toEqual([{ name: "id", value: "b" }]);
       // The first button is B's now, by object and by what it reports.
       app.reported.length = 0;
       app.click(app.container.querySelectorAll("button")[0]!);
-      expect((await app.intent(app.reported[0]![0]))!.arguments).toEqual([{ value: "b" }]);
+      expect((await app.intent(app.reported[0]![0]))!.arguments).toEqual([{ name: "id", value: "b" }]);
     });
 
     it("a removed item's object reports nothing, and its handler is unknown to the next render", async () => {
