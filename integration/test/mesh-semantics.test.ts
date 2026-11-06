@@ -1,5 +1,5 @@
-// MESH v0.6 through the whole slice: the runtime inside NEXUS's host is
-// v0.6, its propText reaches the DOM through PORT's text-only slots, a value
+// MESH 0.18 through the whole slice: the runtime inside NEXUS's host is
+// 0.18, its propText reaches the DOM through PORT's text-only slots, a value
 // no slot can hold is refused before the DOM changes, and nested bindings
 // resolve to one binding, and so one intent and one command, per click.
 //
@@ -22,7 +22,7 @@ const inApp = <A>(body: (context: {
   readonly team: Nexus.State.StateHandle<Team>;
   readonly run: <X, F>(effect: Effect.Effect<X, F, Nexus.Event.EventBusShape>) => Promise<Exit.Exit<X, F>>;
 }) => Promise<A>): Promise<A> => Effect.runPromise(Effect.scoped(Effect.gen(function* () {
-  const running = yield* Nexus.Application.start(Nexus.Application.define({ name: "port-mesh-v06", runtime: Layer.empty }));
+  const running = yield* Nexus.Application.start(Nexus.Application.define({ name: "port-mesh-semantics", runtime: Layer.empty }));
   const team = yield* Nexus.Application.createState(running, Team, initialTeam);
   const run = <X, F>(effect: Effect.Effect<X, F, Nexus.Event.EventBusShape>) => Nexus.Runtime.run(running.runtime, Effect.exit(effect));
   const result = yield* Effect.promise(() => body({ team, run }));
@@ -34,13 +34,13 @@ const inApp = <A>(body: (context: {
 const commandsOf = (dispatched: ReadonlyArray<Exit.Exit<Nexus.Mesh.Dispatched, unknown>>) =>
   dispatched.map((exit) => Exit.isSuccess(exit) ? `${exit.value.intent.command.component}/${exit.value.intent.command.name}` : "failed");
 
-describe("the slice runs on MESH v0.6", () => {
-  it("NEXUS's host renders with the one mesh-runtime the slice uses, and it is v0.6", () => {
+describe("the slice runs on MESH 0.18", () => {
+  it("NEXUS's host renders with the one mesh-runtime the slice uses, and it is 0.18", () => {
     const fromNexus = createRequire(createRequire(import.meta.url).resolve("@valancex/nexus")).resolve("@valancex/mesh-runtime/package.json");
     const fromSlice = createRequire(import.meta.url).resolve("@valancex/mesh-runtime/package.json");
 
     expect(realpathSync(fromNexus)).toBe(realpathSync(fromSlice));
-    expect((createRequire(import.meta.url)(fromSlice) as { readonly version: string }).version).toMatch(/^0\.6\./);
+    expect((createRequire(import.meta.url)(fromSlice) as { readonly version: string }).version).toMatch(/^0\.18\./);
   });
 });
 

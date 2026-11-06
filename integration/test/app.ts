@@ -31,7 +31,7 @@ export const compileProgram = async (sources: { readonly users?: string; readonl
 };
 
 const User = Schema.Struct({ id: Schema.String, name: Schema.String, avatar: Schema.optional(Schema.String), active: Schema.Boolean });
-export const Team = Schema.Struct({ title: Schema.String, first: User, second: User, compact: Schema.Boolean, selectedUserId: Schema.OptionFromSelf(Schema.String) });
+export const Team = Schema.Struct({ title: Schema.String, first: User, second: User, compact: Schema.Boolean, selectedUserId: Schema.Option(Schema.String) });
 export type Team = Schema.Schema.Type<typeof Team>;
 
 const Snapshot = Schema.Struct({ title: Schema.String, first: User, second: User, compact: Schema.Boolean });

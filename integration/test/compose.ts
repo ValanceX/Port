@@ -46,7 +46,7 @@ export const composer = <E, R>(
 ): Composer<E, R> => {
   // The host whose program is drawn, and the render whose tree is drawn.
   let shown: { readonly host: Mesh.Host<E, R>; render: Mesh.Render } | undefined;
-  let following: Fiber.RuntimeFiber<void, Mesh.MeshDiagnostics> | undefined;
+  let following: Fiber.Fiber<void, Mesh.MeshDiagnostics> | undefined;
   const pending: Array<Promise<unknown>> = [];
   const operations: Array<Operation> = [];
   const dispatched: Composer<E, R>["dispatched"] = [];

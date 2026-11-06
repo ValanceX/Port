@@ -16,7 +16,7 @@ import wasmUrl from "@valancex/mesh-runtime/mesh-runtime.wasm?url";
 import * as Nexus from "@valancex/nexus";
 import { attribute, booleanAttribute } from "@valancex/port-web";
 import { userEvent } from "vitest/browser";
-import { Chunk, Clock, Effect, Exit, Fiber, Layer, Option, Schema, Stream } from "effect";
+import { Clock, Effect, Exit, Fiber, Layer, Option, Schema, Stream } from "effect";
 import { beforeAll, describe, expect, inject, it } from "vitest";
 
 import { composer } from "../test/compose.js";
@@ -31,7 +31,7 @@ const program: Nexus.Mesh.Program = slice.program;
 const User = Schema.Struct({ id: Schema.String, name: Schema.String, avatar: Schema.optional(Schema.String), active: Schema.Boolean });
 type User = Schema.Schema.Type<typeof User>;
 const Snapshot = Schema.Struct({ title: Schema.String, first: User, second: User, compact: Schema.Boolean });
-const Team = Schema.Struct({ ...Snapshot.fields, selectedUserId: Schema.OptionFromSelf(Schema.String) });
+const Team = Schema.Struct({ ...Snapshot.fields, selectedUserId: Schema.Option(Schema.String) });
 type Team = Schema.Schema.Type<typeof Team>;
 
 const first = Schema.decodeUnknownSync(Snapshot)(slice.snapshots.first);
@@ -96,19 +96,15 @@ const primitives: WebPrimitives = {
 // The test platform: local to this file, in the Layer.merge shape of NEXUS's
 // reference platform, the shape that exposed P1.
 
-// A complete Clock (sleep included) that reads `n`. A spread of Clock.make() would drop its prototype's methods.
-const fixed = (n: number): Clock.Clock => {
-  const base = Clock.make();
-
-  return Object.assign(Object.create(Object.getPrototypeOf(base) as object) as Clock.Clock, base, { currentTimeMillis: Effect.succeed(n), unsafeCurrentTimeMillis: () => n });
-};
+// A complete Clock that reads `n` for wall time; nanoseconds and sleep stay the live Clock's.
+const fixed = (n: number): Clock.Clock => ({ ...Clock.Clock.defaultValue(), currentTimeMillis: Effect.succeed(n), currentTimeMillisUnsafe: () => n });
 
 const testPlatform = (provides: boolean) => {
   const reloads = { count: 0 };
   const resolutions = new Map<string, Nexus.Capability.CapabilityResolution<unknown>>(provides
     ? [[UsersSource.id, { _tag: "Available", implementation: { reload: Effect.sync(() => { reloads.count += 1; return second.first; }) } }]]
     : []);
-  const platform: Nexus.Application.Platform = Layer.merge(Nexus.Capability.EnvironmentLive(resolutions), Layer.setClock(fixed(42)));
+  const platform: Nexus.Application.Platform = Layer.merge(Nexus.Capability.EnvironmentLive(resolutions), Layer.succeed(Clock.Clock, fixed(42)));
   const statement = { name: "browser-slice-test-platform", provided: provides ? [UsersSource.id] : [], notProvided: provides ? [] : [UsersSource.id] };
 
   return { platform, statement, reloads };
@@ -200,7 +196,7 @@ describe("Chromium: MPRX → MESH → NEXUS (+ UsersSource) → test platform �
       const updatedHtml = container.innerHTML;
       const sameImg = container.querySelector("img") === img;
 
-      const events = Chunk.toReadonlyArray(yield* Fiber.join(published));
+      const events = yield* Fiber.join(published);
       yield* Effect.promise(app.stop);
       yield* Nexus.Application.shutdown(running);
       const callerAfter = yield* callerSees42;
