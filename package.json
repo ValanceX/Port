@@ -10,7 +10,7 @@
     "url": "git+https://github.com/ValanceX/Port.git"
   },
   "engines": {
-    "node": ">=22"
+    "node": ">=22.19"
   },
   "scripts": {
     "build": "pnpm -r run build",
