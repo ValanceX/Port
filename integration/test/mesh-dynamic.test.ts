@@ -11,7 +11,7 @@
 //
 // This uses the MESH checkout's own build (the suite predates the published
 // packages carrying the `{#if}` and `{#each}` blocks), found at `MESH_CHECKOUT`
-// or the sibling `../Mesh`. Without a built
+// or the sibling `../Mesh` (`../mesh` where the directory is lower-case: a checkout is found either way). Without a built
 // checkout the suite is skipped. PORT's dependency is not changed: nothing
 // here is PORT's code importing MESH internals, only the test composing the
 // two packages' public APIs, as the composer does.
@@ -28,7 +28,8 @@ import { existsSync } from "node:fs";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { describe, expect, it } from "vitest";
 
-const checkout = process.env.MESH_CHECKOUT ?? fileURLToPath(new URL("../../../Mesh/", import.meta.url));
+const sibling = (name: string): string => fileURLToPath(new URL(`../../../${name}/`, import.meta.url));
+const checkout = process.env.MESH_CHECKOUT ?? (existsSync(sibling("Mesh")) ? sibling("Mesh") : sibling("mesh"));
 const built = existsSync(`${checkout}/packages/mesh-runtime/dist/mesh-runtime.wasm`) && existsSync(`${checkout}/packages/mesh-compiler/dist/mesh.wasm`);
 
 type Compiler = typeof import("@valancex/mesh-compiler");
