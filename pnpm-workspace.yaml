@@ -6,5 +6,3 @@ allowBuilds:
 # Our own packages are exempt from the minimum release age: a release of ours is consumed by our other repos the day it is published.
 minimumReleaseAgeExclude:
   - "@valancex/*"
-overrides:
-  "@valancex/nexus": file:./local-packs/valancex-nexus-0.18.0.tgz
